@@ -17,7 +17,43 @@ import { expect, test } from '@playwright/test'
 
 const EMAIL = process.env.E2E_EMAIL
 const PASSWORD = process.env.E2E_PASSWORD
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const CONFIGURED = Boolean(EMAIL && PASSWORD)
+
+/**
+ * Credentials being present is not the same as the API being reachable. A
+ * sandbox with an egress allow-list, or an offline laptop, will resolve
+ * everything and then fail eight times over with identical ten-second
+ * timeouts at the sign-in step — which reads like broken auth rather than
+ * broken networking.
+ *
+ * Probing once up front turns that into a single accurate message.
+ */
+let apiReachable = false
+let reachabilityDetail = ''
+
+async function probeSupabase(): Promise<void> {
+  if (!CONFIGURED || !SUPABASE_URL) return
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+      signal: AbortSignal.timeout(10_000),
+    })
+    apiReachable = response.ok
+    if (!response.ok) reachabilityDetail = `auth health returned ${response.status}`
+  } catch (error) {
+    apiReachable = false
+    reachabilityDetail = error instanceof Error ? error.message : String(error)
+  }
+}
+
+function skipUnlessLive(test: { skip: (condition: boolean, reason: string) => void }): void {
+  test.skip(
+    !apiReachable,
+    `Supabase API at ${SUPABASE_URL} is not reachable from this environment ` +
+      `(${reachabilityDetail}). The credentials may be perfectly good — check ` +
+      `network egress before suspecting auth.`,
+  )
+}
 
 // A unique marker per run keeps repeated runs from colliding on search results.
 const RUN_ID = process.env.E2E_RUN_ID ?? String(Date.now())
@@ -29,7 +65,10 @@ test.describe('@authed core CRM workflow', () => {
     'Set E2E_EMAIL and E2E_PASSWORD (and point the app at a Supabase project with the migrations applied) to run the authenticated suite.',
   )
 
+  test.beforeAll(probeSupabase)
+
   test.beforeEach(async ({ page }) => {
+    skipUnlessLive(test)
     await page.goto('/login')
     await page.getByLabel('Email address').fill(EMAIL!)
     await page.getByLabel('Password').fill(PASSWORD!)
@@ -112,7 +151,10 @@ test.describe('@authed core CRM workflow', () => {
 test.describe('@authed accessibility of authenticated screens', () => {
   test.skip(!CONFIGURED, 'Requires E2E_EMAIL and E2E_PASSWORD.')
 
+  test.beforeAll(probeSupabase)
+
   test.beforeEach(async ({ page }) => {
+    skipUnlessLive(test)
     await page.goto('/login')
     await page.getByLabel('Email address').fill(EMAIL!)
     await page.getByLabel('Password').fill(PASSWORD!)

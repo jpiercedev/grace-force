@@ -9,15 +9,15 @@
 
 | Field | Value |
 | --- | --- |
-| Current phase | Feature-complete locally; awaiting hosted-environment verification |
+| Current phase | Feature-complete; hosted database provisioned and verified |
 | Current branch | `claude/crm-bridge-implementation-zj6y21` |
-| Overall status | All planned functionality implemented, tested and building |
-| Tests | 419 Vitest + 28 browser passing; 8 browser skipped (need a hosted project) |
+| Overall status | All planned functionality implemented, tested and building; hosted schema live |
+| Tests | 419 Vitest + 28 browser passing; 8 browser skipped (blocked by sandbox egress, see below) |
 | Build | `next build` succeeds — 36 routes |
 
 ## Completed
 
-**Database** — 14 migrations: profiles, contacts, engagement types and
+**Database** — 16 migrations: profiles, contacts, engagement types and
 engagements, pipelines/stages/cards, the unified activity timeline, follow-ups,
 gifts, leads and the rate limiter, the Mailchimp mirror, the notification
 outbox, CSV import staging, reference data, grants. RLS on every table with
@@ -51,23 +51,41 @@ views set `security_invoker = on`. Development seed in `supabase/seed.sql`.
 
 ## Next task
 
-Hosted-environment verification (see below). No local work is outstanding.
+Run the `@authed` browser suite from a network with egress to `*.supabase.co`,
+and supply `SUPABASE_SERVICE_ROLE_KEY` to exercise lead intake and the sync
+jobs. No local work is outstanding.
+
+## Hosted Supabase project
+
+| Field | Value |
+| --- | --- |
+| Project ID / ref | `phhkhvewcclzjkdbjmqw` |
+| Name | `grace-force-crm` |
+| Organisation | `jpiercedev's Org` (`oyreoignqdishfjmlssh`), Pro plan |
+| Region | `us-east-2` (Ohio) — closest available to Wisconsin |
+| Postgres | 17.6 |
+| API URL | `https://phhkhvewcclzjkdbjmqw.supabase.co` |
+| Cost | $10/month, no add-ons |
+
+All 16 migrations applied verbatim from `supabase/migrations`, in filename
+order. Verified on the live database: 20 tables, **20 with RLS**, 51 policies,
+16 `SECURITY DEFINER` functions, 2 `security_invoker` views, reference data
+seeded (8 engagement types, 3 pipelines, 16 stages).
+
+The recorded migration versions were realigned to the repository's filename
+prefixes — the management API stamps its own apply-time timestamps, which would
+make a later `supabase db push` believe none of them had run.
 
 ## Known blockers
 
-None blocking implementation.
-
-**Hosted Supabase is an external verification step, not a blocker.** Creating a
-paid project requires the owner's explicit approval and must not be done
-otherwise. What waits on it is only live sign-in and the `@authed` browser
-suite; everything else is verified locally.
-
-| External item | Blocks |
-| --- | --- |
-| Hosted Supabase project | Live auth, `@authed` browser suite |
-| Mailchimp API key | Live sync against the real API |
-| Resend API key | Live send |
-| A `main` branch | Opening a pull request — the feature branch became the repository default when pushed to the empty repo, so there is no base to target |
+| External item | Blocks | Notes |
+| --- | --- | --- |
+| **Sandbox egress policy** | The `@authed` browser suite | This container's network policy denies CONNECT to `*.supabase.co` (verified: gateway returns 403; GitHub and npm are permitted). The app therefore cannot reach the API from here. The MCP tooling works because it routes through Anthropic's infrastructure, not container egress. Run the suite from a machine with normal egress. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Lead intake, Mailchimp sync, notification outbox, reminder cron | The management API deliberately exposes only publishable keys. Copy it from Project Settings → API. |
+| Vercel environment variables | Production deploy | The Vercel MCP exposes no env-var or project-creation tool; its only write path is `deploy_to_vercel`, which would deploy. Not done — deployment was not approved. |
+| Mailchimp API key | Live sync against the real API | Intentionally unset so no real campaign can be touched. |
+| Resend API key | Live send | Intentionally unset so no real email can be sent. |
+| A `main` branch | Opening a pull request | The feature branch became the repository default when pushed to the empty repo, so there is no base to target. |
 
 ## Material architectural decisions
 
@@ -119,6 +137,8 @@ suite; everything else is verified locally.
 | `20260805001200_imports.sql` | import batches + rows |
 | `20260805001300_reference_data.sql` | engagement types, pipelines, stages |
 | `20260805001400_grants.sql` | role grants |
+| `20260805001500_function_execute_grants.sql` | revoke RPC EXECUTE on definer functions (advisor fix) |
+| `20260805001600_policy_and_index_tuning.sql` | split FOR ALL policies, add FK indexes (advisor fix) |
 
 Plus `supabase/seed.sql` — idempotent development data, every address
 `example.org`, asserted by test.
@@ -160,8 +180,13 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 | `ui/follow-up-queue.test.tsx` | 11 |
 | `ui/pipeline-board.test.tsx` | 7 |
 
-**Browser: 28 passing, 8 skipped.** The skipped ones are the `@authed` suite,
-which reports its reason rather than passing vacuously.
+**Browser: 28 passing, 8 skipped.** The skipped ones are the `@authed` suite.
+It now probes the Supabase API once before running and skips with the actual
+reachability error, rather than failing eight times over with identical
+sign-in timeouts that read like broken auth instead of blocked networking.
+
+The 28 passing runs were executed against the **real** hosted credentials, so
+they also confirm the app builds and serves correctly with them.
 
 **Failing:** none. **Pre-existing failures:** none (greenfield repository).
 
@@ -190,6 +215,42 @@ npx next build                       # succeeds, 36 routes
 3. Resend API key, verified sender, `NOTIFY_INTERNAL_EMAILS`.
 4. `CRON_SECRET` for the two scheduled endpoints (`vercel.json` declares both).
 5. A `main` branch, if a pull request is wanted.
+
+## Supabase Advisors
+
+Run after applying the schema, then fixed and re-run.
+
+**Security** — 15 WARN + 1 INFO → **6 WARN + 1 INFO**
+- Fixed: all 14 `anon_security_definer_function_executable`. PostgREST exposes
+  every `public` function as an RPC and Postgres grants EXECUTE to PUBLIC, so
+  every definer function — including the trigger functions — was callable
+  unauthenticated. Migration `…001500` revokes it.
+- **Accepted, cannot be fixed without breaking the security model:** the five
+  RLS helpers (`is_admin`, `can_write`, `can_view_giving`, `is_active_user`,
+  `current_user_role`) must keep EXECUTE for `authenticated`. A policy
+  expression is evaluated with the querying role's privileges, so revoking it
+  makes every query against a protected table fail with "permission denied for
+  function". Verified against a real Postgres before accepting.
+- **Accepted, intentional:** `convert_lead` is an RPC the app calls on behalf of
+  a signed-in user; it re-checks `can_write()` internally.
+- **INFO, by design:** `rate_limit_hits` has RLS enabled with no policies —
+  service-role only.
+
+**Performance** — 4 WARN + 51 INFO → **0 WARN + 65 INFO**
+- Fixed: all 4 `multiple_permissive_policies`. `FOR ALL` covers SELECT, so each
+  admin-write policy was evaluated alongside the read policy on every read.
+  Split into INSERT/UPDATE/DELETE; the two `profiles` UPDATE policies merged
+  into one disjunction.
+- Fixed: 13 of 24 `unindexed_foreign_keys` — the ones the application joins on.
+- **Deliberately not indexed:** the audit-stamp columns (`created_by`,
+  `updated_by`, `completed_by`, `converted_by`, `triggered_by`). Nothing queries
+  by them and their parent `profiles` has no DELETE policy — team members are
+  deactivated, never deleted — so an index would cost writes to buy a lookup
+  nobody performs.
+- **Not actionable:** `unused_index` on an empty database with no query history.
+  The count rises after adding indexes precisely because they are new.
+- **INFO, project config:** `auth_db_connections_absolute` recommends
+  percentage-based Auth connection allocation before scaling the instance.
 
 ## Known limitations
 

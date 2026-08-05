@@ -157,6 +157,34 @@ verified locally:
 What genuinely needs a hosted project is a short list: signing in for real,
 and the authenticated browser suite that depends on it.
 
+### The provisioned project
+
+A hosted project already exists for this application:
+
+| Field | Value |
+| --- | --- |
+| Project ref | `phhkhvewcclzjkdbjmqw` |
+| Region | `us-east-2` |
+| API URL | `https://phhkhvewcclzjkdbjmqw.supabase.co` |
+
+All migrations in `supabase/migrations` have been applied to it. To point a
+local checkout at it, set `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (the publishable key from Project Settings →
+API), plus `SUPABASE_SERVICE_ROLE_KEY` if you need lead intake or the sync jobs.
+
+**A verification account exists** — `e2e.admin@graceforce.test`, created
+directly in `auth.users` with a confirmed email so the `@authed` suite has
+something to sign in as. It was made this way rather than by disabling email
+confirmation project-wide, which would have weakened the real auth settings.
+
+> Delete that account, or rotate its password, before the project holds real
+> data. Its password was set during automated verification and should not be
+> treated as secret.
+
+```sql
+delete from auth.users where email = 'e2e.admin@graceforce.test';
+```
+
 ### When a hosted project is provided
 
 1. Apply the migrations (`supabase db push`, or paste them in filename order).
@@ -169,6 +197,17 @@ and the authenticated browser suite that depends on it.
    `npm run e2e -- --grep @authed`.
 6. Check **Advisors** in the dashboard for security and performance findings.
 7. Optionally run the seed against a development project — never production.
+
+## Network requirements
+
+The application talks to `https://<project-ref>.supabase.co` over HTTPS. A
+sandbox or CI environment with an egress allow-list must permit that host, or
+every request fails at the transport layer and the symptom looks like broken
+authentication rather than blocked networking.
+
+The `@authed` Playwright suite probes the API once before running and skips with
+the actual reachability error when it cannot connect, so this failure mode
+reports itself.
 
 ## Troubleshooting
 
