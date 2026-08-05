@@ -1,19 +1,21 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import type { FollowUpActionState } from '@/app/(app)/follow-ups/actions'
 import { Button, type ButtonProps } from '@/components/ui/button'
-import { Badge, Callout } from '@/components/ui/display'
+import { Badge } from '@/components/ui/display'
 import { Field, Select, Textarea } from '@/components/ui/form'
 import type { FollowUpQueueItem, TeamProfile } from '@/lib/queries/follow-ups'
+import { PRIORITY_LABELS, PRIORITY_TONES, SNOOZE_ACTIONS } from '@/lib/validation/follow-up'
 import {
-  PRIORITY_LABELS,
-  PRIORITY_TONES,
-  SNOOZE_ACTIONS,
-} from '@/lib/validation/follow-up'
-import { cn, contactDisplayName, formatDateTime, formatRelative, isOverdue, truncate } from '@/lib/utils'
+  cn,
+  contactDisplayName,
+  formatDateTime,
+  formatRelative,
+  isOverdue,
+  truncate,
+} from '@/lib/utils'
 
 type Panel = 'complete' | 'reassign' | 'cancel' | null
 
@@ -26,7 +28,10 @@ export interface FollowUpRowProps {
    * relative label identical on the server and on hydration.
    */
   nowIso: string
-  action: (prev: FollowUpActionState, formData: FormData) => Promise<FollowUpActionState>
+  /** Owned by the queue, which outlives a row leaving the current segment. */
+  formAction: (formData: FormData) => void
+  /** Changes when an action succeeds, which closes any open panel. */
+  resetSignal: number
 }
 
 function SubmitButton({ children, ...props }: ButtonProps) {
@@ -47,8 +52,14 @@ function Subject({ title }: { title: string }) {
   return <span className="sr-only">: {title}</span>
 }
 
-export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRowProps) {
-  const [state, formAction] = useActionState<FollowUpActionState, FormData>(action, {})
+export function FollowUpRow({
+  item,
+  team,
+  canEdit,
+  nowIso,
+  formAction,
+  resetSignal,
+}: FollowUpRowProps) {
   const [panel, setPanel] = useState<Panel>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -69,10 +80,9 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
     panelRef.current?.querySelector<HTMLElement>('textarea, select, button')?.focus()
   }, [panel])
 
-  // A successful action leaves nothing to confirm.
   useEffect(() => {
-    if (state.notice) setPanel(null)
-  }, [state.notice])
+    setPanel(null)
+  }, [resetSignal])
 
   const now = new Date(nowIso)
   const overdue = item.status === 'open' && isOverdue(item.due_at, now)
@@ -143,10 +153,13 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                   value={snooze.intent}
                   variant="secondary"
                   size="sm"
+                  // "+1 day" means nothing on its own, and a hidden "Snooze "
+                  // fragment would be concatenated without its trailing space
+                  // by the accessible-name algorithm ("Snooze+1 day"). The
+                  // whole label is stated instead, visible text included.
+                  aria-label={`Snooze ${snooze.label}: ${item.title}`}
                 >
-                  <span className="sr-only">Snooze </span>
                   {snooze.label}
-                  <Subject title={item.title} />
                 </SubmitButton>
               ))}
               <Button
@@ -184,9 +197,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
             {panel === 'complete' ? (
               <>
                 <Field label="Outcome note" hint="Optional — what came of it?">
-                  {(props) => (
-                    <Textarea {...props} name="outcome_note" rows={2} maxLength={2000} />
-                  )}
+                  {(props) => <Textarea {...props} name="outcome_note" rows={2} maxLength={2000} />}
                 </Field>
                 <div className="flex flex-wrap gap-2">
                   <SubmitButton name="intent" value="complete" size="sm">
@@ -245,15 +256,6 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
             ) : null}
           </div>
         ) : null}
-
-        {state.error ? (
-          <Callout tone="danger" role="alert">
-            {state.error}
-          </Callout>
-        ) : null}
-        {/* Reassigning leaves the row in place, so the confirmation has
-            somewhere to live; completing removes it and takes this with it. */}
-        {state.notice ? <Callout tone="success">{state.notice}</Callout> : null}
       </form>
     </li>
   )

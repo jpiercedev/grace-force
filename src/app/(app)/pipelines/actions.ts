@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { canWrite, requireProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { truncate } from '@/lib/utils'
 import {
   addPipelineCardSchema,
   closeCardSchema,
@@ -139,10 +140,20 @@ export async function updatePipelineCard(
     if (!parsed.success) {
       return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
     }
+
+    // The board announces the move to anyone who cannot see the card change
+    // column, so the message names where it landed.
+    const supabase = await createClient()
+    const { data: stage } = await supabase
+      .from('pipeline_stages')
+      .select('name')
+      .eq('id', parsed.data.stage_id)
+      .maybeSingle()
+
     return applyCardUpdate(
       parsed.data.id,
       { stage_id: parsed.data.stage_id },
-      'Card moved.',
+      (title) => (stage ? `Moved ${title} to ${stage.name}.` : `Moved ${title}.`),
       'That stage is not part of this pipeline.',
     )
   }
@@ -167,14 +178,15 @@ export async function updatePipelineCard(
       closed_at: new Date().toISOString(),
       close_reason: parsed.data.close_reason,
     },
-    outcome === 'won' ? 'Card marked won.' : 'Card marked lost.',
+    (title) => `Marked ${title} ${outcome}.`,
   )
 }
 
 async function applyCardUpdate(
   id: string,
   patch: Partial<PipelineCardRow>,
-  notice: string,
+  /** Built from the stored title so the confirmation names the card. */
+  notice: (title: string) => string,
   foreignKeyMessage = 'That change could not be saved.',
 ): Promise<PipelineActionState> {
   const supabase = await createClient()
@@ -185,7 +197,7 @@ async function applyCardUpdate(
     // Guards against two people acting on the same card: a closed card stops
     // matching, so the second update reports rather than silently re-closing.
     .eq('status', 'open')
-    .select('id, contact_id')
+    .select('id, contact_id, title')
     .maybeSingle()
 
   if (error) {
@@ -200,5 +212,5 @@ async function applyCardUpdate(
   }
 
   revalidatePipelines(data.contact_id)
-  return { notice }
+  return { notice: notice(`“${truncate(data.title, 60)}”`) }
 }

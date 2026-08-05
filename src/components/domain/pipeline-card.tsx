@@ -1,11 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
 import { Button, type ButtonProps } from '@/components/ui/button'
-import { Callout } from '@/components/ui/display'
 import { Field, Select, Textarea } from '@/components/ui/form'
 import type { BoardCard } from '@/lib/queries/pipelines'
 import { contactDisplayName, formatCurrency, formatDate } from '@/lib/utils'
@@ -21,7 +19,8 @@ export interface PipelineCardProps {
   stages: PipelineCardStageOption[]
   tracksValue: boolean
   canEdit: boolean
-  action: (prev: PipelineActionState, formData: FormData) => Promise<PipelineActionState>
+  /** Owned by the board, which survives a card moving between columns. */
+  formAction: (formData: FormData) => void
 }
 
 function SubmitButton({ children, ...props }: ButtonProps) {
@@ -48,8 +47,7 @@ function Subject({ title }: { title: string }) {
  * Movement is a labelled select plus a submit button rather than a drag
  * handle: dragging is the enhancement, this is the interface.
  */
-export function PipelineCard({ card, stages, tracksValue, canEdit, action }: PipelineCardProps) {
-  const [state, formAction] = useActionState<PipelineActionState, FormData>(action, {})
+export function PipelineCard({ card, stages, tracksValue, canEdit, formAction }: PipelineCardProps) {
   const [closing, setClosing] = useState(false)
   const stageSelectId = useId()
   const panelId = useId()
@@ -74,7 +72,10 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
 
   return (
     <li>
-      <form action={formAction} className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <form
+        action={formAction}
+        className="space-y-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
+      >
         <input type="hidden" name="id" value={card.id} />
 
         <Link
@@ -146,7 +147,13 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
               <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-50 p-2">
                 <Field label="Reason" hint="Optional — why did it land this way?">
                   {(props) => (
-                    <Textarea {...props} name="close_reason" rows={2} maxLength={500} className="text-xs" />
+                    <Textarea
+                      {...props}
+                      name="close_reason"
+                      rows={2}
+                      maxLength={500}
+                      className="text-xs"
+                    />
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">
@@ -170,15 +177,6 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
             ) : null}
           </>
         ) : null}
-
-        {state.error ? (
-          <Callout tone="danger" role="alert">
-            {state.error}
-          </Callout>
-        ) : null}
-        {/* A moved card is re-rendered in its new column, so this confirms the
-            change for anyone who cannot see the board rearrange. */}
-        {state.notice ? <Callout tone="success">{state.notice}</Callout> : null}
       </form>
     </li>
   )

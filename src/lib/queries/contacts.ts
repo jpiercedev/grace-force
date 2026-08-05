@@ -36,6 +36,12 @@ import type {
 export const CONTACT_PAGE_SIZE = 25
 export const TIMELINE_PAGE_SIZE = 25
 
+/**
+ * Ceiling on a "load more" timeline. Past this the page is unusable anyway, and
+ * an unbounded `show=` in the URL is a cheap way to make the server do work.
+ */
+export const TIMELINE_MAX_LOADED = 500
+
 export const CONTACT_SORTS = ['recent', 'name', 'created'] as const
 export type ContactSort = (typeof CONTACT_SORTS)[number]
 
@@ -458,7 +464,10 @@ export async function getContactTimeline(
   contactId: string,
   options: { limit?: number; type?: ActivityType | null } = {},
 ): Promise<ContactTimeline> {
-  const limit = Math.max(TIMELINE_PAGE_SIZE, Math.min(options.limit ?? TIMELINE_PAGE_SIZE, 500))
+  const limit = Math.max(
+    TIMELINE_PAGE_SIZE,
+    Math.min(options.limit ?? TIMELINE_PAGE_SIZE, TIMELINE_MAX_LOADED),
+  )
   const supabase = await createClient()
 
   let query = supabase

@@ -53,7 +53,8 @@ export function TimelineLogForm({
             size="sm"
             onClick={disclosure.toggle}
             aria-expanded={disclosure.open}
-            aria-controls="log-activity-panel"
+            // Only while the panel exists — a dangling reference is worse than none.
+            aria-controls={disclosure.open ? 'log-activity-panel' : undefined}
           >
             {disclosure.open ? 'Cancel' : 'Log activity'}
           </Button>

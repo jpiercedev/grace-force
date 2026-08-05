@@ -1,5 +1,5 @@
 import { FollowUpFilters } from '@/components/domain/follow-up-filters'
-import { FollowUpRow } from '@/components/domain/follow-up-row'
+import { FollowUpQueue } from '@/components/domain/follow-up-queue'
 import { LinkButton } from '@/components/ui/button'
 import { Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
 import { canWrite, requireProfile } from '@/lib/auth'
@@ -65,18 +65,13 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Se
         {items.length === 0 ? (
           <EmptyState title="Nothing here" description={SEGMENT_EMPTY_MESSAGES[segment]} />
         ) : (
-          <ul className="divide-y divide-slate-200">
-            {items.map((item) => (
-              <FollowUpRow
-                key={item.id}
-                item={item}
-                team={team}
-                canEdit={editable}
-                nowIso={now.toISOString()}
-                action={updateFollowUp}
-              />
-            ))}
-          </ul>
+          <FollowUpQueue
+            items={items}
+            team={team}
+            canEdit={editable}
+            nowIso={now.toISOString()}
+            action={updateFollowUp}
+          />
         )}
       </Card>
     </div>

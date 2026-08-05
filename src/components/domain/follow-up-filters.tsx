@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Field, Select } from '@/components/ui/form'
@@ -28,6 +30,8 @@ export interface FollowUpFiltersProps {
  *
  * The filter is a plain GET form so it works without JavaScript and leaves the
  * current view in the URL — shareable, bookmarkable, and back-button friendly.
+ * It is a Client Component only because `Field` takes a render prop, and a
+ * function cannot cross the server/client boundary.
  */
 export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpFiltersProps) {
   function hrefFor(target: FollowUpSegment): string {

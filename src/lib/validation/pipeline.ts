@@ -70,7 +70,11 @@ const optionalDate = z
   .trim()
   .transform((value, ctx) => {
     if (value === '') return null
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(new Date(value).getTime())) {
+    // Date's parser is lenient — it rolls 2026-02-31 forward into March rather
+    // than refusing it — so the result is compared back against the input. A
+    // date Postgres would reject has to surface as a message, not a 500.
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null
+    if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Enter a valid date' })
       return z.NEVER
     }

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { canWrite, requireProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
+import { formatDateTime, truncate } from '@/lib/utils'
 import {
   completeFollowUpSchema,
   createFollowUpSchema,
@@ -115,7 +116,10 @@ export async function createFollowUp(
 
 /**
  * Complete, snooze, reassign or cancel — dispatched on the submit button's
- * `intent` so a queue row needs only one form and one error region.
+ * `intent` so a queue row needs only one form.
+ *
+ * The notices name the follow-up because the queue reads them out: by the time
+ * one is shown, the row it refers to has usually left the segment on screen.
  */
 export async function updateFollowUp(
   _prev: FollowUpActionState,
@@ -133,7 +137,7 @@ export async function updateFollowUp(
   const supabase = await createClient()
   const { data: existing, error: lookupError } = await supabase
     .from('follow_ups')
-    .select('id, contact_id, due_at, remind_at, status')
+    .select('id, contact_id, title, due_at, remind_at, status')
     .eq('id', identified.data.id)
     .maybeSingle()
 
@@ -143,11 +147,19 @@ export async function updateFollowUp(
     return { error: 'That follow-up is already closed.' }
   }
 
+  // The queue announces this to anyone who cannot see the row change, so it
+  // names the follow-up rather than saying "done".
+  const subject = `“${truncate(existing.title, 60)}”`
   const snoozeInterval = snoozeIntervalFor(intent)
 
   if (snoozeInterval) {
     const next = snoozeTimestamps(existing, snoozeInterval)
-    return applyUpdate(existing.id, existing.contact_id, next, 'Follow-up snoozed.')
+    return applyUpdate(
+      existing.id,
+      existing.contact_id,
+      next,
+      `Snoozed ${subject} to ${formatDateTime(next.due_at)}.`,
+    )
   }
 
   if (intent === 'complete') {
@@ -169,7 +181,7 @@ export async function updateFollowUp(
         completed_by: profile.id,
         outcome_note: parsed.data.outcome_note,
       },
-      'Follow-up completed.',
+      `Completed ${subject}.`,
     )
   }
 
@@ -185,7 +197,7 @@ export async function updateFollowUp(
       existing.id,
       existing.contact_id,
       { assigned_to: parsed.data.assigned_to },
-      'Follow-up reassigned.',
+      parsed.data.assigned_to ? `Reassigned ${subject}.` : `${subject} is now unassigned.`,
     )
   }
 
@@ -193,7 +205,7 @@ export async function updateFollowUp(
     existing.id,
     existing.contact_id,
     { status: 'cancelled' as const },
-    'Follow-up cancelled.',
+    `Cancelled ${subject}.`,
   )
 }
 

@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { PipelineAddForm } from '@/components/domain/pipeline-add-form'
 import { Button, LinkButton } from '@/components/ui/button'
 import { Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
-import { Field, Input } from '@/components/ui/form'
+import { Input, Label } from '@/components/ui/form'
 import { requireWriteAccess } from '@/lib/auth'
 import { getContactForFollowUp } from '@/lib/queries/follow-ups'
 import {
@@ -94,23 +94,26 @@ export default async function AddToPipelinePage({
       <Card>
         <CardHeader title="Find a contact" description="Search by name, email or organisation." />
         <CardBody className="space-y-4">
+          {/* Label and Input rather than Field: this page stays a Server
+              Component, and Field's render prop is a function, which cannot
+              cross into a Client Component. There is one search box, so a
+              fixed id is unambiguous. */}
           <form
             method="get"
             action={`/pipelines/${pipeline.slug}/add`}
             className="flex flex-wrap items-end gap-3"
           >
-            <Field label="Search" className="min-w-0 flex-1">
-              {(props) => (
-                <Input
-                  {...props}
-                  name="q"
-                  type="search"
-                  defaultValue={term}
-                  autoFocus
-                  placeholder="Ruth Alvarez"
-                />
-              )}
-            </Field>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Label htmlFor="contact-search">Search</Label>
+              <Input
+                id="contact-search"
+                name="q"
+                type="search"
+                defaultValue={term}
+                autoFocus
+                placeholder="Ruth Alvarez"
+              />
+            </div>
             <Button type="submit" variant="secondary">
               Search
             </Button>
