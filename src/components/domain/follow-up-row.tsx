@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { FollowUpActionState } from '@/app/(app)/follow-ups/actions'
 import { Button, type ButtonProps } from '@/components/ui/button'
@@ -38,10 +38,20 @@ function SubmitButton({ children, ...props }: ButtonProps) {
   )
 }
 
+/**
+ * Folds the follow-up's title into a button's accessible name. A queue of
+ * fifteen rows otherwise presents fifteen buttons all called "Complete", which
+ * is unusable from a screen reader's element list.
+ */
+function Subject({ title }: { title: string }) {
+  return <span className="sr-only">: {title}</span>
+}
+
 export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRowProps) {
   const [state, formAction] = useActionState<FollowUpActionState, FormData>(action, {})
   const [panel, setPanel] = useState<Panel>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const panelId = useId()
 
   // Anything that opens closes on Escape.
   useEffect(() => {
@@ -121,8 +131,10 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 size="sm"
                 onClick={() => setPanel(panel === 'complete' ? null : 'complete')}
                 aria-expanded={panel === 'complete'}
+                aria-controls={panel === 'complete' ? panelId : undefined}
               >
                 Complete
+                <Subject title={item.title} />
               </Button>
               {SNOOZE_ACTIONS.map((snooze) => (
                 <SubmitButton
@@ -134,6 +146,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 >
                   <span className="sr-only">Snooze </span>
                   {snooze.label}
+                  <Subject title={item.title} />
                 </SubmitButton>
               ))}
               <Button
@@ -142,8 +155,10 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 size="sm"
                 onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')}
                 aria-expanded={panel === 'reassign'}
+                aria-controls={panel === 'reassign' ? panelId : undefined}
               >
                 Reassign
+                <Subject title={item.title} />
               </Button>
               <Button
                 type="button"
@@ -151,8 +166,10 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 size="sm"
                 onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}
                 aria-expanded={panel === 'cancel'}
+                aria-controls={panel === 'cancel' ? panelId : undefined}
               >
                 Cancel
+                <Subject title={item.title} />
               </Button>
             </div>
           ) : null}
@@ -161,6 +178,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
         {panel ? (
           <div
             ref={panelRef}
+            id={panelId}
             className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3"
           >
             {panel === 'complete' ? (
@@ -173,6 +191,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 <div className="flex flex-wrap gap-2">
                   <SubmitButton name="intent" value="complete" size="sm">
                     Mark complete
+                    <Subject title={item.title} />
                   </SubmitButton>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
                     Not yet
@@ -198,6 +217,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 <div className="flex flex-wrap gap-2">
                   <SubmitButton name="intent" value="reassign" size="sm">
                     Save assignee
+                    <Subject title={item.title} />
                   </SubmitButton>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
                     Discard
@@ -215,6 +235,7 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
                 <div className="flex flex-wrap gap-2">
                   <SubmitButton name="intent" value="cancel" variant="danger" size="sm">
                     Yes, cancel it
+                    <Subject title={item.title} />
                   </SubmitButton>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
                     Keep it
@@ -230,6 +251,9 @@ export function FollowUpRow({ item, team, canEdit, nowIso, action }: FollowUpRow
             {state.error}
           </Callout>
         ) : null}
+        {/* Reassigning leaves the row in place, so the confirmation has
+            somewhere to live; completing removes it and takes this with it. */}
+        {state.notice ? <Callout tone="success">{state.notice}</Callout> : null}
       </form>
     </li>
   )

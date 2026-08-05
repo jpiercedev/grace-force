@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import type { ContactSource, ContactStatus, LifecycleStage } from '@/types/database'
+import type {
+  ContactSource,
+  ContactStatus,
+  EngagementStatus,
+  LifecycleStage,
+} from '@/types/database'
 
 /**
  * Contact validation.
@@ -37,6 +42,18 @@ export const CONTACT_SOURCES = [
   'giving_platform',
   'other',
 ] as const satisfies readonly ContactSource[]
+
+/**
+ * Ordered so a select reads as a lifecycle. `ended` is last because choosing it
+ * is what turns the end-date field on — see `engagements_ended_consistency`.
+ */
+export const ENGAGEMENT_STATUSES = [
+  'prospect',
+  'active',
+  'paused',
+  'lapsed',
+  'ended',
+] as const satisfies readonly EngagementStatus[]
 
 /** Guards against a paste of someone's entire tag taxonomy into one contact. */
 export const MAX_TAGS = 25

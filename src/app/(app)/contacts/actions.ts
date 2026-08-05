@@ -7,6 +7,7 @@ import { MANUAL_ACTIVITY_TYPES } from '@/components/domain/contact-badges'
 import { requireAdmin, requireWriteAccess } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import {
+  ENGAGEMENT_STATUSES,
   contactFormSchema,
   optionalDate,
   optionalText,
@@ -272,8 +273,6 @@ export async function logActivity(
 }
 
 // --- Engagements ------------------------------------------------------------
-
-const ENGAGEMENT_STATUSES = ['prospect', 'active', 'paused', 'lapsed', 'ended'] as const
 
 const engagementSchema = z.object({
   contact_id: uuidField('Missing contact'),

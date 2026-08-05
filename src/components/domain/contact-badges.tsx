@@ -127,6 +127,19 @@ export const MANUAL_ACTIVITY_TYPES = [
   'prayer_request',
 ] as const satisfies readonly ActivityType[]
 
+/** Declaration order of the label map, which is the order the filter offers. */
+export const ACTIVITY_TYPES = Object.keys(ACTIVITY_TYPE_LABELS) as ActivityType[]
+
+/** The rest: written by database triggers, sync jobs and the import pipeline. */
+export const AUTOMATIC_ACTIVITY_TYPES = ACTIVITY_TYPES.filter(
+  (type) => !(MANUAL_ACTIVITY_TYPES as readonly ActivityType[]).includes(type),
+)
+
+/** Narrows a URL parameter to a real activity type, so a hand-edited query cannot reach the database. */
+export function parseActivityType(value: string | null | undefined): ActivityType | null {
+  return value && value in ACTIVITY_TYPE_LABELS ? (value as ActivityType) : null
+}
+
 export const ACTIVITY_DIRECTION_LABELS: Record<ActivityDirection, string> = {
   inbound: 'They contacted us',
   outbound: 'We contacted them',

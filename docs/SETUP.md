@@ -63,6 +63,26 @@ in-process Postgres and checks the security model:
 npm run test:db
 ```
 
+### Seed data
+
+`supabase/seed.sql` fills a development database with fictional contacts,
+overlapping engagements, a populated timeline, overdue and upcoming follow-ups,
+giving history, pipeline cards and untriaged leads — enough to exercise every
+screen.
+
+```bash
+supabase db reset                      # migrations, then the seed
+psql "$DATABASE_URL" -f supabase/seed.sql
+```
+
+It is safe to run repeatedly: every insert is keyed, so a second run changes
+nothing. It attaches ownership to the oldest existing profile when one exists
+and leaves it unassigned otherwise — it does not create auth users, since those
+belong to the auth system rather than to application data.
+
+Every address in it ends in `example.org`, and a test asserts that, so real
+contact or donor data cannot quietly end up in the repository.
+
 ## 5. Configure authentication
 
 In **Authentication → Providers**, keep **Email** enabled.
@@ -118,6 +138,37 @@ Two endpoints are meant to run on a schedule and are protected by
 
 On Vercel, add them to `vercel.json` `crons` and set `CRON_SECRET` in the
 environment.
+
+## Developing without a hosted project
+
+The application does not require a hosted Supabase project to be built or
+tested. The schema, its security model and the pure application logic are all
+verified locally:
+
+| What | How | Command |
+| --- | --- | --- |
+| Migrations apply cleanly | Postgres in-process (PGlite) | `npm run test:db` |
+| RLS actually enforces | executed as the real `anon` / `authenticated` / `service_role` roles | `npm run test:db` |
+| Triggers, constraints, idempotency | behavioural suite against the same database | `npm run test:db` |
+| Seed applies and re-applies | seed suite | `npm run test:db` |
+| Sync, notification, CSV logic | injected fakes, no network | `npm run test:unit` |
+| Route protection, forms, layout | Chromium, no backend required | `npm run e2e:public` |
+
+What genuinely needs a hosted project is a short list: signing in for real,
+and the authenticated browser suite that depends on it.
+
+### When a hosted project is provided
+
+1. Apply the migrations (`supabase db push`, or paste them in filename order).
+2. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
+   `SUPABASE_SERVICE_ROLE_KEY`, then rebuild — `NEXT_PUBLIC_*` values are
+   inlined at build time, including into the middleware bundle.
+3. Add the site URL and `<site-url>/auth/callback` to the redirect allow-list.
+4. Sign up; confirm the first account is promoted to administrator.
+5. Create a staff user, set `E2E_EMAIL` / `E2E_PASSWORD`, and run
+   `npm run e2e -- --grep @authed`.
+6. Check **Advisors** in the dashboard for security and performance findings.
+7. Optionally run the seed against a development project — never production.
 
 ## Troubleshooting
 

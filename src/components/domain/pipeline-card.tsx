@@ -34,6 +34,15 @@ function SubmitButton({ children, ...props }: ButtonProps) {
 }
 
 /**
+ * Folds the card's title into a button's accessible name. A board column
+ * otherwise offers a stack of buttons all called "Move", which is unusable
+ * from a screen reader's element list.
+ */
+function Subject({ title }: { title: string }) {
+  return <span className="sr-only">: {title}</span>
+}
+
+/**
  * A board card with an explicit, keyboard-operable stage control.
  *
  * Movement is a labelled select plus a submit button rather than a drag
@@ -43,6 +52,7 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
   const [state, formAction] = useActionState<PipelineActionState, FormData>(action, {})
   const [closing, setClosing] = useState(false)
   const stageSelectId = useId()
+  const panelId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -115,6 +125,7 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
               </Select>
               <SubmitButton name="intent" value="move" variant="secondary" size="sm">
                 Move
+                <Subject title={card.title} />
               </SubmitButton>
             </div>
 
@@ -124,13 +135,15 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
               size="sm"
               className="w-full justify-start px-1"
               aria-expanded={closing}
+              aria-controls={closing ? panelId : undefined}
               onClick={() => setClosing((open) => !open)}
             >
               Close card…
+              <Subject title={card.title} />
             </Button>
 
             {closing ? (
-              <div ref={panelRef} className="space-y-2 rounded-md bg-slate-50 p-2">
+              <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-50 p-2">
                 <Field label="Reason" hint="Optional — why did it land this way?">
                   {(props) => (
                     <Textarea {...props} name="close_reason" rows={2} maxLength={500} className="text-xs" />
@@ -146,6 +159,7 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
                       variant={close.outcome === 'won' ? 'primary' : 'secondary'}
                     >
                       {close.label}
+                      <Subject title={card.title} />
                     </SubmitButton>
                   ))}
                   <Button type="button" variant="ghost" size="sm" onClick={() => setClosing(false)}>
@@ -162,6 +176,9 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, action }: Pip
             {state.error}
           </Callout>
         ) : null}
+        {/* A moved card is re-rendered in its new column, so this confirms the
+            change for anyone who cannot see the board rearrange. */}
+        {state.notice ? <Callout tone="success">{state.notice}</Callout> : null}
       </form>
     </li>
   )

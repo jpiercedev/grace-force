@@ -53,13 +53,20 @@ lint errors, then add authenticated browser coverage.
 
 | Blocker | Impact | Type |
 | --- | --- | --- |
-| No Supabase project provisioned | Cannot browser-test authenticated flows or verify live auth | External — costs $10/mo on the user's Pro org; needs authorisation |
-| No Mailchimp API key | Cannot verify live sync | External |
-| No Resend API key | Cannot verify live send | External |
+| No Mailchimp API key | Cannot verify live sync | External verification |
+| No Resend API key | Cannot verify live send | External verification |
 | Repository had no default branch | Cannot open a draft PR — the feature branch *became* the default branch when pushed to the empty repo, so there is no base to target | External — needs a `main` branch created, which is the owner's call |
 
 None of these block writing the integration code, its tests, or the
 unconfigured-state handling.
+
+**Hosted Supabase is an external verification step, not a blocker.** Creating a
+paid project requires the owner's explicit approval and must not be done
+otherwise. Development continues against the local environment: migrations,
+generated types, seed data, the PGlite-backed schema/RLS suite, and the
+unconfigured production states. What waits on a hosted project is only live
+sign-in and the `@authed` browser suite — see the handover checklist in
+`docs/SETUP.md`.
 
 ## Material architectural decisions
 
@@ -115,13 +122,14 @@ unconfigured-state handling.
 
 ## Tests
 
-**Passing: 137**
+**Passing: 144**
 
 | Suite | Count | Covers |
 | --- | --- | --- |
 | `tests/db/migrations.test.ts` | 9 | schema shape, RLS coverage, `security_invoker`, pinned `search_path`, idempotency indexes, re-apply idempotence |
 | `tests/db/rls.test.ts` | 34 | anonymous denial, deactivated users, viewer read-only, staff scope, admin deletes, giving gate, privilege-escalation reverts, last-admin protection, service-role bypass |
 | `tests/db/schema-contract.test.ts` | 5 | hand-authored types vs live schema, both directions |
+| `tests/db/seed.test.ts` | 7 | seed applies to a fresh database, fills every screen's data, contains only `example.org` addresses, and re-applies as a no-op |
 | `tests/db/behaviour.test.ts` | 31 | timeline triggers, paired-field constraints, `last_activity_at` high-water mark, dedupe keys, `convert_lead` atomicity/idempotence, rate limiter, notification claim |
 | `tests/unit/utils.test.ts` | 26 | currency parsing/formatting, relative time, normalisation matching the DB's generated columns |
 | `tests/ui/primitives.test.tsx` | 16 | label/hint/error ARIA wiring, keyboard operation |
@@ -133,7 +141,7 @@ unconfigured-state handling.
 ## Last successful validation commands
 
 ```
-npx vitest run --project db                 # 79 passed
+npx vitest run --project db                 # 86 passed
 npx vitest run --project unit --project ui  # 42 passed
 npx playwright test --grep @public          # 16 passed (Chromium)
 npx tsc --noEmit                            # clean
@@ -143,9 +151,10 @@ npx next build                              # succeeds
 
 ## External setup still required
 
-1. Create a Supabase project, apply `supabase/migrations`, set
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`.
+1. A hosted Supabase project, when the owner chooses to create one. Then apply
+   `supabase/migrations`, set the three Supabase variables, verify sign-in and
+   run the `@authed` browser suite (checklist in `docs/SETUP.md`). Do not create
+   a paid project without explicit approval.
 2. Mailchimp Marketing API key + server prefix.
 3. Resend API key, verified sender, internal recipient list.
 4. `CRON_SECRET` for the two scheduled endpoints.

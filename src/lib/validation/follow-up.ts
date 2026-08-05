@@ -116,21 +116,30 @@ export type SnoozeInterval = (typeof SNOOZE_INTERVALS)[number]
 export const SNOOZE_DAYS: Record<SnoozeInterval, number> = { day: 1, week: 7 }
 
 /**
- * Shifts the reminder by the same amount as the due date so a snoozed item
- * keeps its lead time, and clears `reminder_sent_at` so the reminder job
- * re-arms for the new date instead of treating it as already notified.
+ * Pushes a follow-up out by one interval.
+ *
+ * The shift is measured from whichever is later, the due date or now: adding a
+ * day to a fortnight-old due date would leave the item overdue, which is the
+ * one thing someone pressing "+1 day" is not asking for.
+ *
+ * The reminder moves by the same delta so a snoozed item keeps its lead time,
+ * and `reminder_sent_at` is cleared so the reminder job re-arms for the new
+ * date rather than treating it as already notified.
  */
 export function snoozeTimestamps(
   followUp: { due_at: string; remind_at: string | null },
   interval: SnoozeInterval,
+  now: Date = new Date(),
 ): { due_at: string; remind_at: string | null; reminder_sent_at: null } {
-  const days = SNOOZE_DAYS[interval]
   const due = new Date(followUp.due_at)
+  const base = due.getTime() > now.getTime() ? due : now
+  const next = addDays(base, SNOOZE_DAYS[interval])
+  const shiftMs = next.getTime() - due.getTime()
   const remind = followUp.remind_at ? new Date(followUp.remind_at) : null
 
   return {
-    due_at: addDays(due, days).toISOString(),
-    remind_at: remind ? addDays(remind, days).toISOString() : null,
+    due_at: next.toISOString(),
+    remind_at: remind ? new Date(remind.getTime() + shiftMs).toISOString() : null,
     reminder_sent_at: null,
   }
 }
