@@ -106,7 +106,7 @@ export type MailchimpAction = 'sent' | 'open' | 'click' | 'bounce' | 'unsub' | '
 
 // --- Row shapes -------------------------------------------------------------
 
-export interface ProfileRow {
+export type ProfileRow = {
   id: string
   email: string
   full_name: string | null
@@ -121,7 +121,7 @@ export interface ProfileRow {
   updated_at: string
 }
 
-export interface ContactRow {
+export type ContactRow = {
   id: string
   first_name: string | null
   last_name: string | null
@@ -171,7 +171,7 @@ type ContactGenerated = 'id' | 'full_name' | 'email_normalized' | 'phone_normali
 export type ContactInsert = Partial<Omit<ContactRow, ContactGenerated>> & { id?: string }
 export type ContactUpdate = Partial<Omit<ContactRow, ContactGenerated>>
 
-export interface EngagementTypeRow {
+export type EngagementTypeRow = {
   id: string
   slug: string
   label: string
@@ -184,7 +184,7 @@ export interface EngagementTypeRow {
   updated_at: string
 }
 
-export interface EngagementRow {
+export type EngagementRow = {
   id: string
   contact_id: string
   engagement_type_id: string
@@ -203,7 +203,7 @@ export interface EngagementRow {
   updated_at: string
 }
 
-export interface PipelineRow {
+export type PipelineRow = {
   id: string
   slug: string
   name: string
@@ -217,7 +217,7 @@ export interface PipelineRow {
   updated_at: string
 }
 
-export interface PipelineStageRow {
+export type PipelineStageRow = {
   id: string
   pipeline_id: string
   slug: string
@@ -231,7 +231,7 @@ export interface PipelineStageRow {
   updated_at: string
 }
 
-export interface PipelineCardRow {
+export type PipelineCardRow = {
   id: string
   pipeline_id: string
   stage_id: string
@@ -252,7 +252,7 @@ export interface PipelineCardRow {
   updated_at: string
 }
 
-export interface ActivityRow {
+export type ActivityRow = {
   id: string
   contact_id: string
   engagement_id: string | null
@@ -271,7 +271,7 @@ export interface ActivityRow {
   created_at: string
 }
 
-export interface FollowUpRow {
+export type FollowUpRow = {
   id: string
   contact_id: string
   engagement_id: string | null
@@ -292,7 +292,7 @@ export interface FollowUpRow {
   updated_at: string
 }
 
-export interface GiftRow {
+export type GiftRow = {
   id: string
   contact_id: string
   amount_cents: number
@@ -313,7 +313,7 @@ export interface GiftRow {
   updated_at: string
 }
 
-export interface LeadRow {
+export type LeadRow = {
   id: string
   first_name: string | null
   last_name: string | null
@@ -343,7 +343,7 @@ export interface LeadRow {
 
 export type LeadInsert = Partial<Omit<LeadRow, 'id' | 'email_normalized' | 'created_at' | 'updated_at'>>
 
-export interface MailchimpAudienceRow {
+export type MailchimpAudienceRow = {
   id: string
   mailchimp_list_id: string
   name: string
@@ -359,7 +359,7 @@ export interface MailchimpAudienceRow {
   updated_at: string
 }
 
-export interface MailchimpMemberRow {
+export type MailchimpMemberRow = {
   id: string
   audience_id: string
   mailchimp_member_id: string
@@ -387,7 +387,7 @@ export type MailchimpMemberInsert = Partial<
   Omit<MailchimpMemberRow, 'id' | 'email_normalized' | 'created_at' | 'updated_at'>
 > & { audience_id: string; mailchimp_member_id: string; email_address: string }
 
-export interface MailchimpCampaignRow {
+export type MailchimpCampaignRow = {
   id: string
   mailchimp_campaign_id: string
   audience_id: string | null
@@ -416,7 +416,7 @@ export interface MailchimpCampaignRow {
   updated_at: string
 }
 
-export interface MailchimpCampaignActivityRow {
+export type MailchimpCampaignActivityRow = {
   id: string
   campaign_id: string
   member_id: string | null
@@ -437,7 +437,7 @@ export type MailchimpCampaignActivityInsert = Partial<
   Omit<MailchimpCampaignActivityRow, 'id' | 'email_normalized' | 'created_at' | 'updated_at'>
 > & { campaign_id: string; email_address: string; action: MailchimpAction; dedupe_key: string }
 
-export interface IntegrationSyncRunRow {
+export type IntegrationSyncRunRow = {
   id: string
   integration: string
   job: string
@@ -450,7 +450,7 @@ export interface IntegrationSyncRunRow {
   created_at: string
 }
 
-export interface NotificationRow {
+export type NotificationRow = {
   id: string
   kind: string
   dedupe_key: string
@@ -472,7 +472,7 @@ export interface NotificationRow {
   updated_at: string
 }
 
-export interface ImportBatchRow {
+export type ImportBatchRow = {
   id: string
   kind: 'contacts' | 'gifts'
   filename: string | null
@@ -492,7 +492,7 @@ export interface ImportBatchRow {
   committed_at: string | null
 }
 
-export interface ImportRowRow {
+export type ImportRowRow = {
   id: string
   batch_id: string
   row_number: number
@@ -506,7 +506,7 @@ export interface ImportRowRow {
   created_at: string
 }
 
-export interface ContactGivingSummaryRow {
+export type ContactGivingSummaryRow = {
   contact_id: string
   gift_count: number
   total_cents: number
@@ -519,7 +519,7 @@ export interface ContactGivingSummaryRow {
   has_recurring: boolean
 }
 
-export interface ContactEmailEngagementRow {
+export type ContactEmailEngagementRow = {
   contact_id: string
   emails_received: number
   campaigns_opened: number
@@ -533,7 +533,7 @@ export interface ContactEmailEngagementRow {
 
 // --- Database ---------------------------------------------------------------
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow>
