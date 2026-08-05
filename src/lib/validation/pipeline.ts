@@ -100,13 +100,26 @@ export const moveCardSchema = z.object({
 
 export const closeCardSchema = z.object({
   id: uuidField('That card could not be found'),
-  outcome: z.enum(CLOSE_OUTCOMES),
   close_reason: optionalText(500),
 })
 
-export const PIPELINE_CARD_INTENTS = ['move', 'close'] as const
+/**
+ * Won and lost are separate intents because a submit button carries exactly one
+ * name/value pair; a shared `close` intent would need a second control to say
+ * which outcome, which is one more thing to keep in sync.
+ */
+export const PIPELINE_CARD_INTENTS = ['move', 'close_won', 'close_lost'] as const
 
 export type PipelineCardIntent = (typeof PIPELINE_CARD_INTENTS)[number]
+
+export const CLOSE_ACTIONS = [
+  { intent: 'close_won', outcome: 'won', label: 'Mark won' },
+  { intent: 'close_lost', outcome: 'lost', label: 'Mark lost' },
+] as const satisfies readonly { intent: PipelineCardIntent; outcome: CloseOutcome; label: string }[]
+
+export function closeOutcomeFor(intent: PipelineCardIntent): CloseOutcome | null {
+  return CLOSE_ACTIONS.find((action) => action.intent === intent)?.outcome ?? null
+}
 
 export function parseCardIntent(value: string | undefined | null): PipelineCardIntent | null {
   return PIPELINE_CARD_INTENTS.find((intent) => intent === value) ?? null

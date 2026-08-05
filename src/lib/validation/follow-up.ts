@@ -115,11 +115,6 @@ export type SnoozeInterval = (typeof SNOOZE_INTERVALS)[number]
 
 export const SNOOZE_DAYS: Record<SnoozeInterval, number> = { day: 1, week: 7 }
 
-export const SNOOZE_LABELS: Record<SnoozeInterval, string> = {
-  day: '+1 day',
-  week: '+1 week',
-}
-
 /**
  * Shifts the reminder by the same amount as the due date so a snoozed item
  * keeps its lead time, and clears `reminder_sent_at` so the reminder job
@@ -221,14 +216,13 @@ export const createFollowUpSchema = z.object({
 
 export type CreateFollowUpInput = z.infer<typeof createFollowUpSchema>
 
+export const followUpIdSchema = z.object({
+  id: uuidField('That follow-up could not be found'),
+})
+
 export const completeFollowUpSchema = z.object({
   id: uuidField('That follow-up could not be found'),
   outcome_note: optionalText(2000),
-})
-
-export const snoozeFollowUpSchema = z.object({
-  id: uuidField('That follow-up could not be found'),
-  interval: z.enum(SNOOZE_INTERVALS),
 })
 
 export const reassignFollowUpSchema = z.object({
@@ -236,13 +230,29 @@ export const reassignFollowUpSchema = z.object({
   assigned_to: optionalUuid,
 })
 
-export const cancelFollowUpSchema = z.object({
-  id: uuidField('That follow-up could not be found'),
-})
-
-export const FOLLOW_UP_INTENTS = ['complete', 'snooze', 'reassign', 'cancel'] as const
+/**
+ * Each snooze length is its own intent because a submit button carries exactly
+ * one name/value pair — one shared `snooze` intent would need a second control
+ * to say how far.
+ */
+export const FOLLOW_UP_INTENTS = [
+  'complete',
+  'snooze_day',
+  'snooze_week',
+  'reassign',
+  'cancel',
+] as const
 
 export type FollowUpIntent = (typeof FOLLOW_UP_INTENTS)[number]
+
+export const SNOOZE_ACTIONS = [
+  { intent: 'snooze_day', interval: 'day', label: '+1 day' },
+  { intent: 'snooze_week', interval: 'week', label: '+1 week' },
+] as const satisfies readonly { intent: FollowUpIntent; interval: SnoozeInterval; label: string }[]
+
+export function snoozeIntervalFor(intent: FollowUpIntent): SnoozeInterval | null {
+  return SNOOZE_ACTIONS.find((action) => action.intent === intent)?.interval ?? null
+}
 
 export function parseIntent(value: string | undefined | null): FollowUpIntent | null {
   return FOLLOW_UP_INTENTS.find((intent) => intent === value) ?? null
