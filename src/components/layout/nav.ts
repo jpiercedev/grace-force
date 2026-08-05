@@ -26,6 +26,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Work',
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+      { href: '/search', label: 'Search', icon: 'Search' },
       { href: '/contacts', label: 'Contacts', icon: 'Users' },
       { href: '/follow-ups', label: 'Follow-ups', icon: 'CheckSquare' },
       { href: '/pipelines', label: 'Pipelines', icon: 'KanbanSquare' },

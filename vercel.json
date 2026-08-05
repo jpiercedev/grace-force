@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/mailchimp?job=all",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/follow-up-reminders",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

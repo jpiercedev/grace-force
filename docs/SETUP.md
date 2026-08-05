@@ -1,0 +1,143 @@
+# Setup
+
+## 1. Prerequisites
+
+- Node.js 20.11 or newer
+- A Supabase project (free tier is enough to start)
+
+## 2. Install
+
+```bash
+npm install
+cp .env.example .env.local
+```
+
+## 3. Create the Supabase project
+
+1. Create a project at <https://supabase.com/dashboard>.
+2. Go to **Project Settings → API** and copy into `.env.local`:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon` / publishable key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
+
+The service-role key bypasses Row Level Security. Keep it server-side, never
+prefix it with `NEXT_PUBLIC_`, and rotate it if it is ever exposed.
+
+## 4. Apply the migrations
+
+The schema lives in `supabase/migrations/`, applied in **filename order**.
+
+### With the Supabase CLI (recommended)
+
+```bash
+npm i -g supabase
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
+
+### Without the CLI
+
+Open the SQL editor in the Supabase dashboard and run each file in
+`supabase/migrations/` in ascending filename order. They are ordered by
+timestamp prefix and must not be reordered — later files reference earlier
+tables.
+
+Every migration is written to be re-runnable: `create ... if not exists`,
+`on conflict do nothing` on reference data, and guarded enum creation.
+
+### Verify
+
+```sql
+-- Every table should report rowsecurity = true.
+select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename;
+
+-- Reference data should be present.
+select slug from public.engagement_types order by sort_order;
+select slug, is_default from public.pipelines;
+```
+
+You can also run the local suite, which applies the same migrations to an
+in-process Postgres and checks the security model:
+
+```bash
+npm run test:db
+```
+
+## 5. Configure authentication
+
+In **Authentication → Providers**, keep **Email** enabled.
+
+- For a small internal team, turn **Confirm email** on. The app handles both
+  cases: with confirmation on, sign-up lands on `/check-email`; with it off, the
+  user is signed straight in.
+- Under **Authentication → URL Configuration**, add your site URL and
+  `<site-url>/auth/callback` to the redirect allow-list.
+
+Optionally restrict sign-up to your domain, or disable public sign-up entirely
+once the team is onboarded — profiles are created by a database trigger on
+`auth.users`, so users invited from the dashboard get a profile automatically.
+
+## 6. First run
+
+```bash
+npm run dev
+```
+
+Visit <http://localhost:3000>, create an account. **The first account becomes
+the administrator** (and is granted giving access); subsequent accounts start as
+staff, and an admin adjusts them at `/settings/team`.
+
+## 7. Optional integrations
+
+Neither is required to run the CRM. When a key is absent the relevant screen
+explains what is missing and the sync/send paths return a clear "not configured"
+result instead of failing. See [`INTEGRATIONS.md`](INTEGRATIONS.md).
+
+## 8. Deploying
+
+The app is a standard Next.js deployment; Vercel is the path of least
+resistance.
+
+1. Import the repository.
+2. Set every variable from `.env.example` in the project's environment settings.
+   `NEXT_PUBLIC_*` values are inlined at build time, so changing one requires a
+   redeploy, not just a restart.
+3. Set `NEXT_PUBLIC_SITE_URL` to the production origin so auth callbacks and
+   notification links resolve correctly.
+4. Add the production URL to Supabase's redirect allow-list.
+
+### Scheduled jobs
+
+Two endpoints are meant to run on a schedule and are protected by
+`CRON_SECRET` (sent as `Authorization: Bearer <secret>`):
+
+| Endpoint | Suggested schedule | Purpose |
+| --- | --- | --- |
+| `/api/cron/mailchimp?job=all` | hourly | Sync audiences, members, campaigns, engagement |
+| `/api/cron/follow-up-reminders` | every 15 minutes | Send due follow-up reminders |
+
+On Vercel, add them to `vercel.json` `crons` and set `CRON_SECRET` in the
+environment.
+
+## Troubleshooting
+
+**Redirected to `/setup`.** Supabase credentials are missing or still look like
+placeholders (`your-…`). `NEXT_PUBLIC_*` values are baked in at build time —
+rebuild after changing them.
+
+**"relation does not exist".** The migrations have not been applied to the
+project the app is pointing at.
+
+**Signed in but sent to `/no-access`.** The profile exists with
+`is_active = false`. An admin can reactivate it at `/settings/team`.
+
+**No admin exists.** The first sign-up is promoted automatically. If profiles
+were created another way, promote one directly:
+
+```sql
+update public.profiles set role = 'admin', can_view_giving = true
+where email = 'you@example.org';
+```
+
+(Run this in the SQL editor — the statement runs without a JWT, which the
+privilege-protection trigger treats as trusted server-side administration.)

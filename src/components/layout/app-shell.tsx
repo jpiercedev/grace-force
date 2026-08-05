@@ -13,6 +13,7 @@ import {
   Mail,
   Menu,
   Plug,
+  Search,
   Upload,
   UserCog,
   Users,
@@ -30,6 +31,7 @@ import { ROLE_LABELS } from '@/lib/permissions'
  */
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
+  Search,
   Users,
   CheckSquare,
   KanbanSquare,
