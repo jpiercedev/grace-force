@@ -1,4 +1,4 @@
-# Bridge CRM — notes for Claude Code
+# Grace Force CRM — notes for Claude Code
 
 Relationship management for Grace Force. Next.js 15 App Router · React 19 ·
 TypeScript strict · Tailwind 3 · Supabase.

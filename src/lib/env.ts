@@ -162,7 +162,7 @@ export function resendConfig(): ResendConfig | null {
   if (!present(fromEmail)) {
     throw new Error(
       'RESEND_API_KEY is set but RESEND_FROM_EMAIL is not. Set a verified ' +
-        'sending identity, e.g. "Bridge CRM <crm@yourdomain.org>".',
+        'sending identity, e.g. "Grace Force CRM <crm@yourdomain.org>".',
     )
   }
 

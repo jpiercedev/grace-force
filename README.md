@@ -1,11 +1,11 @@
-# Bridge CRM
+# Grace Force CRM
 
 Relationship management for **Grace Force**.
 
-Bridge CRM exists because a ministry's relationships do not fit a sales CRM. The
+Grace Force CRM exists because a ministry's relationships do not fit a sales CRM. The
 same person is often a monthly donor *and* a volunteer team lead *and* the
 contact at a partner church — three relationships with different owners,
-different histories and different next steps. Bridge models that directly, then
+different histories and different next steps. The CRM models that directly, then
 puts everything that has ever happened with that person on one timeline.
 
 ## What it does
@@ -26,8 +26,8 @@ puts everything that has ever happened with that person on one timeline.
 - **Mailchimp** — audiences, campaigns and per-contact email engagement,
   synchronised idempotently.
 - **Resend** — internal notifications with at-most-once delivery per event.
-- **Import / export** — CSV in and out, plus a Salesforce migration export that
-  preserves relationships through stable external ids.
+- **Import / export** — CSV in and out, with stable external ids so a re-import
+  updates rather than duplicates and an export can be round-tripped.
 
 ## Stack
 
@@ -87,6 +87,6 @@ Details: [`docs/SECURITY.md`](docs/SECURITY.md).
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Schema, and why it is shaped this way |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Roles, RLS policies, threat notes |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | Mailchimp and Resend setup and behaviour |
-| [`docs/SALESFORCE_MIGRATION.md`](docs/SALESFORCE_MIGRATION.md) | Export format and load order |
+| [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md) | Entity reference and export column definitions |
 | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) | Engineering house style |
 | [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) | Current build state |

@@ -57,10 +57,11 @@ create table if not exists public.contacts (
   tags              text[] not null default '{}',
   notes             text,
 
-  -- Stable keys for round-tripping with external systems.
+  -- Stable natural key from whatever system a record originally came from
+  -- (a CSV import, the giving platform, Mailchimp). Lets a re-import update
+  -- rather than duplicate, and gives exports a key that survives round-trips.
   external_source   text,
   external_id       text,
-  salesforce_id     text,
 
   -- Denormalised for cheap "recently touched" sorting; maintained by the
   -- activities trigger in 000600.
@@ -106,10 +107,6 @@ comment on column public.contacts.external_id is
 create unique index if not exists contacts_external_key
   on public.contacts (external_source, external_id)
   where external_id is not null;
-
-create unique index if not exists contacts_salesforce_id_key
-  on public.contacts (salesforce_id)
-  where salesforce_id is not null;
 
 create index if not exists contacts_email_normalized_idx
   on public.contacts (email_normalized)

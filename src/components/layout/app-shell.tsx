@@ -145,7 +145,7 @@ export function AppShell({
           >
             GF
           </span>
-          <span className="text-sm font-semibold tracking-tight text-slate-900">Bridge CRM</span>
+          <span className="text-sm font-semibold tracking-tight text-slate-900">Grace Force CRM</span>
         </div>
         <NavLinks sections={sections} />
         <UserFooter
@@ -172,7 +172,7 @@ export function AppShell({
             className="relative flex h-full w-64 flex-col bg-white shadow-xl animate-fade-in"
           >
             <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4">
-              <span className="text-sm font-semibold text-slate-900">Bridge CRM</span>
+              <span className="text-sm font-semibold text-slate-900">Grace Force CRM</span>
               <button
                 ref={closeButtonRef}
                 type="button"
@@ -205,7 +205,7 @@ export function AppShell({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <span className="text-sm font-semibold text-slate-900">Bridge CRM</span>
+          <span className="text-sm font-semibold text-slate-900">Grace Force CRM</span>
         </header>
 
         <main id="main-content" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">

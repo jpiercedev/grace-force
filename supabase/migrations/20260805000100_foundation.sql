@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Bridge CRM — foundation
+-- Grace Force CRM — foundation
 --
 -- Extensions, shared enums, and the utility triggers/functions every other
 -- migration builds on.
@@ -35,7 +35,6 @@ do $$ begin
     'referral',
     'import',
     'mailchimp',
-    'salesforce',
     'giving_platform',
     'other'
   );
@@ -109,8 +108,7 @@ do $$ begin
     'system',
     'mailchimp',
     'import',
-    'lead_form',
-    'salesforce'
+    'lead_form'
   );
 exception when duplicate_object then null; end $$;
 

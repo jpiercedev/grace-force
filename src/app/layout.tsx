@@ -3,8 +3,8 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Bridge CRM — Grace Force',
-    template: '%s · Bridge CRM',
+    default: 'Grace Force CRM',
+    template: '%s · Grace Force CRM',
   },
   description:
     'Relationship management for Grace Force: contacts, engagements, follow-ups and giving in one place.',

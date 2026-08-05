@@ -15,7 +15,7 @@ export default function SetupPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        Bridge CRM needs configuring
+        Grace Force CRM needs configuring
       </h1>
       <p className="mt-2 text-sm text-slate-600">
         The app cannot reach a database yet. Add Supabase credentials and restart.

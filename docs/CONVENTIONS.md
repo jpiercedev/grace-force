@@ -1,6 +1,6 @@
 # Engineering conventions
 
-House style for Bridge CRM. Read before adding code.
+House style for Grace Force CRM. Read before adding code.
 
 ## Stack
 

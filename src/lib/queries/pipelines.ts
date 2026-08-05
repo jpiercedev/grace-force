@@ -123,6 +123,23 @@ export async function listPipelineSummaries(): Promise<PipelineSummary[]> {
   })
 }
 
+export type PipelineHeader = Pick<
+  PipelineRow,
+  'id' | 'slug' | 'name' | 'description' | 'tracks_value' | 'is_active'
+>
+
+export async function getPipelineBySlug(slug: string): Promise<PipelineHeader | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('pipelines')
+    .select('id, slug, name, description, tracks_value, is_active')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
 export interface BoardCard {
   id: string
   pipeline_id: string
@@ -146,10 +163,7 @@ export interface BoardStage extends StageRow {
 }
 
 export interface PipelineBoard {
-  pipeline: Pick<
-    PipelineRow,
-    'id' | 'slug' | 'name' | 'description' | 'tracks_value' | 'is_active'
-  >
+  pipeline: PipelineHeader
   stages: BoardStage[]
   open_count: number
   open_value_cents: number | null

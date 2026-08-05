@@ -34,7 +34,6 @@ export const CONTACT_SOURCES = [
   'referral',
   'import',
   'mailchimp',
-  'salesforce',
   'giving_platform',
   'other',
 ] as const satisfies readonly ContactSource[]

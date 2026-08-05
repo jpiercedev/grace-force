@@ -1,6 +1,6 @@
 # Security model
 
-Bridge CRM holds contact PII and donor giving history. The design assumes the
+Grace Force CRM holds contact PII and donor giving history. The design assumes the
 application layer will eventually have a bug, and puts the enforcement
 somewhere a bug cannot reach past.
 

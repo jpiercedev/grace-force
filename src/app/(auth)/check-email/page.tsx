@@ -8,7 +8,7 @@ export default function CheckEmailPage() {
   return (
     <AuthCard title="Check your email" description="One more step before you can sign in.">
       <Callout tone="info">
-        We sent a confirmation link to the address you entered. Open it to activate your Bridge CRM
+        We sent a confirmation link to the address you entered. Open it to activate your Grace Force CRM
         account.
       </Callout>
       <p className="mt-6 text-sm text-slate-600">

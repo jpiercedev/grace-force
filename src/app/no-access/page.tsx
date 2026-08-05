@@ -19,7 +19,7 @@ export default async function NoAccessPage() {
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Access paused</h1>
       <Callout tone="warning" className="mt-4">
-        Your Bridge CRM account ({profile.email}) is signed in, but an administrator has paused its
+        Your Grace Force CRM account ({profile.email}) is signed in, but an administrator has paused its
         access. Ask a Grace Force administrator to reactivate it.
       </Callout>
       {/* A POST rather than a link: signing out is a state change. */}

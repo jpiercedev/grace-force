@@ -1,4 +1,4 @@
-# Implementation Status — Bridge CRM
+# Implementation Status — Grace Force CRM
 
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
@@ -42,7 +42,7 @@
 Eight feature slices are being built in parallel across disjoint file sets:
 contacts + timeline + engagements · follow-ups + pipelines · dashboard + search
 + giving · lead intake · Mailchimp · Resend notifications · import/export +
-Salesforce · settings.
+data portability · settings.
 
 ## Next highest-priority task
 
@@ -167,7 +167,7 @@ npx next build                              # succeeds
 - [ ] Secure lead intake
 - [ ] Mailchimp integration code + idempotent sync
 - [ ] Resend notifications + deduplication
-- [ ] Imports and exports, incl. Salesforce migration export
+- [ ] Imports and exports with stable ids and a relational export bundle
 - [x] Documentation complete
 - [x] `.env.example` complete, no secrets
 - [x] TypeScript checks pass

@@ -1,5 +1,5 @@
 /**
- * Database types for the Bridge CRM schema.
+ * Database types for the Grace Force CRM schema.
  *
  * Hand-authored to mirror `supabase/migrations`. Regenerate with
  * `npm run db:types` once a Supabase project is configured; the shape below
@@ -36,7 +36,6 @@ export type ContactSource =
   | 'referral'
   | 'import'
   | 'mailchimp'
-  | 'salesforce'
   | 'giving_platform'
   | 'other'
 
@@ -76,7 +75,7 @@ export type ActivityType =
 
 export type ActivityDirection = 'inbound' | 'outbound' | 'internal'
 
-export type ActivitySource = 'manual' | 'system' | 'mailchimp' | 'import' | 'lead_form' | 'salesforce'
+export type ActivitySource = 'manual' | 'system' | 'mailchimp' | 'import' | 'lead_form'
 
 export type FollowUpStatus = 'open' | 'completed' | 'cancelled'
 
@@ -156,7 +155,6 @@ export type ContactRow = {
   notes: string | null
   external_source: string | null
   external_id: string | null
-  salesforce_id: string | null
   last_activity_at: string | null
   created_by: string | null
   updated_by: string | null

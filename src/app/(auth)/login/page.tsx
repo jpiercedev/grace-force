@@ -13,7 +13,7 @@ export default async function LoginPage({
 
   return (
     <AuthCard
-      title="Sign in to Bridge CRM"
+      title="Sign in to Grace Force CRM"
       description="Grace Force relationship management."
       footer={
         <p className="text-sm text-slate-600">

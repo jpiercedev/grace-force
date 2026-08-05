@@ -24,7 +24,7 @@ test.describe('@public route protection', () => {
     test(`redirects ${route} to the login page`, async ({ page }) => {
       await page.goto(route)
       await expect(page).toHaveURL(/\/login/)
-      await expect(page.getByRole('heading', { name: /sign in to bridge crm/i })).toBeVisible()
+      await expect(page.getByRole('heading', { name: /sign in to grace force crm/i })).toBeVisible()
     })
   }
 

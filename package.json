@@ -1,8 +1,8 @@
 {
-  "name": "grace-force-bridge-crm",
+  "name": "grace-force-crm",
   "version": "0.1.0",
   "private": true,
-  "description": "Bridge CRM — relationship management for Grace Force",
+  "description": "Relationship management for Grace Force",
   "engines": {
     "node": ">=20.11"
   },
