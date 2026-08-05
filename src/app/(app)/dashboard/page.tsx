@@ -76,7 +76,8 @@ export default async function DashboardPage({
         </Callout>
       ) : null}
 
-      <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* Each StatTile is its own <dl>, so the grid around them is a plain div. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatTile
           label="My follow-ups"
           value={stats.openFollowUps}
@@ -111,11 +112,11 @@ export default async function DashboardPage({
           hint="Added this month"
           href="/contacts?sort=created"
         />
-      </dl>
+      </div>
 
       {giving ? <GivingStrip snapshot={giving} /> : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <FollowUpPanel
           title="Needs attention"
           description="Overdue and assigned to you."

@@ -1,0 +1,336 @@
+import { parseISO } from 'date-fns'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import {
+  Badge,
+  Callout,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  StatTile,
+} from '@/components/ui/display'
+import { canViewGiving, requireProfile } from '@/lib/auth'
+import {
+  getGivingOverview,
+  hasGivingFilters,
+  parseGivingFilters,
+  type GivingBreakdownItem,
+  type GivingGift,
+  type TopGiver,
+} from '@/lib/queries/giving'
+import { formatCurrency, formatDate, pluralize } from '@/lib/utils'
+import type { GiftMethod } from '@/types/database'
+import { GivingFilters } from './giving-filters'
+
+export const metadata = { title: 'Giving' }
+
+type SearchParams = Record<string, string | string[] | undefined>
+
+/**
+ * `given_on` and the range bounds are DATE columns. `new Date('2026-08-05')`
+ * reads as UTC midnight and then formats a day early west of Greenwich, so the
+ * string is parsed as a local calendar day first.
+ */
+function formatDay(value: string): string {
+  return formatDate(parseISO(value))
+}
+
+const METHOD_LABELS: Record<GiftMethod, string> = {
+  cash: 'Cash',
+  check: 'Check',
+  card: 'Card',
+  ach: 'ACH',
+  stock: 'Stock',
+  in_kind: 'In kind',
+  other: 'Other',
+}
+
+export default async function GivingPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>
+}) {
+  const profile = await requireProfile()
+  // The page-level guard mirrors the `gifts` RLS policy. The database is what
+  // actually refuses; this is so the redirect explains itself.
+  if (!canViewGiving(profile)) redirect('/dashboard?denied=giving')
+
+  const params = await searchParams
+  const filters = parseGivingFilters(params)
+  const now = new Date()
+  const overview = await getGivingOverview(filters, now)
+  const filtered = hasGivingFilters(filters)
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader title="Giving" description="Generosity in context, across the whole ministry." />
+
+      {/* Each StatTile is its own <dl>, so the grid around them is a plain div. */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatTile
+          label="This month"
+          value={formatCurrency(overview.totals.monthToDateCents)}
+          hint="Received so far this calendar month"
+        />
+        <StatTile
+          label="Year to date"
+          value={formatCurrency(overview.totals.yearToDateCents)}
+          hint="Since 1 January"
+          tone="emerald"
+        />
+        <StatTile
+          label="Trailing 12 months"
+          value={formatCurrency(overview.totals.trailing12moCents)}
+          hint="The last 365 days"
+        />
+        <StatTile
+          label="In this range"
+          value={formatCurrency(overview.range.totalCents)}
+          hint={`${formatDay(overview.range.from)} – ${formatDay(overview.range.to)}`}
+          tone="brand"
+        />
+        <StatTile
+          label="Gifts in range"
+          value={overview.range.giftCount}
+          hint={
+            overview.range.giftCount === 0
+              ? 'No gifts in this window'
+              : `${formatCurrency(overview.range.averageCents)} average`
+          }
+        />
+      </div>
+
+      {overview.truncated ? (
+        <Callout tone="warning" title="Totals are partial">
+          More gifts matched than this page can read at once, so the figures cover the most recent
+          ones only. Narrow the date range for an exact total.
+        </Callout>
+      ) : null}
+
+      <GivingFilters filters={filters} range={overview.range} funds={overview.funds} />
+
+      {overview.range.giftCount === 0 ? (
+        <Card>
+          {filtered ? (
+            <EmptyState
+              title="No gifts in this window"
+              description="Nothing was received in that date range, or under that fund. Widen the range or reset the filters."
+            />
+          ) : (
+            <EmptyState
+              title="No giving recorded yet"
+              description="Once gifts are imported or synced from the giving platform, totals, funds and top supporters appear here."
+            />
+          )}
+        </Card>
+      ) : (
+        <>
+          <div className="grid items-start gap-4 lg:grid-cols-2">
+            <Breakdown
+              title="Top funds"
+              description="By total given in this range."
+              items={overview.topFunds}
+              emptyDescription="No gifts in this range carry a fund."
+            />
+            <Breakdown
+              title="Top campaigns"
+              description="By total given in this range."
+              items={overview.topCampaigns}
+              emptyDescription="No gifts in this range belong to a campaign."
+            />
+          </div>
+
+          <RecentGifts gifts={overview.recent} total={overview.range.giftCount} />
+        </>
+      )}
+
+      <TopGivers givers={overview.topGivers} />
+    </div>
+  )
+}
+
+function Breakdown({
+  title,
+  description,
+  items,
+  emptyDescription,
+}: {
+  title: string
+  description: string
+  items: GivingBreakdownItem[]
+  emptyDescription: string
+}) {
+  // Bars are scaled against the largest row, which keeps small funds visible.
+  const largest = items.reduce((max, item) => Math.max(max, item.total_cents), 0)
+
+  return (
+    <Card>
+      <CardHeader title={title} description={description} />
+      {items.length === 0 ? (
+        <EmptyState title="Nothing to show" description={emptyDescription} />
+      ) : (
+        <CardBody>
+          <ul className="space-y-3">
+            {items.map((item) => (
+              <li key={item.label}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <span className="text-sm font-medium text-slate-900">{item.label}</span>
+                  <span className="text-sm font-semibold tabular-nums text-slate-900">
+                    {formatCurrency(item.total_cents)}
+                  </span>
+                </div>
+                {/* The bar restates the number beside it, so it is decorative. */}
+                <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100" aria-hidden="true">
+                  <div
+                    className="h-1.5 rounded-full bg-brand-400"
+                    style={{ width: `${largest === 0 ? 0 : (item.total_cents / largest) * 100}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{pluralize(item.gift_count, 'gift')}</p>
+              </li>
+            ))}
+          </ul>
+        </CardBody>
+      )}
+    </Card>
+  )
+}
+
+function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
+  return (
+    <Card>
+      <CardHeader
+        title="Recent gifts"
+        description={
+          total > gifts.length
+            ? `The ${gifts.length} most recent of ${total.toLocaleString()} in this range`
+            : pluralize(gifts.length, 'gift')
+        }
+      />
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <caption className="sr-only">Recent gifts in the selected range</caption>
+          <thead className="bg-slate-50">
+            <tr>
+              <Th>Contact</Th>
+              <Th align="right">Amount</Th>
+              <Th>Date</Th>
+              <Th>Fund</Th>
+              <Th>Method</Th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {gifts.map((gift) => (
+              <tr key={gift.id} className="align-top hover:bg-slate-50/70">
+                <td className="px-3 py-2.5">
+                  {gift.contact ? (
+                    <Link
+                      href={`/contacts/${gift.contact.id}`}
+                      className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                    >
+                      {gift.contact.name}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-400">Unknown contact</span>
+                  )}
+                  {gift.is_anonymous ? (
+                    <span className="ml-1.5">
+                      <Badge tone="zinc">Anonymous</Badge>
+                    </span>
+                  ) : null}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                  {formatCurrency(gift.amount_cents, gift.currency)}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                  <time dateTime={gift.given_on}>{formatDay(gift.given_on)}</time>
+                </td>
+                <td className="px-3 py-2.5 text-slate-600">
+                  {gift.fund ?? <span className="text-slate-400">—</span>}
+                  {gift.campaign ? (
+                    <div className="text-xs text-slate-500">{gift.campaign}</div>
+                  ) : null}
+                </td>
+                <td className="px-3 py-2.5 text-slate-600">
+                  {METHOD_LABELS[gift.method]}
+                  {gift.is_recurring ? (
+                    <div className="mt-0.5">
+                      <Badge tone="sky">Recurring</Badge>
+                    </div>
+                  ) : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  )
+}
+
+function TopGivers({ givers }: { givers: TopGiver[] }) {
+  return (
+    <Card>
+      <CardHeader
+        title="Top supporters"
+        description="By total given over the trailing twelve months."
+      />
+      {givers.length === 0 ? (
+        <EmptyState
+          title="No supporters yet"
+          description="Once gifts are recorded, the people giving most consistently appear here."
+        />
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {givers.map((giver) => (
+            <li
+              key={giver.contact.id}
+              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3"
+            >
+              <span className="min-w-0">
+                <Link
+                  href={`/contacts/${giver.contact.id}`}
+                  className="text-sm font-medium text-brand-700 underline-offset-2 hover:underline"
+                >
+                  {giver.contact.name}
+                </Link>
+                <span className="mt-0.5 block text-xs text-slate-500">
+                  {pluralize(giver.giftCount, 'gift')} all time
+                  {giver.lastGiftOn ? (
+                    <>
+                      {' · last '}
+                      <time dateTime={giver.lastGiftOn}>{formatDay(giver.lastGiftOn)}</time>
+                    </>
+                  ) : null}
+                </span>
+              </span>
+              <span className="text-right">
+                <span className="block text-sm font-semibold tabular-nums text-slate-900">
+                  {formatCurrency(giver.trailing12moCents)}
+                </span>
+                <span className="block text-xs text-slate-500 tabular-nums">
+                  {formatCurrency(giver.totalCents)} all time
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
+function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+  return (
+    <th
+      scope="col"
+      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+        align === 'right' ? 'text-right' : 'text-left'
+      }`}
+    >
+      {children}
+    </th>
+  )
+}

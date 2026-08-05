@@ -1,3 +1,4 @@
+import { parseISO } from 'date-fns'
 import Link from 'next/link'
 import { ACTIVITY_TYPE_LABELS, FollowUpPriorityBadge } from '@/components/domain/contact-badges'
 import { LinkButton } from '@/components/ui/button'
@@ -18,6 +19,15 @@ import { formatCurrency, formatDate, formatDateTime, formatRelative, isOverdue }
  * every one of them at once and "nothing yet" has to read as calm rather than
  * broken.
  */
+
+/**
+ * `expected_close_on` and `given_on` are DATE columns. `new Date('2026-08-05')`
+ * reads as UTC midnight and then formats a day early west of Greenwich, so the
+ * string is parsed as a local calendar day first.
+ */
+function formatDay(value: string): string {
+  return formatDate(parseISO(value))
+}
 
 function ContactLink({ contact }: { contact: { id: string; name: string } | null }) {
   if (!contact) return <span className="text-slate-400">Unknown contact</span>
@@ -203,7 +213,7 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
                         <>
                           <span aria-hidden="true">·</span>
                           <time dateTime={card.expected_close_on}>
-                            Closes {formatDate(card.expected_close_on)}
+                            Closes {formatDay(card.expected_close_on)}
                           </time>
                         </>
                       ) : null}
@@ -274,7 +284,7 @@ export function GivingStrip({ snapshot }: { snapshot: GivingSnapshot }) {
                     {formatCurrency(gift.amount_cents, gift.currency)}
                   </span>
                   <time className="text-xs text-slate-500" dateTime={gift.given_on}>
-                    {formatDate(gift.given_on)}
+                    {formatDay(gift.given_on)}
                   </time>
                 </span>
               </li>

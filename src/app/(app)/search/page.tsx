@@ -263,23 +263,14 @@ function LeadResults({ results }: { results: SearchResults }) {
         {items.map((lead) => (
           <li key={lead.id} className="px-4 py-3">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              {/* A converted lead has a person to open; an unconverted one lives
-                  on the leads queue, which owns triage. */}
-              {lead.contact_id ? (
-                <Link
-                  href={`/contacts/${lead.contact_id}`}
-                  className="text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
-                >
-                  {lead.name}
-                </Link>
-              ) : (
-                <Link
-                  href="/leads"
-                  className="text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
-                >
-                  {lead.name}
-                </Link>
-              )}
+              {/* A converted lead has a person to open; an unconverted one goes
+                  to the leads queue, which owns triage and lead detail. */}
+              <Link
+                href={lead.contact_id ? `/contacts/${lead.contact_id}` : '/leads'}
+                className="text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+              >
+                {lead.name}
+              </Link>
               <Badge tone={LEAD_STATUS_TONES[lead.status]}>
                 {LEAD_STATUS_LABELS[lead.status]}
               </Badge>
