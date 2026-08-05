@@ -51,9 +51,16 @@ views set `security_invoker = on`. Development seed in `supabase/seed.sql`.
 
 ## Next task
 
-Run the `@authed` browser suite from a network with egress to `*.supabase.co`,
-and supply `SUPABASE_SERVICE_ROLE_KEY` to exercise lead intake and the sync
-jobs. No local work is outstanding.
+Deploy, following `docs/DEPLOYMENT.md`. It needs a human because creating a
+git-connected Vercel project and setting environment variables are not exposed
+by the available tooling. Then run the `@authed` suite against the deployed
+origin from a network with normal egress:
+
+```bash
+E2E_BASE_URL=https://<deployment> E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
+```
+
+No local work is outstanding.
 
 ## Hosted Supabase project
 
@@ -82,7 +89,9 @@ make a later `supabase db push` believe none of them had run.
 | --- | --- | --- |
 | **Sandbox egress policy** | The `@authed` browser suite | This container's network policy denies CONNECT to `*.supabase.co` (verified: gateway returns 403; GitHub and npm are permitted). The app therefore cannot reach the API from here. The MCP tooling works because it routes through Anthropic's infrastructure, not container egress. Run the suite from a machine with normal egress. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Lead intake, Mailchimp sync, notification outbox, reminder cron | The management API deliberately exposes only publishable keys. Copy it from Project Settings → API. |
-| Vercel environment variables | Production deploy | The Vercel MCP exposes no env-var or project-creation tool; its only write path is `deploy_to_vercel`, which would deploy. Not done — deployment was not approved. |
+| **Vercel project + env vars** | Any deployment | The Vercel MCP exposes no tool to create a git-connected project or set environment variables; its only write path is `deploy_to_vercel`, which uploads a file tree to a *non*-git-connected project with no env vars. Runbook: `docs/DEPLOYMENT.md`. |
+| **Sandbox egress (Vercel)** | Testing any deployment from here | `*.vercel.app`, `vercel.com` and `api.vercel.com` are all denied by the same policy that blocks `*.supabase.co`. A preview could not be browsed or Playwright-tested from this container even if it existed. |
+| Supabase Site URL / redirect list | Auth on a deployed origin | No MCP tool covers auth configuration; it is a dashboard step. Values are in `docs/DEPLOYMENT.md`. |
 | Mailchimp API key | Live sync against the real API | Intentionally unset so no real campaign can be touched. |
 | Resend API key | Live send | Intentionally unset so no real email can be sent. |
 | A `main` branch | Opening a pull request | The feature branch became the repository default when pushed to the empty repo, so there is no base to target. |

@@ -83,7 +83,8 @@ Details: [`docs/SECURITY.md`](docs/SECURITY.md).
 
 | Document | Contents |
 | --- | --- |
-| [`docs/SETUP.md`](docs/SETUP.md) | First-run setup and deployment |
+| [`docs/SETUP.md`](docs/SETUP.md) | First-run setup |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel + Supabase deployment runbook |
 | [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Schema, and why it is shaped this way |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Roles, RLS policies, threat notes |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | Mailchimp and Resend setup and behaviour |
