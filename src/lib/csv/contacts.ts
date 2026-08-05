@@ -293,7 +293,7 @@ export function planContactImport(
       if (!seen.has(identity)) seen.set(identity, row.number)
     }
 
-    const match = matchContact(values, index, externalSource)
+    const match = matchContact(values, index)
     if (match.error) {
       planned.push({
         ...base,
@@ -350,11 +350,13 @@ interface ContactMatch {
  * Resolution order is strongest-evidence-first. An `id` was issued by this
  * CRM, an external id was issued by the system the file came from, and an
  * email is a heuristic — households share one.
+ *
+ * The index is already namespaced to the batch's external source, so no
+ * source has to be passed here.
  */
 export function matchContact(
   values: ContactImportValues,
   index: ContactMatchIndex,
-  externalSource: string,
 ): ContactMatch {
   const byExternal = values.external_id ? (index.byExternalId.get(values.external_id) ?? null) : null
 

@@ -143,6 +143,30 @@ export function csvCents() {
   })
 }
 
+/**
+ * Cents that are already cents. This CRM's own exports carry the integer, and
+ * running it through currency parsing would multiply every amount by a
+ * hundred on the way back in.
+ */
+export function csvIntegerCents() {
+  return z.string().transform((value, ctx) => {
+    const cleaned = value.replace(/[\s,]/g, '')
+    if (!/^-?\d+$/.test(cleaned)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'should be a whole number of cents',
+      })
+      return z.NEVER
+    }
+    const cents = Number(cleaned)
+    if (cents <= 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'must be greater than zero' })
+      return z.NEVER
+    }
+    return cents
+  })
+}
+
 export function csvCurrencyCode() {
   return z
     .string()
