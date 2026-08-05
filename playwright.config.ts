@@ -41,17 +41,31 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: `npm run start -- --port ${PORT}`,
+        /**
+         * Builds as well as serves. `NEXT_PUBLIC_*` values are inlined into
+         * the middleware bundle at build time, so serving a build produced
+         * with different values would silently ignore the env below.
+         */
+        command: `npm run build && npm run start -- --port ${PORT}`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 300_000,
+        /**
+         * Credentials that *look* configured but point nowhere. The @public
+         * suite never reaches the auth server — middleware rejects a request
+         * with no session cookie first — so route protection is exercised for
+         * real without a live project.
+         *
+         * These must not match `env.ts`'s placeholder heuristic (`your-`,
+         * `placeholder`, …), or the app would correctly divert to /setup.
+         */
         env: {
           NEXT_PUBLIC_SUPABASE_URL:
-            process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+            process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://e2e-fixture.supabase.co',
           NEXT_PUBLIC_SUPABASE_ANON_KEY:
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key',
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'e2e-fixture-anon-key',
           SUPABASE_SERVICE_ROLE_KEY:
-            process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder-service-role-key',
+            process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'e2e-fixture-service-role-key',
         },
       },
 })
