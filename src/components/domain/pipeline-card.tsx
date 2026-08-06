@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
@@ -85,9 +86,14 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, formAction }:
           {contactName}
         </Link>
 
-        <p className="text-sm text-slate-900">{card.title}</p>
+        {/* Clamped so one wordy title cannot bury the value and owner facts
+            below the fold of a very tall card; the full text stays reachable
+            via the tooltip and the sr-only button names. */}
+        <p className="line-clamp-3 text-sm text-slate-900" title={card.title}>
+          {card.title}
+        </p>
 
-        {tracksValue ? (
+        {tracksValue && card.value_cents !== null ? (
           <p className="text-sm font-semibold tabular-nums text-slate-900">
             {formatCurrency(card.value_cents, card.currency)}
           </p>
@@ -112,12 +118,7 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, formAction }:
               <label htmlFor={stageSelectId} className="sr-only">
                 Move “{card.title}” to a different stage
               </label>
-              <Select
-                id={stageSelectId}
-                name="stage_id"
-                defaultValue={card.stage_id}
-                className="py-1.5 text-xs"
-              >
+              <Select id={stageSelectId} name="stage_id" defaultValue={card.stage_id}>
                 {stages.map((stage) => (
                   <option key={stage.id} value={stage.id}>
                     {stage.name}
@@ -139,6 +140,13 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, formAction }:
               aria-controls={closing ? panelId : undefined}
               onClick={() => setClosing((open) => !open)}
             >
+              {/* The flipping chevron is what marks this quiet ghost button as
+                  a disclosure rather than inert muted text. */}
+              {closing ? (
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              )}
               Close card…
               <Subject title={card.title} />
             </Button>
@@ -147,13 +155,7 @@ export function PipelineCard({ card, stages, tracksValue, canEdit, formAction }:
               <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-50 p-2">
                 <Field label="Reason" hint="Optional — why did it land this way?">
                   {(props) => (
-                    <Textarea
-                      {...props}
-                      name="close_reason"
-                      rows={2}
-                      maxLength={500}
-                      className="text-xs"
-                    />
+                    <Textarea {...props} name="close_reason" rows={2} maxLength={500} />
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">

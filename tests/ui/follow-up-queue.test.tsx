@@ -71,7 +71,7 @@ describe('FollowUpQueue', () => {
     renderQueue([makeItem()])
 
     expect(screen.getByText('Overdue')).toBeInTheDocument()
-    expect(screen.getByText(/overdue — was due/i)).toBeInTheDocument()
+    expect(screen.getByText(/was due/i)).toBeInTheDocument()
   })
 
   it('does not call anything overdue that is still in hand', () => {

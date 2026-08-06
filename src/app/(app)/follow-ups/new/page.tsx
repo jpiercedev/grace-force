@@ -2,7 +2,7 @@ import { addDays } from 'date-fns'
 import Link from 'next/link'
 import { FollowUpForm } from '@/components/domain/follow-up-form'
 import { Button, LinkButton } from '@/components/ui/button'
-import { Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
+import { Callout, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
 import { Input, Label } from '@/components/ui/form'
 import { requireWriteAccess } from '@/lib/auth'
 import {
@@ -81,13 +81,9 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
       />
 
       {contactId && !contact ? (
-        <Card>
-          <CardBody>
-            <p className="text-sm text-red-700">
-              That contact could not be found. Search for someone else below.
-            </p>
-          </CardBody>
-        </Card>
+        <Callout tone="danger" role="alert">
+          That contact could not be found. Search for someone else below.
+        </Callout>
       ) : null}
 
       <Card>
@@ -106,7 +102,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
                 type="search"
                 defaultValue={query}
                 autoFocus
-                placeholder="Ruth Alvarez"
+                placeholder="e.g. Ruth Alvarez"
               />
             </div>
             <Button type="submit" variant="secondary">

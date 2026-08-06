@@ -4,13 +4,15 @@ import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button, type ButtonProps } from '@/components/ui/button'
+import { FollowUpPriorityBadge } from '@/components/domain/contact-badges'
 import { Badge } from '@/components/ui/display'
 import { Field, Select, Textarea } from '@/components/ui/form'
 import type { FollowUpQueueItem, TeamProfile } from '@/lib/queries/follow-ups'
-import { PRIORITY_LABELS, PRIORITY_TONES, SNOOZE_ACTIONS } from '@/lib/validation/follow-up'
+import { SNOOZE_ACTIONS } from '@/lib/validation/follow-up'
 import {
   cn,
   contactDisplayName,
+  formatDate,
   formatDateTime,
   formatRelative,
   isOverdue,
@@ -106,7 +108,7 @@ export function FollowUpRow({
               >
                 {contactName}
               </Link>
-              <Badge tone={PRIORITY_TONES[item.priority]}>{PRIORITY_LABELS[item.priority]}</Badge>
+              <FollowUpPriorityBadge priority={item.priority} />
               {overdue ? <Badge tone="red">Overdue</Badge> : null}
             </div>
 
@@ -116,29 +118,31 @@ export function FollowUpRow({
             ) : null}
 
             {item.status === 'completed' ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-sm text-slate-500">
                 Completed {formatDateTime(item.completed_at)} ·{' '}
-                {formatRelative(item.completed_at, now)}
+                <span className="whitespace-nowrap">{formatRelative(item.completed_at, now)}</span>
               </p>
             ) : (
-              <p className={cn('text-xs', overdue ? 'font-semibold text-red-700' : 'text-slate-500')}>
-                {overdue ? 'Overdue — was due ' : 'Due '}
-                {formatDateTime(item.due_at)} · {formatRelative(item.due_at, now)}
+              // The badge already says "Overdue"; the date names the deadline
+              // without repeating the word or the time of day.
+              <p className={cn('text-sm', overdue ? 'font-semibold text-red-700' : 'text-slate-500')}>
+                {overdue ? 'Was due ' : 'Due '}
+                {formatDate(item.due_at)} ·{' '}
+                <span className="whitespace-nowrap">{formatRelative(item.due_at, now)}</span>
               </p>
             )}
 
             {item.outcome_note ? (
-              <p className="text-xs text-slate-600">Outcome: {item.outcome_note}</p>
+              <p className="text-sm text-slate-600">Outcome: {item.outcome_note}</p>
             ) : null}
 
-            <p className="text-xs text-slate-500">Assigned to {assigneeName}</p>
+            <p className="text-sm text-slate-500">Assigned to {assigneeName}</p>
           </div>
 
           {actionable ? (
             <div className="flex flex-wrap gap-2 sm:justify-end">
               <Button
                 type="button"
-                size="sm"
                 onClick={() => setPanel(panel === 'complete' ? null : 'complete')}
                 aria-expanded={panel === 'complete'}
                 aria-controls={panel === 'complete' ? panelId : undefined}
@@ -152,7 +156,6 @@ export function FollowUpRow({
                   name="intent"
                   value={snooze.intent}
                   variant="secondary"
-                  size="sm"
                   // "+1 day" means nothing on its own, and a hidden "Snooze "
                   // fragment would be concatenated without its trailing space
                   // by the accessible-name algorithm ("Snooze+1 day"). The
@@ -165,7 +168,6 @@ export function FollowUpRow({
               <Button
                 type="button"
                 variant="secondary"
-                size="sm"
                 onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')}
                 aria-expanded={panel === 'reassign'}
                 aria-controls={panel === 'reassign' ? panelId : undefined}
@@ -173,10 +175,12 @@ export function FollowUpRow({
                 Reassign
                 <Subject title={item.title} />
               </Button>
+              {/* Secondary, not ghost: this starts a destructive act, so it
+                  needs a visible boundary wherever the row wraps — ghost stays
+                  reserved for the panels' back-out buttons. */}
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
+                variant="secondary"
                 onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}
                 aria-expanded={panel === 'cancel'}
                 aria-controls={panel === 'cancel' ? panelId : undefined}
@@ -200,11 +204,11 @@ export function FollowUpRow({
                   {(props) => <Textarea {...props} name="outcome_note" rows={2} maxLength={2000} />}
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="complete" size="sm">
+                  <SubmitButton name="intent" value="complete">
                     Mark complete
                     <Subject title={item.title} />
                   </SubmitButton>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
+                  <Button type="button" variant="ghost" onClick={() => setPanel(null)}>
                     Not yet
                   </Button>
                 </div>
@@ -226,11 +230,11 @@ export function FollowUpRow({
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="reassign" size="sm">
+                  <SubmitButton name="intent" value="reassign">
                     Save assignee
                     <Subject title={item.title} />
                   </SubmitButton>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
+                  <Button type="button" variant="ghost" onClick={() => setPanel(null)}>
                     Discard
                   </Button>
                 </div>
@@ -244,11 +248,11 @@ export function FollowUpRow({
                   history.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="cancel" variant="danger" size="sm">
+                  <SubmitButton name="intent" value="cancel" variant="danger">
                     Yes, cancel it
                     <Subject title={item.title} />
                   </SubmitButton>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPanel(null)}>
+                  <Button type="button" variant="ghost" onClick={() => setPanel(null)}>
                     Keep it
                   </Button>
                 </div>

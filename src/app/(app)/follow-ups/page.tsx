@@ -63,7 +63,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Se
           description={pluralize(items.length, 'follow-up')}
         />
         {items.length === 0 ? (
-          <EmptyState title="Nothing here" description={SEGMENT_EMPTY_MESSAGES[segment]} />
+          <EmptyState title="All clear" description={SEGMENT_EMPTY_MESSAGES[segment]} />
         ) : (
           <FollowUpQueue
             items={items}

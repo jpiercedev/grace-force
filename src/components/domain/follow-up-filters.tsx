@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { Button, LinkButton } from '@/components/ui/button'
 import { Field, Select } from '@/components/ui/form'
 import type { TeamProfile } from '@/lib/queries/follow-ups'
 import { cn } from '@/lib/utils'
@@ -44,7 +44,9 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
   return (
     <div className="space-y-4">
       <nav aria-label="Follow-up segments">
-        <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        {/* Wrap rather than scroll: a scrolled row hides the last segment with
+            no affordance that more exist. */}
+        <ul className="-mx-1 flex flex-wrap gap-1.5 px-1">
           {FOLLOW_UP_SEGMENTS.map((option) => {
             const active = option === segment
             return (
@@ -53,7 +55,7 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
                   href={hrefFor(option)}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'inline-flex whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    'inline-flex whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition-colors',
                     active
                       ? 'bg-brand-600 text-white'
                       : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-300 hover:bg-slate-50',
@@ -70,7 +72,7 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
       <form method="get" action="/follow-ups" className="flex flex-wrap items-end gap-3">
         <input type="hidden" name="segment" value={segment} />
 
-        <Field label="Assignee" className="w-full sm:w-60">
+        <Field label="Assignee" className="min-w-[10rem] flex-1 sm:w-60 sm:flex-none">
           {(props) => (
             <Select {...props} name="assignee" defaultValue={assignee}>
               <option value={ASSIGNEE_ME}>Assigned to me</option>
@@ -85,7 +87,7 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
           )}
         </Field>
 
-        <Field label="Priority" className="w-full sm:w-44">
+        <Field label="Priority" className="min-w-[9rem] flex-1 sm:w-44 sm:flex-none">
           {(props) => (
             <Select {...props} name="priority" defaultValue={priority}>
               <option value="all">Any priority</option>
@@ -98,9 +100,10 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
           )}
         </Field>
 
-        <Button type="submit" variant="secondary">
-          Apply filters
-        </Button>
+        <Button type="submit">Apply filters</Button>
+        <LinkButton href={`/follow-ups?segment=${segment}`} variant="ghost">
+          Clear
+        </LinkButton>
       </form>
     </div>
   )

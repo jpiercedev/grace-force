@@ -5,7 +5,7 @@ import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
 import { PipelineCard } from '@/components/domain/pipeline-card'
 import { Badge, Callout, badgeTone } from '@/components/ui/display'
 import type { PipelineBoard as PipelineBoardData } from '@/lib/queries/pipelines'
-import { stageOutcomeLabel } from '@/lib/validation/pipeline'
+import { CARD_STATUS_TONES, stageOutcomeLabel } from '@/lib/validation/pipeline'
 
 export interface PipelineBoardProps {
   board: PipelineBoardData
@@ -52,8 +52,12 @@ export function PipelineBoard({ board, canEdit, action }: PipelineBoardProps) {
           {board.stages.map((stage) => {
             const headingId = `pipeline-stage-${stage.id}`
             const outcome = stageOutcomeLabel(stage)
+            // Flexible column widths so the board never ends flush at the
+            // container edge: when every stage fits, columns grow to share the
+            // row; when they don't, the cut lands mid-column and the partial
+            // column is the cue that there is more to scroll to.
             return (
-              <li key={stage.id} className="w-[17rem] shrink-0">
+              <li key={stage.id} className="min-w-[15rem] max-w-[20rem] flex-1 shrink-0">
                 <section
                   aria-labelledby={headingId}
                   className="flex h-full flex-col rounded-lg bg-slate-100/70 p-2"
@@ -68,10 +72,18 @@ export function PipelineBoard({ board, canEdit, action }: PipelineBoardProps) {
                     </Badge>
                   </div>
 
-                  {outcome ? <p className="px-1 pb-2 text-xs text-slate-500">{outcome}</p> : null}
+                  {outcome ? (
+                    <div className="px-1 pb-2">
+                      <Badge tone={CARD_STATUS_TONES[stage.is_won ? 'won' : 'lost']}>
+                        {outcome}
+                      </Badge>
+                    </div>
+                  ) : null}
 
                   {stage.cards.length === 0 ? (
-                    <p className="px-1 py-3 text-xs text-slate-500">Nothing in this stage.</p>
+                    <p className="px-1 py-6 text-center text-sm text-slate-600">
+                      Nothing in this stage.
+                    </p>
                   ) : (
                     <ul className="space-y-2">
                       {stage.cards.map((card) => (

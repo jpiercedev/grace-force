@@ -81,7 +81,7 @@ export function PipelineAddForm({
         {tracksValue ? (
           <Field
             label="Expected value"
-            hint="Recorded in whole cents; enter it as you would say it."
+            hint="Dollar amount — enter it like 1,500 or $1,500.50."
             error={fieldErrors.value_cents}
           >
             {(props) => (

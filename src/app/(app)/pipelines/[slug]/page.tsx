@@ -47,8 +47,16 @@ export default async function PipelineBoardPage({ params }: { params: RouteParam
         </Callout>
       )}
 
-      {/* StatTile renders its own <dl>, so the grid stays a plain container. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* StatTile renders its own <dl>, so the grid stays a plain container.
+          Column count follows tile count: a board without a value tile gets
+          three columns so the row has no empty slot or orphaned tile. */}
+      <div
+        className={
+          board.open_value_cents !== null
+            ? 'grid grid-cols-2 gap-3 sm:grid-cols-4'
+            : 'grid grid-cols-3 gap-3'
+        }
+      >
         <StatTile label="Open cards" value={board.open_count} tone="brand" />
         {board.open_value_cents !== null ? (
           <StatTile label="Open value" value={formatCurrency(board.open_value_cents)} />

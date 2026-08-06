@@ -111,7 +111,7 @@ export default async function AddToPipelinePage({
                 type="search"
                 defaultValue={term}
                 autoFocus
-                placeholder="Ruth Alvarez"
+                placeholder="e.g. Ruth Alvarez"
               />
             </div>
             <Button type="submit" variant="secondary">
