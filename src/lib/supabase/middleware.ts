@@ -34,6 +34,37 @@ export function hasSessionCookie(request: NextRequest): boolean {
     .some((cookie) => cookie.name.startsWith('sb-') && cookie.name.includes('auth-token'))
 }
 
+/**
+ * Redirect while keeping every cookie already written to `carrier`.
+ *
+ * This is the whole ballgame for session handling in middleware. When
+ * `getUser()` refreshes an expired access token, `@supabase/ssr` writes the new
+ * token pair onto the response it was handed — but `NextResponse.redirect()`
+ * creates a *fresh* response, so returning one directly throws those cookies
+ * away.
+ *
+ * With refresh-token rotation that is not merely lossy, it is a trap: the
+ * refresh consumed server-side succeeds and invalidates the old token, while
+ * the browser keeps the stale cookie because the replacement never reached it.
+ * The next request presents a token that has already been spent, `getUser()`
+ * returns null, and middleware bounces to /login — where the same stale cookie
+ * triggers the same doomed refresh. That is the ERR_TOO_MANY_REDIRECTS loop.
+ *
+ * Copying the cookies across makes the redirect carry the session forward, so
+ * the chain converges after one hop.
+ */
+function redirectPreservingCookies(url: URL, carrier?: NextResponse): NextResponse {
+  const redirect = NextResponse.redirect(url)
+  if (!carrier) return redirect
+
+  for (const cookie of carrier.cookies.getAll()) {
+    // Passing the whole ResponseCookie keeps maxAge/path/httpOnly/sameSite,
+    // which the session cookies depend on to be sent back at all.
+    redirect.cookies.set(cookie)
+  }
+  return redirect
+}
+
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl
 
@@ -46,7 +77,10 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     const url = request.nextUrl.clone()
     url.pathname = '/setup'
     url.search = ''
-    return NextResponse.redirect(url)
+    // No Supabase client exists yet, so there is nothing to carry — but every
+    // redirect in this file goes through the helper so that the one case which
+    // *does* need a carrier can never be the odd one out.
+    return redirectPreservingCookies(url)
   }
 
   if (!hasSessionCookie(request)) {
@@ -57,7 +91,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     url.pathname = '/login'
     // Preserve where they were heading so login can return them there.
     url.search = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname)}`
-    return NextResponse.redirect(url)
+    return redirectPreservingCookies(url)
   }
 
   let response = NextResponse.next({ request })
@@ -86,11 +120,17 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     data: { user },
   } = await supabase.auth.getUser()
 
+  // Every redirect below happens *after* getUser(), so each one must carry
+  // `response` — it may hold a refreshed (or cleared) session.
   if (!user && !isPublicPath(pathname)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = pathname === '/' ? '' : `?next=${encodeURIComponent(pathname)}`
-    return NextResponse.redirect(url)
+    // Carrying the cookies matters here too: when the session is genuinely
+    // dead, Supabase clears them, and propagating that clearance is what lets
+    // the next request short-circuit at `hasSessionCookie` instead of
+    // re-attempting a hopeless refresh on every navigation.
+    return redirectPreservingCookies(url, response)
   }
 
   // A signed-in user landing on the login screen belongs in the app.
@@ -98,7 +138,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     url.search = ''
-    return NextResponse.redirect(url)
+    return redirectPreservingCookies(url, response)
   }
 
   return response
