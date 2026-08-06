@@ -9,7 +9,6 @@ import {
   CardHeader,
   EmptyState,
   PageHeader,
-  StatTile,
 } from '@/components/ui/display'
 import { CONTACT_IMPORT_FIELDS } from '@/lib/csv/contacts'
 import { GIFT_IMPORT_FIELDS } from '@/lib/csv/gifts'
@@ -25,7 +24,7 @@ import {
 } from '@/lib/csv/ui'
 import { isAdmin, requireWriteAccess } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import { formatCurrency, formatDateTime, pluralize } from '@/lib/utils'
+import { cn, formatCurrency, formatDateTime, pluralize } from '@/lib/utils'
 import { commitImport, discardImport } from '../actions'
 import { CommitPanel } from './commit-panel'
 
@@ -153,27 +152,31 @@ export default async function ImportBatchPage({
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile
-          label={committed ? 'Created' : 'To create'}
-          value={committed ? batch.created_rows : (planned?.create ?? batch.valid_rows)}
-          hint="No existing record matched"
-          tone="emerald"
-        />
-        <StatTile
-          label={committed ? 'Updated' : 'To update'}
-          value={committed ? batch.updated_rows : (planned?.update ?? 0)}
-          hint="Matched a record already here"
-          tone="brand"
-        />
-        <StatTile label="Skipped" value={batch.skipped_rows} hint="Duplicated inside the file" />
-        <StatTile
-          label="Errors"
-          value={batch.error_rows}
-          hint="Left alone until the file is fixed"
-          tone={batch.error_rows > 0 ? 'red' : 'slate'}
-        />
-      </div>
+      {/* One quiet band of serif figures — what the batch will do (or did),
+          readable at a glance rather than four identical widgets. */}
+      <Card>
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-5 sm:px-6 lg:grid-cols-4">
+          <BatchFigure
+            label={committed ? 'Created' : 'To create'}
+            value={committed ? batch.created_rows : (planned?.create ?? batch.valid_rows)}
+            hint="No existing record matched"
+            tone="emerald"
+          />
+          <BatchFigure
+            label={committed ? 'Updated' : 'To update'}
+            value={committed ? batch.updated_rows : (planned?.update ?? 0)}
+            hint="Matched a record already here"
+            tone="brand"
+          />
+          <BatchFigure label="Skipped" value={batch.skipped_rows} hint="Duplicated inside the file" />
+          <BatchFigure
+            label="Errors"
+            value={batch.error_rows}
+            hint="Left alone until the file is fixed"
+            tone={batch.error_rows > 0 ? 'red' : undefined}
+          />
+        </dl>
+      </Card>
 
       {batch.error ? (
         <Callout tone="danger" title="This import reported a problem" role="alert">
@@ -217,7 +220,7 @@ export default async function ImportBatchPage({
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <caption className="sr-only">Columns in the file and the fields they filled</caption>
-                <thead className="bg-slate-50">
+                <thead>
                   <tr>
                     <Th>Column in the file</Th>
                     <Th>Field it filled</Th>
@@ -225,9 +228,9 @@ export default async function ImportBatchPage({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {Object.entries(mapping.data.fields).map(([field, header]) => (
-                    <tr key={field}>
-                      <td className="px-3 py-2 text-slate-900">{header}</td>
-                      <td className="px-3 py-2 text-slate-600">{labels[field] ?? field}</td>
+                    <tr key={field} className="transition-colors hover:bg-slate-100/60">
+                      <td className="px-3 py-2.5 font-medium text-slate-900">{header}</td>
+                      <td className="px-3 py-2.5 text-slate-600">{labels[field] ?? field}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -255,8 +258,8 @@ export default async function ImportBatchPage({
           />
           <ul className="divide-y divide-slate-100">
             {errorRows.map((row) => (
-              <li key={row.id} className="px-4 py-3">
-                <p className="text-sm font-medium text-slate-900">
+              <li key={row.id} className="px-5 py-3.5">
+                <p className="text-sm font-semibold text-slate-900">
                   Row {row.row_number} · {summarise(batch.kind, row.normalized)}
                 </p>
                 <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-red-700">
@@ -294,21 +297,23 @@ export default async function ImportBatchPage({
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <caption className="sr-only">The first rows of the file and what each will do</caption>
-              <thead className="bg-slate-50">
+              <thead>
                 <tr>
-                  <Th align="right">Row</Th>
+                  <Th align="right" className="pl-5">
+                    Row
+                  </Th>
                   <Th>Will do</Th>
                   <Th>Record</Th>
-                  <Th>Notes</Th>
+                  <Th className="pr-5">Notes</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {previewRows.map((row) => (
-                  <tr key={row.id} className="align-top">
-                    <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-slate-500">
+                  <tr key={row.id} className="align-top transition-colors hover:bg-slate-100/60">
+                    <td className="whitespace-nowrap py-3 pl-5 pr-3 text-right tabular-nums text-slate-500">
                       {row.row_number}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-3">
                       {isAction(row.action) ? (
                         <Badge tone={IMPORT_ACTION_TONES[row.action]}>
                           {IMPORT_ACTION_LABELS[row.action]}
@@ -317,10 +322,10 @@ export default async function ImportBatchPage({
                         row.action
                       )}
                     </td>
-                    <td className="px-3 py-2 text-slate-900">
+                    <td className="px-3 py-3 font-medium text-slate-900">
                       {summarise(batch.kind, row.normalized)}
                     </td>
-                    <td className="px-3 py-2 text-slate-600">
+                    <td className="py-3 pl-3 pr-5 text-slate-600">
                       {(errorsSchema.safeParse(row.errors).data ?? []).join(' ') || '—'}
                     </td>
                   </tr>
@@ -334,13 +339,58 @@ export default async function ImportBatchPage({
   )
 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+/** Label eyebrow + serif figure + one hint line; tone only when it means something. */
+function BatchFigure({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: number
+  hint: string
+  tone?: 'emerald' | 'brand' | 'red'
+}) {
+  const dots = { emerald: 'bg-emerald-500', brand: 'bg-brand-500', red: 'bg-red-600' }
+  const figures = { emerald: 'text-emerald-800', brand: 'text-brand-700', red: 'text-red-700' }
+  return (
+    <div>
+      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        {tone ? (
+          <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dots[tone])} />
+        ) : null}
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          'mt-1.5 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums',
+          tone ? figures[tone] : 'text-slate-900',
+        )}
+      >
+        {value.toLocaleString()}
+      </dd>
+      <dd className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</dd>
+    </div>
+  )
+}
+
+function Th({
+  children,
+  align,
+  className,
+}: {
+  children: React.ReactNode
+  align?: 'right'
+  className?: string
+}) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
-        align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      className={cn(
+        'whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500',
+        align === 'right' ? 'text-right' : 'text-left',
+        className,
+      )}
     >
       {children}
     </th>

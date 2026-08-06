@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { LinkButton } from '@/components/ui/button'
 import {
@@ -7,7 +8,6 @@ import {
   CardHeader,
   EmptyState,
   PageHeader,
-  StatTile,
 } from '@/components/ui/display'
 import { isAdmin, requireProfile } from '@/lib/auth'
 import { MAILCHIMP_JOB_LABELS, parseMailchimpJob } from '@/lib/mailchimp/jobs'
@@ -26,7 +26,7 @@ import {
   statWarnings,
   summariseStats,
 } from '@/lib/mailchimp/ui'
-import { formatDateTime, formatRelative, pluralize } from '@/lib/utils'
+import { cn, formatDateTime, formatRelative, pluralize } from '@/lib/utils'
 import { syncMailchimpNow } from './actions'
 import { SyncPanel } from './sync-panel'
 
@@ -61,38 +61,51 @@ export default async function MailchimpPage() {
 
       {unavailable ? <SetupExplainer reason={unavailable} admin={admin} /> : null}
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatTile
-          label="Audiences"
-          value={overview.totals.audiences}
-          hint={
-            overview.lastSyncedAt
-              ? `Last synced ${formatRelative(overview.lastSyncedAt)}`
-              : 'Not synced yet'
-          }
-        />
-        <StatTile
-          label="Subscribers"
-          value={overview.totals.subscribers.toLocaleString()}
-          hint="Mirrored locally across every audience"
-        />
-        <StatTile
-          label="Unmatched"
-          value={overview.totals.unmatched.toLocaleString()}
-          hint={
-            overview.totals.unmatched === 0
-              ? 'Everyone is linked to a contact'
-              : 'Not yet linked to a contact'
-          }
-          tone={overview.totals.unmatched > 0 ? 'amber' : 'emerald'}
-          href={overview.totals.unmatched > 0 ? '/mailchimp/unmatched' : undefined}
-        />
-        <StatTile
-          label="Campaigns"
-          value={overview.totals.campaigns.toLocaleString()}
-          hint="Sent campaigns with performance recorded"
-        />
-      </div>
+      {/* One quiet band of serif figures rather than a row of widgets. */}
+      <Card>
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-5 sm:px-6 xl:grid-cols-4">
+          <Figure
+            label="Audiences"
+            value={overview.totals.audiences.toLocaleString()}
+            hint={
+              overview.lastSyncedAt
+                ? `Last synced ${formatRelative(overview.lastSyncedAt)}`
+                : 'Not synced yet'
+            }
+          />
+          <Figure
+            label="Subscribers"
+            value={overview.totals.subscribers.toLocaleString()}
+            hint="Mirrored locally across every audience"
+          />
+          <Figure
+            label="Unmatched"
+            value={
+              overview.totals.unmatched > 0 ? (
+                <Link
+                  href="/mailchimp/unmatched"
+                  className="underline-offset-4 hover:underline"
+                >
+                  {overview.totals.unmatched.toLocaleString()}
+                </Link>
+              ) : (
+                overview.totals.unmatched.toLocaleString()
+              )
+            }
+            hint={
+              overview.totals.unmatched === 0
+                ? 'Everyone is linked to a contact'
+                : 'Not yet linked to a contact'
+            }
+            tone={overview.totals.unmatched > 0 ? 'amber' : 'emerald'}
+          />
+          <Figure
+            label="Campaigns"
+            value={overview.totals.campaigns.toLocaleString()}
+            hint="Sent campaigns with performance recorded"
+          />
+        </dl>
+      </Card>
 
       {admin && !unavailable ? (
         <SyncPanel action={syncMailchimpNow} lastSyncedAt={overview.lastSyncedAt} />
@@ -101,6 +114,45 @@ export default async function MailchimpPage() {
       <Audiences audiences={overview.audiences} configured={!unavailable} />
       <Campaigns campaigns={overview.campaigns} />
       <SyncRuns runs={overview.runs} admin={admin} />
+    </div>
+  )
+}
+
+/** Label eyebrow + serif figure + one hint line; tone only when it means something. */
+function Figure({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string
+  value: ReactNode
+  hint: string
+  tone?: 'amber' | 'emerald'
+}) {
+  return (
+    <div>
+      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        {tone ? (
+          <span
+            aria-hidden="true"
+            className={cn(
+              'h-1.5 w-1.5 shrink-0 rounded-full',
+              tone === 'amber' ? 'bg-amber-500' : 'bg-emerald-500',
+            )}
+          />
+        ) : null}
+        {label}
+      </dt>
+      <dd
+        className={cn(
+          'mt-1.5 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums',
+          tone === 'amber' ? 'text-amber-700' : 'text-slate-900',
+        )}
+      >
+        {value}
+      </dd>
+      <dd className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</dd>
     </div>
   )
 }
@@ -186,31 +238,31 @@ function Audiences({
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <caption className="sr-only">Mailchimp audiences and their sync state</caption>
-            <thead className="bg-slate-50">
+            <thead>
               <tr>
-                <Th>Audience</Th>
+                <Th className="pl-5">Audience</Th>
                 <Th align="right">Members</Th>
                 <Th align="right">Mirrored</Th>
                 <Th align="right">Unmatched</Th>
                 <Th align="right">Unsubscribed</Th>
-                <Th>Last synced</Th>
+                <Th className="pr-5">Last synced</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {audiences.map((audience) => (
-                <tr key={audience.id} className="align-top hover:bg-slate-50/70">
+                <tr key={audience.id} className="align-top transition-colors hover:bg-slate-100/60">
                   {/* A floor on the one wrappable column, so a narrow screen
                       scrolls the table instead of crushing names to one word
                       per line. */}
-                  <td className="min-w-[12rem] px-3 py-2.5">
-                    <span className="font-medium text-slate-900">{audience.name}</span>
+                  <td className="min-w-[12rem] py-3.5 pl-5 pr-3">
+                    <span className="font-semibold text-slate-900">{audience.name}</span>
                     <span className="mt-0.5 block font-mono text-xs text-slate-500">
                       {audience.mailchimp_list_id}
                     </span>
                   </td>
                   <Td align="right">{audience.member_count.toLocaleString()}</Td>
                   <Td align="right">{audience.stored.toLocaleString()}</Td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                  <td className="whitespace-nowrap px-3 py-3.5 text-right tabular-nums">
                     {audience.unmatched === 0 ? (
                       <span className="text-slate-500">—</span>
                     ) : (
@@ -218,7 +270,7 @@ function Audiences({
                     )}
                   </td>
                   <Td align="right">{audience.unsubscribe_count.toLocaleString()}</Td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                  <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-slate-600">
                     {audience.last_synced_at ? (
                       <time
                         dateTime={audience.last_synced_at}
@@ -261,14 +313,16 @@ function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <caption className="sr-only">Recently sent Mailchimp campaigns</caption>
-            <thead className="bg-slate-50">
+            <thead>
               <tr>
-                <Th>Campaign</Th>
+                <Th className="pl-5">Campaign</Th>
                 <Th>Sent</Th>
                 <Th align="right">Recipients</Th>
                 <Th align="right">Opens</Th>
                 <Th align="right">Clicks</Th>
-                <Th align="right">Bounces</Th>
+                <Th align="right" className="pr-5">
+                  Bounces
+                </Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -276,12 +330,12 @@ function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
                 const scheduled =
                   campaign.send_time !== null && new Date(campaign.send_time).getTime() > now
                 return (
-                  <tr key={campaign.id} className="align-top hover:bg-slate-50/70">
+                  <tr key={campaign.id} className="align-top transition-colors hover:bg-slate-100/60">
                     {/* A floor on the one wrappable column, so a narrow screen
                         scrolls the table instead of crushing subject lines to
                         one word per line. */}
-                    <td className="min-w-[12rem] px-3 py-2.5">
-                      <span className="font-medium text-slate-900">
+                    <td className="min-w-[14rem] py-3.5 pl-5 pr-3">
+                      <span className="font-semibold text-slate-900">
                         {campaign.subject_line?.trim() || campaign.title?.trim() || 'Untitled campaign'}
                       </span>
                       {campaign.archive_url ? (
@@ -289,13 +343,13 @@ function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
                           href={campaign.archive_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="mt-0.5 block whitespace-nowrap text-xs text-brand-700 underline-offset-2 hover:underline"
+                          className="mt-0.5 block whitespace-nowrap text-xs font-medium text-brand-700 underline-offset-2 hover:underline"
                         >
                           View the sent email
                         </a>
                       ) : null}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                    <td className="whitespace-nowrap px-3 py-3.5 text-slate-600">
                       {campaign.send_time ? (
                         <>
                           {scheduled ? 'Scheduled for ' : null}
@@ -316,9 +370,9 @@ function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
                       count={campaign.subscriber_clicks}
                       rate={campaign.click_rate}
                     />
-                    <Td align="right">
+                    <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-right tabular-nums text-slate-700">
                       {scheduled ? <NotYet /> : campaign.bounces.toLocaleString()}
-                    </Td>
+                    </td>
                   </tr>
                 )
               })}
@@ -346,7 +400,7 @@ function RateCell({
 }) {
   const rateLabel = formatRate(rate)
   return (
-    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
+    <td className="whitespace-nowrap px-3 py-3.5 text-right tabular-nums text-slate-700">
       {scheduled ? (
         <NotYet />
       ) : (
@@ -386,7 +440,7 @@ function SyncRuns({ runs, admin }: { runs: SyncRunSummary[]; admin: boolean }) {
             const summary = summariseStats(run.stats)
             const duration = durationLabel(run.started_at, run.finished_at)
             return (
-              <li key={run.id} className="px-4 py-3">
+              <li key={run.id} className="px-5 py-3.5 transition-colors hover:bg-slate-100/60">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <span className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-slate-900">{jobLabel(run.job)}</span>
@@ -394,7 +448,7 @@ function SyncRuns({ runs, admin }: { runs: SyncRunSummary[]; admin: boolean }) {
                       {SYNC_STATUS_LABELS[run.status]}
                     </Badge>
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs tabular-nums text-slate-500">
                     <time dateTime={run.started_at} title={formatDateTime(run.started_at)}>
                       {formatRelative(run.started_at)}
                     </time>
@@ -440,13 +494,23 @@ function jobLabel(job: string): string {
   return words === '' ? job : words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
+function Th({
+  children,
+  align,
+  className,
+}: {
+  children: ReactNode
+  align?: 'right'
+  className?: string
+}) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
-        align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      className={cn(
+        'whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500',
+        align === 'right' ? 'text-right' : 'text-left',
+        className,
+      )}
     >
       {children}
     </th>
@@ -456,9 +520,10 @@ function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
 function Td({ children, align }: { children: ReactNode; align?: 'right' }) {
   return (
     <td
-      className={`whitespace-nowrap px-3 py-2.5 tabular-nums text-slate-700 ${
-        align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      className={cn(
+        'whitespace-nowrap px-3 py-3.5 tabular-nums text-slate-700',
+        align === 'right' ? 'text-right' : 'text-left',
+      )}
     >
       {children}
     </td>

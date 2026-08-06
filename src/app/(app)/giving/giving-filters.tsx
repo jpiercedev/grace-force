@@ -42,7 +42,7 @@ export function GivingFilters({
       action="/giving"
       aria-label="Filter giving"
       onSubmit={dropEmptyValues}
-      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+      className="rounded-xl border border-slate-200/70 bg-white p-5 shadow-card"
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="From" hint="Defaults to twelve months ago.">
@@ -68,7 +68,9 @@ export function GivingFilters({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button type="submit">Apply filters</Button>
+        <Button type="submit" variant="secondary">
+          Apply filters
+        </Button>
         <Link href="/giving" className={buttonClasses('ghost')}>
           Clear
         </Link>

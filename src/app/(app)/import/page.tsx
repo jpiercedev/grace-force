@@ -83,39 +83,39 @@ export default async function ImportPage() {
                 table clips cleanly at the scroll edge instead of crushing headers. */}
             <table className="w-full min-w-[40rem] divide-y divide-slate-200 text-sm">
               <caption className="sr-only">Past import batches</caption>
-              <thead className="bg-slate-50">
+              <thead>
                 <tr>
-                  <Th>File</Th>
+                  <Th className="pl-5">File</Th>
                   <Th>Contains</Th>
                   <Th>State</Th>
                   <Th align="right">Rows</Th>
                   <Th>Outcome</Th>
-                  <Th>Uploaded</Th>
+                  <Th className="pr-5">Uploaded</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {batches.map((batch) => (
-                  <tr key={batch.id} className="align-top hover:bg-slate-50/70">
-                    <td className="px-3 py-2.5">
+                  <tr key={batch.id} className="align-top transition-colors hover:bg-slate-100/60">
+                    <td className="py-3.5 pl-5 pr-3">
                       <Link
                         href={`/import/${batch.id}`}
-                        className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                        className="font-semibold text-slate-900 underline-offset-2 hover:text-brand-700 hover:underline"
                       >
                         {batch.filename ?? 'Untitled file'}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                    <td className="whitespace-nowrap px-3 py-3.5 text-slate-600">
                       {isImportKind(batch.kind) ? IMPORT_KIND_LABELS[batch.kind] : batch.kind}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5">
+                    <td className="whitespace-nowrap px-3 py-3.5">
                       <Badge tone={IMPORT_STATUS_TONES[batch.status]}>
                         {IMPORT_STATUS_LABELS[batch.status]}
                       </Badge>
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                    <td className="whitespace-nowrap px-3 py-3.5 text-right tabular-nums text-slate-600">
                       {batch.total_rows.toLocaleString()}
                     </td>
-                    <td className="px-3 py-2.5 text-slate-600">
+                    <td className="px-3 py-3.5 tabular-nums text-slate-600">
                       {/* "0 with errors" beside a red Failed chip is contradictory —
                           a failed batch has no outcome to count. */}
                       {batch.status === 'failed'
@@ -124,7 +124,7 @@ export default async function ImportPage() {
                           ? `${batch.created_rows} created · ${batch.updated_rows} updated`
                           : `${batch.valid_rows} ready · ${batch.error_rows} with errors`}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                    <td className="whitespace-nowrap py-3.5 pl-3 pr-5 text-slate-600">
                       <time dateTime={batch.created_at}>{formatDateTime(batch.created_at)}</time>
                     </td>
                   </tr>
@@ -146,10 +146,15 @@ function RecognisedColumns({ title, fields }: { title: string; fields: string[] 
         description={`${pluralize(fields.length, 'field')} matched by name, ignoring case, spacing and punctuation.`}
       />
       <CardBody>
+        {/* Plain tint chips, not Badges: a dot marks status, and a column name
+            has none. */}
         <ul className="flex flex-wrap gap-1.5">
           {fields.map((field) => (
-            <li key={field}>
-              <Badge tone="slate">{field}</Badge>
+            <li
+              key={field}
+              className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600"
+            >
+              {field}
             </li>
           ))}
         </ul>
@@ -158,13 +163,21 @@ function RecognisedColumns({ title, fields }: { title: string; fields: string[] 
   )
 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+function Th({
+  children,
+  align,
+  className,
+}: {
+  children: React.ReactNode
+  align?: 'right'
+  className?: string
+}) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+      className={`whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${
         align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      } ${className ?? ''}`}
     >
       {children}
     </th>

@@ -51,7 +51,7 @@ export function LeadQueue({ leads, team, statusFilter, nowIso }: LeadQueueProps)
         </div>
       ) : null}
 
-      <ul className="divide-y divide-slate-200">
+      <ul className="divide-y divide-slate-200/70">
         {leads.map((lead) => (
           <LeadRow
             key={lead.id}

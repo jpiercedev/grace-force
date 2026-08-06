@@ -1,5 +1,6 @@
 import { LinkButton } from '@/components/ui/button'
 import {
+  Avatar,
   Badge,
   Callout,
   Card,
@@ -126,34 +127,39 @@ function MemberRow({
         // Every row carries the transparent accent so selection never nudges
         // content sideways; aria-current alone would leave sighted users with
         // no cue of which subscriber the panel above is linking.
-        'flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-l-2 border-l-transparent px-4 py-3',
-        selected && 'border-l-brand-500 bg-brand-50/60',
+        'flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-l-2 border-l-transparent px-5 py-3.5 transition-colors',
+        selected ? 'border-l-brand-500 bg-brand-50/60' : 'hover:bg-slate-100/60',
       )}
     >
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-slate-900">{name ?? member.email_address}</span>
-          <Badge tone={memberStatusTone(member.status)}>{memberStatusLabel(member.status)}</Badge>
-        </div>
-        {name ? (
-          <span className="mt-0.5 block truncate text-sm text-slate-600">
-            {member.email_address}
-          </span>
-        ) : null}
-        <span className="mt-0.5 block text-xs text-slate-500">
-          {member.audience?.name ?? 'Unknown audience'}
-          {member.last_changed_at ? (
-            <>
-              {' · changed '}
-              <time
-                dateTime={member.last_changed_at}
-                title={formatDateTime(member.last_changed_at)}
-              >
-                {formatRelative(member.last_changed_at)}
-              </time>
-            </>
+      <div className="flex min-w-0 items-start gap-3">
+        <Avatar name={name ?? member.email_address} size="md" className="mt-0.5" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-900">
+              {name ?? member.email_address}
+            </span>
+            <Badge tone={memberStatusTone(member.status)}>{memberStatusLabel(member.status)}</Badge>
+          </div>
+          {name ? (
+            <span className="mt-0.5 block truncate text-sm text-slate-600">
+              {member.email_address}
+            </span>
           ) : null}
-        </span>
+          <span className="mt-0.5 block text-xs text-slate-500">
+            {member.audience?.name ?? 'Unknown audience'}
+            {member.last_changed_at ? (
+              <>
+                {' · changed '}
+                <time
+                  dateTime={member.last_changed_at}
+                  title={formatDateTime(member.last_changed_at)}
+                >
+                  {formatRelative(member.last_changed_at)}
+                </time>
+              </>
+            ) : null}
+          </span>
+        </div>
       </div>
 
       {admin ? (

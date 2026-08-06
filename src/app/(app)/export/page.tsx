@@ -66,10 +66,10 @@ export default async function ExportPage() {
           {datasets.map((dataset, index) => (
             <DatasetRow key={dataset.key} dataset={dataset} rowCount={counts[index] ?? null} />
           ))}
-          <li className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+          <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-slate-100/60">
             <div className="min-w-0">
-              <p className="text-sm font-medium text-slate-900">{MANIFEST_LABEL}</p>
-              <p className="mt-0.5 text-sm text-slate-500">{MANIFEST_DESCRIPTION}</p>
+              <p className="text-sm font-semibold text-slate-900">{MANIFEST_LABEL}</p>
+              <p className="mt-0.5 text-sm text-slate-600">{MANIFEST_DESCRIPTION}</p>
             </div>
             <a
               href={exportEndpoint(MANIFEST_KEY)}
@@ -106,9 +106,9 @@ function DatasetRow({ dataset, rowCount }: { dataset: ExportDataset; rowCount: n
   const references = dependencyLabels(dataset)
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-slate-100/60">
       <div className="min-w-0">
-        <p className="text-sm font-medium text-slate-900">
+        <p className="text-sm font-semibold text-slate-900">
           {dataset.label}
           {dataset.requires === 'giving' ? (
             <span className="ml-2 align-middle">
@@ -116,8 +116,8 @@ function DatasetRow({ dataset, rowCount }: { dataset: ExportDataset; rowCount: n
             </span>
           ) : null}
         </p>
-        <p className="mt-0.5 text-sm text-slate-500">{dataset.description}</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-0.5 text-sm text-slate-600">{dataset.description}</p>
+        <p className="mt-1 text-xs tabular-nums text-slate-500">
           {rowCount === null ? 'Row count unavailable' : pluralize(rowCount, 'row')} ·{' '}
           {pluralize(dataset.columns.length, 'column')}
           {references.length > 0 ? ` · references ${references.join(' and ')}` : ' · references nothing'}

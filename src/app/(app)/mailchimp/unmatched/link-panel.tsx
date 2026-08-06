@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button, LinkButton } from '@/components/ui/button'
-import { Callout, Card, CardBody, CardHeader, EmptyState } from '@/components/ui/display'
+import { Avatar, Callout, Card, CardBody, CardHeader, EmptyState } from '@/components/ui/display'
 import { Input, Label } from '@/components/ui/form'
 import type { LinkCandidate, UnmatchedMember } from '@/lib/mailchimp/queries'
 import type { MailchimpActionState } from '@/lib/mailchimp/ui'
@@ -110,18 +110,21 @@ export function LinkPanel({
         ) : (
           <form action={formAction}>
             <input type="hidden" name="member_id" value={member.id} />
-            <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200/70">
               {candidates.map((candidate) => (
                 <li
                   key={candidate.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5"
+                  className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-3 transition-colors hover:bg-slate-100/60"
                 >
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-slate-900">
-                      {candidate.name}
-                    </span>
-                    <span className="block truncate text-xs text-slate-500">
-                      {candidate.email ?? candidate.organization_name ?? 'No email on file'}
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <Avatar name={candidate.name} size="sm" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-slate-900">
+                        {candidate.name}
+                      </span>
+                      <span className="block truncate text-xs text-slate-500">
+                        {candidate.email ?? candidate.organization_name ?? 'No email on file'}
+                      </span>
                     </span>
                   </span>
                   <CandidateButton candidate={candidate} />

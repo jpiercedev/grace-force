@@ -87,8 +87,9 @@ export function ImportForm({
                 accept=".csv,text/csv"
                 required
                 // The browser-default bezel button clashes with the design
-                // system; file: modifiers restyle it without a custom picker.
-                className="file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+                // system; file: modifiers restyle it without a custom picker,
+                // and the dashed tint makes the drop target read as a place.
+                className="cursor-pointer rounded-lg border border-dashed border-slate-300 bg-slate-50/60 py-4 shadow-none ring-0 transition-colors sm:py-4 hover:border-brand-400 hover:bg-brand-50/40 file:mr-3.5 file:cursor-pointer file:rounded-md file:border-0 file:bg-white file:px-3.5 file:py-2 file:text-sm file:font-medium file:text-brand-800 file:shadow-sm hover:file:bg-brand-50"
               />
             )}
           </Field>

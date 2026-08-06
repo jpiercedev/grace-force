@@ -60,10 +60,10 @@ export function LeadFilters({ status, assignee, team, counts }: LeadFiltersProps
                   // contains what is on screen.
                   aria-label={count === null ? undefined : `${label}, ${pluralize(count, 'lead')}`}
                   className={cn(
-                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-150',
                     active
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-300 hover:bg-slate-50',
+                      ? 'bg-brand-600 text-white shadow-sm'
+                      : 'bg-white text-slate-600 shadow-sm hover:bg-slate-100 hover:text-slate-900',
                   )}
                 >
                   {label}
@@ -72,7 +72,7 @@ export function LeadFilters({ status, assignee, team, counts }: LeadFiltersProps
                       aria-hidden="true"
                       className={cn(
                         'rounded-full px-1.5 text-xs tabular-nums',
-                        active ? 'bg-brand-500/40' : 'bg-slate-100 text-slate-600',
+                        active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500',
                       )}
                     >
                       {count}

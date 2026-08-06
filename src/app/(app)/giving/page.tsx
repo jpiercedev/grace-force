@@ -2,6 +2,7 @@ import { parseISO } from 'date-fns'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
+  Avatar,
   Badge,
   Callout,
   Card,
@@ -9,7 +10,6 @@ import {
   CardHeader,
   EmptyState,
   PageHeader,
-  StatTile,
 } from '@/components/ui/display'
 import { canViewGiving, requireProfile } from '@/lib/auth'
 import {
@@ -67,40 +67,53 @@ export default async function GivingPage({
     <div className="mx-auto max-w-7xl space-y-5">
       <PageHeader title="Giving" description="Generosity in context, across the whole ministry." />
 
-      {/* Each StatTile is its own <dl>, so the grid around them is a plain div. */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <StatTile
-          label="This month"
-          value={formatCurrency(overview.totals.monthToDateCents)}
-          hint="Received so far this calendar month"
-        />
-        <StatTile
-          label="Year to date"
-          value={formatCurrency(overview.totals.yearToDateCents)}
-          hint="Since 1 January"
-          tone="emerald"
-        />
-        <StatTile
-          label="Trailing 12 months"
-          value={formatCurrency(overview.totals.trailing12moCents)}
-          hint="The last 365 days"
-        />
-        <StatTile
-          label="In this range"
-          value={formatCurrency(overview.range.totalCents)}
-          hint={`${formatDay(overview.range.from)} – ${formatDay(overview.range.to)}`}
-          tone="brand"
-        />
-        <StatTile
-          label="Gifts in range"
-          value={overview.range.giftCount}
-          hint={
-            overview.range.giftCount === 0
-              ? 'No gifts in this window'
-              : `${formatCurrency(overview.range.averageCents)} average`
-          }
-        />
-      </div>
+      {/* One quiet band of serif figures, led by the range being reported —
+          stewardship, not an accounting widget row. */}
+      <Card>
+        <div className="flex flex-col gap-6 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:gap-10">
+          <dl className="lg:w-72 lg:shrink-0">
+            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Received in this range
+            </dt>
+            <dd className="mt-1.5 font-display text-[2.5rem] font-semibold leading-none tracking-tight tabular-nums text-brand-700">
+              {formatCurrency(overview.range.totalCents)}
+            </dd>
+            <dd className="mt-2 text-xs leading-snug text-slate-500">
+              {formatDay(overview.range.from)} – {formatDay(overview.range.to)}
+              {overview.range.giftCount === 0 ? (
+                <> · no gifts in this window</>
+              ) : (
+                <>
+                  {' · '}
+                  {pluralize(overview.range.giftCount, 'gift')} ·{' '}
+                  {formatCurrency(overview.range.averageCents)} average
+                </>
+              )}
+            </dd>
+          </dl>
+
+          <div aria-hidden="true" className="hidden w-px self-stretch bg-slate-200 lg:block" />
+          <div aria-hidden="true" className="h-px w-full bg-slate-200 lg:hidden" />
+
+          <dl className="grid flex-1 grid-cols-1 gap-x-8 gap-y-5 min-[420px]:grid-cols-3">
+            <SupportingFigure
+              label="This month"
+              value={formatCurrency(overview.totals.monthToDateCents)}
+              hint="So far this calendar month"
+            />
+            <SupportingFigure
+              label="Year to date"
+              value={formatCurrency(overview.totals.yearToDateCents)}
+              hint="Since 1 January"
+            />
+            <SupportingFigure
+              label="Trailing 12 months"
+              value={formatCurrency(overview.totals.trailing12moCents)}
+              hint="The last 365 days"
+            />
+          </dl>
+        </div>
+      </Card>
 
       {overview.truncated ? (
         <Callout tone="warning" title="Totals are partial">
@@ -151,6 +164,26 @@ export default async function GivingPage({
   )
 }
 
+function SupportingFigure({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: string
+  hint: string
+}) {
+  return (
+    <div>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      <dd className="mt-1.5 font-display text-[1.55rem] font-semibold leading-none tracking-tight tabular-nums text-slate-900">
+        {value}
+      </dd>
+      <dd className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</dd>
+    </div>
+  )
+}
+
 function Breakdown({
   title,
   description,
@@ -172,7 +205,7 @@ function Breakdown({
         <EmptyState title="Nothing to show" description={emptyDescription} />
       ) : (
         <CardBody>
-          <ul className="space-y-3">
+          <ul className="space-y-4">
             {items.map((item) => (
               <li key={item.label}>
                 {/* No flex-wrap: a long fund name must wrap inside its own
@@ -186,9 +219,9 @@ function Breakdown({
                   </span>
                 </div>
                 {/* The bar restates the number beside it, so it is decorative. */}
-                <div className="mt-1 h-1.5 w-full rounded-full bg-slate-100" aria-hidden="true">
+                <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-100" aria-hidden="true">
                   <div
-                    className="h-1.5 rounded-full bg-brand-400"
+                    className="h-1.5 rounded-full bg-brand-500"
                     style={{ width: `${largest === 0 ? 0 : (item.total_cents / largest) * 100}%` }}
                   />
                 </div>
@@ -215,32 +248,35 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
       />
       {/* The table is wider than a phone; without a cue the columns past the
           right edge are simply never discovered. */}
-      <p className="px-4 py-2 text-sm text-slate-500 sm:hidden">
+      <p className="px-5 py-2 text-sm text-slate-500 sm:hidden">
         Scroll sideways for fund and method.
       </p>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <caption className="sr-only">Recent gifts in the selected range</caption>
-          <thead className="bg-slate-50">
+          <thead>
             <tr>
-              <Th>Contact</Th>
+              <Th className="pl-5">Contact</Th>
               <Th align="right">Amount</Th>
               <Th>Date</Th>
               <Th>Fund</Th>
-              <Th>Method</Th>
+              <Th className="pr-5">Method</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {gifts.map((gift) => (
-              <tr key={gift.id} className="align-top hover:bg-slate-50/70">
-                <td className="px-2 py-2.5 sm:px-3">
+              <tr key={gift.id} className="align-top transition-colors hover:bg-slate-100/60">
+                <td className="min-w-[14rem] py-3.5 pl-5 pr-3">
                   {gift.contact ? (
-                    <Link
-                      href={`/contacts/${gift.contact.id}`}
-                      className="font-medium text-brand-700 underline-offset-2 hover:underline"
-                    >
-                      {gift.contact.name}
-                    </Link>
+                    <span className="flex items-start gap-2.5">
+                      <Avatar name={gift.contact.name} size="sm" className="mt-px" />
+                      <Link
+                        href={`/contacts/${gift.contact.id}`}
+                        className="min-w-0 font-semibold text-slate-900 underline-offset-2 hover:text-brand-700 hover:underline"
+                      >
+                        {gift.contact.name}
+                      </Link>
+                    </span>
                   ) : (
                     <span className="text-slate-500">Unknown contact</span>
                   )}
@@ -250,23 +286,23 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
                     </span>
                   ) : null}
                 </td>
-                <td className="whitespace-nowrap px-2 py-2.5 sm:px-3 text-right font-semibold tabular-nums text-slate-900">
+                <td className="whitespace-nowrap px-3 py-3.5 text-right font-semibold tabular-nums text-slate-900">
                   {formatCurrency(gift.amount_cents, gift.currency)}
                 </td>
-                <td className="whitespace-nowrap px-2 py-2.5 sm:px-3 text-slate-600">
+                <td className="whitespace-nowrap px-3 py-3.5 text-slate-600">
                   <time dateTime={gift.given_on}>{formatDay(gift.given_on)}</time>
                 </td>
-                <td className="px-2 py-2.5 sm:px-3 text-slate-600">
+                <td className="px-3 py-3.5 text-slate-600">
                   {gift.fund ?? <span className="text-slate-500">—</span>}
                   {gift.campaign ? (
                     <div className="text-xs text-slate-500">{gift.campaign}</div>
                   ) : null}
                 </td>
-                <td className="px-2 py-2.5 sm:px-3 text-slate-600">
+                <td className="py-3.5 pl-3 pr-5 text-slate-600">
                   {METHOD_LABELS[gift.method]}
                   {gift.is_recurring ? (
                     <div className="mt-0.5">
-                      <Badge tone="sky">Recurring</Badge>
+                      <Badge tone="brand">Recurring</Badge>
                     </div>
                   ) : null}
                 </td>
@@ -296,26 +332,29 @@ function TopGivers({ givers }: { givers: TopGiver[] }) {
           {givers.map((giver) => (
             <li
               key={giver.contact.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-5 py-3.5 transition-colors hover:bg-slate-100/60"
             >
-              <span className="min-w-0">
-                <Link
-                  href={`/contacts/${giver.contact.id}`}
-                  className="text-sm font-medium text-brand-700 underline-offset-2 hover:underline"
-                >
-                  {giver.contact.name}
-                </Link>
-                <span className="mt-0.5 block text-xs text-slate-500">
-                  {pluralize(giver.giftCount, 'gift')} all time
-                  {giver.lastGiftOn ? (
-                    <>
-                      {' · last '}
-                      <time dateTime={giver.lastGiftOn}>{formatDay(giver.lastGiftOn)}</time>
-                    </>
-                  ) : null}
+              <span className="flex min-w-0 items-center gap-3">
+                <Avatar name={giver.contact.name} size="md" />
+                <span className="min-w-0">
+                  <Link
+                    href={`/contacts/${giver.contact.id}`}
+                    className="text-sm font-semibold text-slate-900 underline-offset-2 hover:text-brand-700 hover:underline"
+                  >
+                    {giver.contact.name}
+                  </Link>
+                  <span className="mt-0.5 block text-xs text-slate-500">
+                    {pluralize(giver.giftCount, 'gift')} all time
+                    {giver.lastGiftOn ? (
+                      <>
+                        {' · last '}
+                        <time dateTime={giver.lastGiftOn}>{formatDay(giver.lastGiftOn)}</time>
+                      </>
+                    ) : null}
+                  </span>
                 </span>
               </span>
-              <span className="text-right">
+              <span className="pl-11 text-left sm:pl-0 sm:text-right">
                 <span className="block text-sm font-semibold tabular-nums text-slate-900">
                   {formatCurrency(giver.trailing12moCents)}
                   <span className="font-normal text-slate-500"> past 12 months</span>
@@ -336,13 +375,21 @@ function TopGivers({ givers }: { givers: TopGiver[] }) {
   )
 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: 'right' }) {
+function Th({
+  children,
+  align,
+  className,
+}: {
+  children: React.ReactNode
+  align?: 'right'
+  className?: string
+}) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-3 ${
+      className={`whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${
         align === 'right' ? 'text-right' : 'text-left'
-      }`}
+      } ${className ?? ''}`}
     >
       {children}
     </th>
