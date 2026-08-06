@@ -75,7 +75,8 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
       <span
         className={cn(
           'text-[10px] font-semibold uppercase tracking-[0.14em]',
-          onDark ? 'text-white/40' : 'text-slate-400',
+          // AA floor even for this whisper of a label.
+          onDark ? 'text-white/70' : 'text-slate-500',
         )}
       >
         CRM

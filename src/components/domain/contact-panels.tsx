@@ -29,6 +29,16 @@ import type { ContactRow } from '@/types/database'
  * All server components — nothing here is interactive.
  */
 
+/**
+ * Email addresses have no spaces, so a narrow column either overflows or
+ * breaks mid-word ("example.or / g"). A zero-width space before the @ gives
+ * the browser a clean preferred break: local part on one line, domain on
+ * the next. Screen readers ignore the ZWSP.
+ */
+function breakableEmail(email: string): string {
+  return email.replace('@', '\u200b@')
+}
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     // A fixed narrow label column: an equal-thirds grid squeezed values so
@@ -67,10 +77,8 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
         <dl className="divide-y divide-slate-100">
           <Row label="Email">
             {contact.email ? (
-              // break-all: when an address must wrap, an even break beats
-              // break-words orphaning a single character on the next line.
-              <a href={`mailto:${contact.email}`} className="break-all text-brand-700 hover:underline">
-                {contact.email}
+              <a href={`mailto:${contact.email}`} className="break-words text-brand-700 hover:underline">
+                {breakableEmail(contact.email)}
               </a>
             ) : (
               <Muted>Not recorded</Muted>
@@ -78,9 +86,9 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
             {contact.secondary_email ? (
               <a
                 href={`mailto:${contact.secondary_email}`}
-                className="mt-0.5 block break-all text-brand-700 hover:underline"
+                className="mt-0.5 block break-words text-brand-700 hover:underline"
               >
-                {contact.secondary_email}
+                {breakableEmail(contact.secondary_email)}
               </a>
             ) : null}
           </Row>

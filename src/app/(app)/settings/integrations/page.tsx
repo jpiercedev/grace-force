@@ -348,7 +348,9 @@ function SyncRuns({ runs }: { runs: SyncRunListItem[] }) {
           description="Sync runs are recorded here as soon as an integration is connected and runs for the first time."
         />
       ) : (
-        <div className="overflow-x-auto">
+        // tabIndex: a horizontally scrollable region must be reachable by
+        // keyboard, or its off-screen columns are mouse-only.
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent sync runs table">
           <table className="min-w-full text-sm">
             <caption className="sr-only">Recent integration sync runs</caption>
             <thead>
@@ -417,7 +419,7 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
           description="A new lead or a follow-up falling due is what puts an entry here."
         />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Notification outbox table">
           <table className="min-w-full text-sm">
             <caption className="sr-only">Recent internal notifications</caption>
             <thead>

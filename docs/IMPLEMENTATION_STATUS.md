@@ -16,6 +16,36 @@
 | Build | `next build` succeeds — 36 routes |
 | Deployment | `grace-force` on Vercel (`prj_X6jiKLWkjr7y5pc3TxHpw3NsMkkf`), production target, git-connected |
 
+## Premium visual redesign (2026-08-06, after the polish pass)
+
+A full visual identity overhaul on the same branch — "a warm ledger", defined
+in `docs/DESIGN.md`. Warm stone neutrals replace cold gray, deep evergreen
+replaces the default blue, a serif display voice (system Charter/Georgia
+stack, no font dependency) carries titles, names and figures, and the
+navigation becomes a dark evergreen-ink rail with a serif wordmark. Every
+route was rebuilt to the system: the dashboard as an action center, contacts
+as an avatar-led operating view with a composed identity band and a
+story-styled timeline, follow-ups as a segmented work queue with a fused
+action strip, pipelines with ledger bands and settled won/lost cards,
+stewardship-toned giving, integrated Mailchimp, organized settings, and a
+split-panel brand login. No routes, queries, actions, permissions or schema
+changed; axe-core reports zero WCAG 2.1 AA violations across all 27 routes;
+unit/UI suites and the public browser suite pass.
+
+**Known pre-existing fault (production-affecting, found during browser QA):**
+multi-intent server-action forms lose the submit button's `name`/`value` in
+real browsers — the POST body carries the action ref and hidden fields but no
+`intent`, so handlers reply "That action is not available." This hits every
+multi-button form (follow-up Complete/snooze/Reassign/Cancel, pipeline
+Move/Close, lead triage, engagement Edit/End). Verified on the pre-polish
+baseline commit (42e6fb7) in dev AND production builds via the local harness
+(next 15.5.22 / react 19.2.8), so it predates all visual work; the jsdom
+suite passes because the test renderer injects the submitter, and the hosted
+`@authed` browser suite has never run in CI sandboxes (skipped — no egress).
+Not fixed here: repairing it means changing form mechanics (per-button bound
+`formAction`s or hidden-field dispatch), which is behavior work outside a
+visual branch. It should be the very next engineering task.
+
 ## Visual polish pass (2026-08-06)
 
 A dedicated visual/responsive/accessibility pass over every route — no
