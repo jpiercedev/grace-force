@@ -102,14 +102,15 @@ export function PageHeader({
 }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pb-5">
-      <div className="min-w-0 flex-1">
+      {/* basis-64 guarantees the title block a readable column: when the
+          actions would squeeze it below ~16rem they wrap underneath instead,
+          and long action rows also wrap internally (min-w-0, not shrink-0). */}
+      <div className="min-w-0 flex-1 basis-64">
         <h1 className="break-words text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
           {title}
         </h1>
         {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
       </div>
-      {/* min-w-0 (not shrink-0) so a long action row wraps under the title on
-          phones instead of pushing past the viewport edge. */}
       {action ? <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div> : null}
     </header>
   )

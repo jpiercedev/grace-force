@@ -30,6 +30,14 @@
     @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-slate-50;
   }
 
+  /* Controls own their focus style (the inset brand ring in form.tsx), so the
+     browser's default black outline must not stack on top of it. */
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none;
+  }
+
   [hidden] {
     display: none !important;
   }
