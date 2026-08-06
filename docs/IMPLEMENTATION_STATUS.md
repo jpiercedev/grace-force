@@ -3,17 +3,18 @@
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | Feature-complete; hosted database provisioned and verified |
+| Current phase | Deployed to Vercel; shaking out production-only faults |
 | Current branch | `claude/crm-bridge-implementation-zj6y21` |
-| Overall status | All planned functionality implemented, tested and building; hosted schema live |
-| Tests | 419 Vitest + 28 browser passing; 8 browser skipped (blocked by sandbox egress, see below) |
+| Overall status | Feature-complete and deployed; three production faults found and fixed (see below) |
+| Tests | 475 Vitest + 28 browser passing; 8 browser skipped (blocked by sandbox egress, see below) |
 | Build | `next build` succeeds — 36 routes |
+| Deployment | `grace-force` on Vercel (`prj_X6jiKLWkjr7y5pc3TxHpw3NsMkkf`), production target, git-connected |
 
 ## Completed
 
@@ -51,16 +52,83 @@ views set `security_invoker = on`. Development seed in `supabase/seed.sql`.
 
 ## Next task
 
-Deploy, following `docs/DEPLOYMENT.md`. It needs a human because creating a
-git-connected Vercel project and setting environment variables are not exposed
-by the available tooling. Then run the `@authed` suite against the deployed
-origin from a network with normal egress:
+Confirm the deployed dashboard renders for a signed-in administrator. The three
+faults below were each reproduced by a test and fixed, but the final
+confirmation is a browser step this container cannot perform — `*.vercel.app`
+is denied by the egress policy, and the Vercel MCP's fetch and log tools
+require interactive approval.
+
+Then run the `@authed` suite against the deployed origin from a network with
+normal egress:
 
 ```bash
-E2E_BASE_URL=https://<deployment> E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
+E2E_BASE_URL=https://grace-force.vercel.app E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
 ```
 
 No local work is outstanding.
+
+## Production faults found after deploying
+
+Three faults that only appear against a real origin with a real session. None
+were reachable locally, which is why each one now has a regression test that
+was first verified to fail against the broken code.
+
+**1. `ERR_TOO_MANY_REDIRECTS` between /login and /dashboard** — two independent
+causes, either of which alone would keep the loop reachable.
+
+- Middleware built a fresh `NextResponse.redirect()` after `getUser()`, which
+  discarded the refreshed session cookies `@supabase/ssr` had just written onto
+  the original response. Under refresh-token rotation that is worse than lossy:
+  the server consumes the refresh token while the browser keeps the stale one.
+  All four redirects now route through `redirectPreservingCookies`, which
+  copies the whole `ResponseCookie` — path, httpOnly, sameSite and maxAge
+  included, since a cookie that loses its path may never be sent back.
+- `requireProfile()` sent a *signed-in* user with no profile row to `/login`,
+  which middleware bounces straight back to `/dashboard`. A signed-in user must
+  never be redirected to `/login`; that pair is the loop. Unprovisioned now
+  terminates at `/no-access?reason=unprovisioned`.
+
+Covered by `tests/unit/middleware.test.ts` (16) and
+`tests/unit/auth-guards.test.ts` (15), the latter walking both layers together
+— either layer looks correct in isolation.
+
+**2. "Account not set up" for a valid administrator** — self-inflicted by the
+fix above. Splitting session and profile lookup introduced a second Supabase
+client that queried *before* resolving its session. `supabase-js` attaches the
+access token from auth state, so the request went out as `anon`; `anon` holds
+no table privileges here by design, so it returned a permission error rather
+than an empty result, and `const { data }` discarded it into `null`.
+
+`loadProfile()` now uses one client, calls `getUser()` before querying, and
+returns a discriminated union — `ok` / `no-session` / `not-found` / `error` —
+so a fault can no longer read as a verdict on the account. Failures log the
+PostgREST code and the project ref, never a key.
+
+The hosted database was verified first and was never at fault: the
+`on_auth_user_created` trigger existed and fired at signup, the row was present
+with `role=admin` and `is_active=true`, and the app's exact query run as
+`authenticated` returned it.
+
+**3. `Functions cannot be passed directly to Client Components`** — the
+protected layout passes `visibleSections(profile)` into `<AppShell>`, a Client
+Component. `visibleSections` filtered with `Array.prototype.filter`, which
+returns the *same* item objects with the `visible` predicate still attached,
+so React tried to serialise a function on every dashboard render. The four
+items named in the logs — Import, Export, Team, Integrations — are exactly
+those gated on `canWrite` / `isAdmin`.
+
+`'use server'` would have been the wrong fix: these are synchronous permission
+predicates, not server actions, and exposing them would turn each visibility
+check into a network round-trip. Instead `nav.ts` now separates
+`NavItemDefinition` (holds the predicate, unexported, never leaves the server)
+from `NavItem` (strings only), and rebuilds each item field by field so the
+return type makes a leak a compile error.
+
+Covered by `tests/unit/rsc-serializable-props.test.ts` (25), which deep-scans
+for functions at any depth, checks a JSON round-trip, and pins the exact wire
+fields. The rest of the boundary was audited at the same time: all nine
+`actions.ts` modules declare `'use server'`, and every other function-valued
+prop has a `'use client'` parent, so the nav predicate was the only violation.
 
 ## Hosted Supabase project
 
@@ -89,12 +157,14 @@ make a later `supabase db push` believe none of them had run.
 | --- | --- | --- |
 | **Sandbox egress policy** | The `@authed` browser suite | This container's network policy denies CONNECT to `*.supabase.co` (verified: gateway returns 403; GitHub and npm are permitted). The app therefore cannot reach the API from here. The MCP tooling works because it routes through Anthropic's infrastructure, not container egress. Run the suite from a machine with normal egress. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Lead intake, Mailchimp sync, notification outbox, reminder cron | The management API deliberately exposes only publishable keys. Copy it from Project Settings → API. |
-| **Vercel project + env vars** | Any deployment | The Vercel MCP exposes no tool to create a git-connected project or set environment variables; its only write path is `deploy_to_vercel`, which uploads a file tree to a *non*-git-connected project with no env vars. Runbook: `docs/DEPLOYMENT.md`. |
-| **Sandbox egress (Vercel)** | Testing any deployment from here | `*.vercel.app`, `vercel.com` and `api.vercel.com` are all denied by the same policy that blocks `*.supabase.co`. A preview could not be browsed or Playwright-tested from this container even if it existed. |
-| Supabase Site URL / redirect list | Auth on a deployed origin | No MCP tool covers auth configuration; it is a dashboard step. Values are in `docs/DEPLOYMENT.md`. |
+| **Sandbox egress (Vercel)** | Browsing or Playwright-testing the deployment from here | `*.vercel.app`, `vercel.com` and `api.vercel.com` are denied by the same policy that blocks `*.supabase.co`. The Vercel MCP's `web_fetch_vercel_url` and `get_runtime_logs` need interactive approval, which a non-interactive session cannot give, so the deployed page cannot be confirmed from this container. `list_deployments` and `get_deployment` do work, so build state is observable. |
 | Mailchimp API key | Live sync against the real API | Intentionally unset so no real campaign can be touched. |
 | Resend API key | Live send | Intentionally unset so no real email can be sent. |
 | A `main` branch | Opening a pull request | The feature branch became the repository default when pushed to the empty repo, so there is no base to target. |
+
+Resolved since the previous entry: the Vercel project now exists and is
+git-connected (created by the owner — no MCP tool covers it), and the Supabase
+Site URL and redirect allow-list are configured.
 
 ## Material architectural decisions
 
@@ -156,13 +226,13 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 
 | Integration | Code | Live verification |
 | --- | --- | --- |
-| Supabase | Complete | Pending a hosted project |
+| Supabase | Complete | Live — schema applied, auth verified against the hosted project |
 | Mailchimp | Complete, with injected-fake tests | Pending an API key |
 | Resend | Complete, with injected-fake tests | Pending an API key |
 
 ## Tests
 
-**419 Vitest across 22 files, all passing.**
+**475 Vitest across 25 files, all passing.**
 
 | Suite | Count |
 | --- | --- |
@@ -175,6 +245,7 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 | `unit/mailchimp-sync.test.ts` | 34 |
 | `unit/follow-up.test.ts` | 32 |
 | `unit/utils.test.ts` | 25 |
+| `unit/rsc-serializable-props.test.ts` | 25 |
 | `unit/csv-gifts.test.ts` | 22 |
 | `unit/notifications.test.ts` | 22 |
 | `unit/csv-contacts.test.ts` | 21 |
@@ -182,12 +253,21 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 | `unit/contact-validation.test.ts` | 16 |
 | `unit/mailchimp-client.test.ts` | 16 |
 | `unit/pipeline.test.ts` | 16 |
+| `unit/middleware.test.ts` | 16 |
+| `unit/auth-guards.test.ts` | 15 |
 | `unit/settings.test.ts` | 14 |
 | `unit/search.test.ts` | 12 |
 | `unit/giving.test.ts` | 10 |
 | `ui/primitives.test.tsx` | 17 |
 | `ui/follow-up-queue.test.tsx` | 11 |
 | `ui/pipeline-board.test.tsx` | 7 |
+
+The last three unit suites cover the production faults above. Each was run
+against the broken code first: the middleware tests produced 4 failures, the
+guard test reported `redirect loop: /login -> /dashboard -> /login -> ...`, and
+the serialisation test produced 11, one naming
+`"visible": [Function canViewGiving]` — the production symptom exactly. A
+regression test that has never failed proves nothing.
 
 **Browser: 28 passing, 8 skipped.** The skipped ones are the `@authed` suite.
 It now probes the Supabase API once before running and skips with the actual
@@ -202,7 +282,7 @@ they also confirm the app builds and serves correctly with them.
 ## Last successful validation commands
 
 ```
-npx vitest run                       # 419 passed, 22 files
+npx vitest run                       # 475 passed, 25 files
 npx playwright test                  # 28 passed, 8 skipped
 npx tsc --noEmit                     # clean
 npx eslint .                         # clean
@@ -211,19 +291,22 @@ npx next build                       # succeeds, 36 routes
 
 ## External setup still required
 
-1. **Hosted Supabase project** (owner's decision; do not create a paid resource
-   without explicit approval). Then: apply `supabase/migrations`, set
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
-   `SUPABASE_SERVICE_ROLE_KEY`, **rebuild** (`NEXT_PUBLIC_*` is inlined at build
-   time, including into the middleware bundle), add the site URL and
-   `<site-url>/auth/callback` to the redirect allow-list, sign up and confirm
-   the first account becomes administrator, then set `E2E_EMAIL` /
-   `E2E_PASSWORD` and run `npm run e2e -- --grep @authed`. Check **Advisors**
-   in the dashboard afterwards.
-2. Mailchimp Marketing API key + server prefix.
-3. Resend API key, verified sender, `NOTIFY_INTERNAL_EMAILS`.
-4. `CRON_SECRET` for the two scheduled endpoints (`vercel.json` declares both).
-5. A `main` branch, if a pull request is wanted.
+Done: the hosted Supabase project, its schema, the Vercel project, the
+environment variables and the auth redirect allow-list. What remains:
+
+1. **Confirm the deployed dashboard renders** for a signed-in administrator —
+   the one step this container cannot perform (see Known blockers). If anything
+   is still wrong, `get_runtime_logs` in the Vercel dashboard is where it will
+   show.
+2. Run the `@authed` browser suite from a machine with normal egress:
+   `E2E_BASE_URL=… E2E_EMAIL=… E2E_PASSWORD=… npm run e2e -- --grep @authed`.
+3. Mailchimp Marketing API key + server prefix.
+4. Resend API key, verified sender, `NOTIFY_INTERNAL_EMAILS`.
+5. `CRON_SECRET` for the two scheduled endpoints (`vercel.json` declares both).
+6. A `main` branch, if a pull request is wanted.
+
+Remember that `NEXT_PUBLIC_*` is inlined at build time, including into the
+middleware bundle — changing one needs a redeploy, not a restart.
 
 ## Supabase Advisors
 
