@@ -51,17 +51,35 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <Resolved className={className} aria-hidden="true" />
 }
 
-/** One brand lockup for sidebar, mobile topbar and drawer alike. */
-function Brand() {
+/**
+ * One brand lockup for sidebar, mobile topbar and drawer alike. The wordmark
+ * speaks in the serif display voice; `onDark` flips it for the ink rail.
+ */
+function Brand({ onDark = false }: { onDark?: boolean }) {
   return (
-    <span className="flex items-center gap-2">
+    <span className="flex items-baseline gap-2">
       <span
         aria-hidden="true"
-        className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-600 text-xs font-bold text-white"
+        className="flex h-7 w-7 shrink-0 translate-y-1 items-center justify-center self-center rounded-lg bg-brand-600 font-display text-[13px] font-bold text-brand-50"
       >
-        GF
+        G
       </span>
-      <span className="text-sm font-semibold tracking-tight text-slate-900">Grace Force CRM</span>
+      <span
+        className={cn(
+          'font-display text-[17px] font-semibold tracking-tight',
+          onDark ? 'text-slate-50' : 'text-slate-900',
+        )}
+      >
+        Grace Force
+      </span>
+      <span
+        className={cn(
+          'text-[10px] font-semibold uppercase tracking-[0.14em]',
+          onDark ? 'text-white/40' : 'text-slate-400',
+        )}
+      >
+        CRM
+      </span>
     </span>
   )
 }
@@ -70,14 +88,19 @@ function isActivePath(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+/**
+ * Navigation on the ink rail. The active item carries three quiet signals —
+ * a soft wash, full-strength text, and a short evergreen bar — so "where am
+ * I" survives any one of them being missed.
+ */
 function NavLinks({ sections, onNavigate }: { sections: NavSection[]; onNavigate?: () => void }) {
   const pathname = usePathname()
 
   return (
-    <nav aria-label="Main" className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+    <nav aria-label="Main" className="flex-1 space-y-7 overflow-y-auto px-3 py-5">
       {sections.map((section) => (
         <div key={section.label}>
-          <p className="px-2 pb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
             {section.label}
           </p>
           <ul className="space-y-0.5">
@@ -91,15 +114,21 @@ function NavLinks({ sections, onNavigate }: { sections: NavSection[]; onNavigate
                     aria-current={active ? 'page' : undefined}
                     className={cn(
                       // Taller rows below lg: the drawer is a touch surface.
-                      'flex items-center gap-2.5 rounded-md px-2 py-2.5 text-sm font-medium transition-colors lg:py-2',
+                      'relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 lg:py-2',
                       active
-                        ? 'bg-brand-50 text-brand-800'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                        ? 'bg-white/[0.08] text-white'
+                        : 'text-white/65 hover:bg-white/[0.05] hover:text-white',
                     )}
                   >
+                    {active ? (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand-400"
+                      />
+                    ) : null}
                     <Icon
                       name={item.icon}
-                      className={cn('h-4 w-4 shrink-0', active ? 'text-brand-600' : 'text-slate-500')}
+                      className={cn('h-4 w-4 shrink-0', active ? 'text-brand-300' : 'text-white/40')}
                     />
                     {item.label}
                   </Link>
@@ -181,11 +210,13 @@ export function AppShell({
         Skip to content
       </a>
 
-      {/* Desktop sidebar. Sticky so navigation and Sign out stay reachable on
-          long pages instead of scrolling away with the document. */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-dvh">
-        <div className="flex h-14 shrink-0 items-center border-b border-slate-200 px-4">
-          <Brand />
+      {/* Desktop sidebar: the one dark surface in the product — a deep
+          evergreen-ink rail that gives the app its silhouette and makes the
+          parchment canvas feel light. Sticky so navigation and Sign out stay
+          reachable on long pages. */}
+      <aside className="hidden w-64 shrink-0 flex-col bg-ink lg:sticky lg:top-0 lg:flex lg:h-dvh">
+        <div className="flex h-16 shrink-0 items-center border-b border-ink-line px-5">
+          <Brand onDark />
         </div>
         <NavLinks sections={sections} />
         <UserFooter
@@ -207,22 +238,22 @@ export function AppShell({
             tabIndex={-1}
             aria-label="Close navigation"
             onClick={() => setMobileOpen(false)}
-            className="absolute inset-0 h-full w-full bg-slate-900/40"
+            className="absolute inset-0 h-full w-full bg-slate-950/50"
           />
           <div
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
-            className="relative flex h-full w-64 flex-col bg-white shadow-xl animate-fade-in"
+            className="relative flex h-full w-72 max-w-[85vw] flex-col bg-ink shadow-raised animate-slide-in-left motion-reduce:animate-none"
           >
-            <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
-              <Brand />
+            <div className="flex h-16 shrink-0 items-center justify-between border-b border-ink-line px-5">
+              <Brand onDark />
               <button
                 ref={closeButtonRef}
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-md p-2 text-slate-500 hover:bg-slate-100"
+                className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
                 aria-label="Close navigation"
               >
                 <X className="h-6 w-6" />
@@ -244,11 +275,11 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col" inert={mobileOpen || undefined}>
         {/* Sticky topbar: the hamburger is the only way into navigation on
             phones, and pages here run thousands of pixels tall. */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white px-3 lg:hidden">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur-sm lg:hidden">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-md p-2.5 text-slate-600 hover:bg-slate-100"
+            className="rounded-lg p-2.5 text-slate-600 transition-colors hover:bg-slate-100"
             aria-label="Open navigation"
             aria-expanded={mobileOpen}
           >
@@ -257,7 +288,7 @@ export function AppShell({
           <Brand />
         </header>
 
-        <main id="main-content" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main id="main-content" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
         </main>
       </div>
@@ -277,22 +308,22 @@ function UserFooter({
   signOutAction: () => Promise<void>
 }) {
   return (
-    <div className="shrink-0 border-t border-slate-200 px-3 py-3">
+    <div className="shrink-0 border-t border-ink-line px-3 py-3">
       <div className="flex items-center gap-2.5 px-2">
         <Avatar name={displayName} />
         <div className="min-w-0 flex-1">
           {/* The email lives on the name's title so a hover can confirm which
               account this is; the visible line stays the role. */}
-          <p className="truncate text-sm font-medium text-slate-900" title={email}>
+          <p className="truncate text-sm font-medium text-white" title={email}>
             {displayName}
           </p>
-          <p className="truncate text-xs text-slate-500">{role}</p>
+          <p className="truncate text-xs text-white/50">{role}</p>
         </div>
       </div>
       <form action={signOutAction} className="mt-2">
         <button
           type="submit"
-          className="w-full rounded-md px-2 py-2.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 lg:py-2"
+          className="w-full rounded-lg px-2 py-2.5 text-left text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white lg:py-2"
         >
           Sign out
         </button>
