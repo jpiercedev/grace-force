@@ -37,7 +37,9 @@ export function Badge({
     <span
       {...props}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
+        // whitespace-nowrap: a squeezed column must never fold a pill onto two
+        // lines — the surrounding flex-wrap containers handle overflow instead.
+        'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
         BADGE_TONES[tone],
         className,
       )}
@@ -75,8 +77,8 @@ export function CardHeader({
       )}
     >
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
-        {description ? <p className="mt-0.5 text-xs text-slate-500">{description}</p> : null}
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -100,11 +102,15 @@ export function PageHeader({
 }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-4 pb-5">
-      <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">{title}</h1>
+      <div className="min-w-0 flex-1">
+        <h1 className="break-words text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          {title}
+        </h1>
         {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
       </div>
-      {action ? <div className="flex shrink-0 flex-wrap gap-2">{action}</div> : null}
+      {/* min-w-0 (not shrink-0) so a long action row wraps under the title on
+          phones instead of pushing past the viewport edge. */}
+      {action ? <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div> : null}
     </header>
   )
 }
@@ -121,7 +127,7 @@ export function EmptyState({
   icon?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center px-6 py-8 text-center sm:py-12">
       {icon ? <div className="mb-3 text-slate-300">{icon}</div> : null}
       <p className="text-sm font-medium text-slate-900">{title}</p>
       {description ? (
@@ -222,14 +228,17 @@ export function StatTile({
     </>
   )
 
+  // The left border is always present (transparent when neutral) so a toned
+  // tile does not sit 3px narrower than its neighbours, and each tone repeats
+  // its colour under hover: so the card-wide hover:border-brand-300 shorthand
+  // cannot repaint an alert bar.
   const shell = cn(
-    'block rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm',
+    'block rounded-lg border border-slate-200 border-l-4 border-l-transparent bg-white px-4 py-3 shadow-sm',
     href && 'transition-colors hover:border-brand-300 hover:bg-brand-50/40',
-    tone !== 'slate' && 'border-l-4',
-    tone === 'red' && 'border-l-red-400',
-    tone === 'amber' && 'border-l-amber-400',
-    tone === 'emerald' && 'border-l-emerald-400',
-    tone === 'brand' && 'border-l-brand-400',
+    tone === 'red' && 'border-l-red-400 hover:border-l-red-400',
+    tone === 'amber' && 'border-l-amber-400 hover:border-l-amber-400',
+    tone === 'emerald' && 'border-l-emerald-400 hover:border-l-emerald-400',
+    tone === 'brand' && 'border-l-brand-400 hover:border-l-brand-400',
   )
 
   if (href) {

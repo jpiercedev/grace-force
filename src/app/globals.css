@@ -20,9 +20,14 @@
    * A visible focus ring on every interactive element is the difference
    * between a keyboard-usable CRM and one that silently loses the caret.
    * :focus-visible keeps it off for mouse users.
+   *
+   * Form controls are excluded: they carry their own inset focus ring (see
+   * CONTROL in components/ui/form.tsx), and layering this halo on top drew a
+   * confusing double indicator. The offset matches the slate-50 body so the
+   * halo doesn't read as a white sticker on tinted surfaces.
    */
-  :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  :focus-visible:where(:not(input):not(select):not(textarea)) {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-slate-50;
   }
 
   [hidden] {
