@@ -68,7 +68,7 @@ export default async function GivingPage({
       <PageHeader title="Giving" description="Generosity in context, across the whole ministry." />
 
       {/* Each StatTile is its own <dl>, so the grid around them is a plain div. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <StatTile
           label="This month"
           value={formatCurrency(overview.totals.monthToDateCents)}
@@ -175,9 +175,13 @@ function Breakdown({
           <ul className="space-y-3">
             {items.map((item) => (
               <li key={item.label}>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                  <span className="text-sm font-medium text-slate-900">{item.label}</span>
-                  <span className="text-sm font-semibold tabular-nums text-slate-900">
+                {/* No flex-wrap: a long fund name must wrap inside its own
+                    box rather than push the amount off the right edge. */}
+                <div className="flex items-baseline justify-between gap-x-3">
+                  <span className="min-w-0 flex-1 text-sm font-medium text-slate-900">
+                    {item.label}
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap text-sm font-semibold tabular-nums text-slate-900">
                     {formatCurrency(item.total_cents)}
                   </span>
                 </div>
@@ -209,6 +213,11 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
             : pluralize(gifts.length, 'gift')
         }
       />
+      {/* The table is wider than a phone; without a cue the columns past the
+          right edge are simply never discovered. */}
+      <p className="px-4 py-2 text-sm text-slate-500 sm:hidden">
+        Scroll sideways for fund and method.
+      </p>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <caption className="sr-only">Recent gifts in the selected range</caption>
@@ -224,7 +233,7 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
           <tbody className="divide-y divide-slate-100">
             {gifts.map((gift) => (
               <tr key={gift.id} className="align-top hover:bg-slate-50/70">
-                <td className="px-3 py-2.5">
+                <td className="px-2 py-2.5 sm:px-3">
                   {gift.contact ? (
                     <Link
                       href={`/contacts/${gift.contact.id}`}
@@ -233,7 +242,7 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
                       {gift.contact.name}
                     </Link>
                   ) : (
-                    <span className="text-slate-400">Unknown contact</span>
+                    <span className="text-slate-500">Unknown contact</span>
                   )}
                   {gift.is_anonymous ? (
                     <span className="ml-1.5">
@@ -241,19 +250,19 @@ function RecentGifts({ gifts, total }: { gifts: GivingGift[]; total: number }) {
                     </span>
                   ) : null}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-right font-semibold tabular-nums text-slate-900">
+                <td className="whitespace-nowrap px-2 py-2.5 sm:px-3 text-right font-semibold tabular-nums text-slate-900">
                   {formatCurrency(gift.amount_cents, gift.currency)}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                <td className="whitespace-nowrap px-2 py-2.5 sm:px-3 text-slate-600">
                   <time dateTime={gift.given_on}>{formatDay(gift.given_on)}</time>
                 </td>
-                <td className="px-3 py-2.5 text-slate-600">
-                  {gift.fund ?? <span className="text-slate-400">—</span>}
+                <td className="px-2 py-2.5 sm:px-3 text-slate-600">
+                  {gift.fund ?? <span className="text-slate-500">—</span>}
                   {gift.campaign ? (
                     <div className="text-xs text-slate-500">{gift.campaign}</div>
                   ) : null}
                 </td>
-                <td className="px-3 py-2.5 text-slate-600">
+                <td className="px-2 py-2.5 sm:px-3 text-slate-600">
                   {METHOD_LABELS[gift.method]}
                   {gift.is_recurring ? (
                     <div className="mt-0.5">
@@ -309,10 +318,15 @@ function TopGivers({ givers }: { givers: TopGiver[] }) {
               <span className="text-right">
                 <span className="block text-sm font-semibold tabular-nums text-slate-900">
                   {formatCurrency(giver.trailing12moCents)}
+                  <span className="font-normal text-slate-500"> past 12 months</span>
                 </span>
-                <span className="block text-xs text-slate-500 tabular-nums">
-                  {formatCurrency(giver.totalCents)} all time
-                </span>
+                {/* A single-window supporter's two figures are identical;
+                    printing the same amount twice reads as a glitch. */}
+                {giver.totalCents !== giver.trailing12moCents ? (
+                  <span className="block text-xs tabular-nums text-slate-500">
+                    {formatCurrency(giver.totalCents)} all time
+                  </span>
+                ) : null}
               </span>
             </li>
           ))}
@@ -326,7 +340,7 @@ function Th({ children, align }: { children: React.ReactNode; align?: 'right' })
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+      className={`whitespace-nowrap px-2 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-3 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >

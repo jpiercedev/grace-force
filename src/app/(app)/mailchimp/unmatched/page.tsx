@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { LinkButton } from '@/components/ui/button'
 import {
   Badge,
@@ -17,7 +16,7 @@ import {
   type UnmatchedMember,
 } from '@/lib/mailchimp/queries'
 import { memberStatusLabel, memberStatusTone } from '@/lib/mailchimp/ui'
-import { formatDateTime, formatRelative, pluralize } from '@/lib/utils'
+import { cn, formatDateTime, formatRelative, pluralize } from '@/lib/utils'
 import type { Json } from '@/types/database'
 import { linkMemberToContact } from '../actions'
 import { LinkPanel } from './link-panel'
@@ -122,7 +121,15 @@ function MemberRow({
   const name = subscriberName(member.merge_fields)
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 px-4 py-3">
+    <li
+      className={cn(
+        // Every row carries the transparent accent so selection never nudges
+        // content sideways; aria-current alone would leave sighted users with
+        // no cue of which subscriber the panel above is linking.
+        'flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-l-2 border-l-transparent px-4 py-3',
+        selected && 'border-l-brand-500 bg-brand-50/60',
+      )}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-slate-900">{name ?? member.email_address}</span>
@@ -150,13 +157,14 @@ function MemberRow({
       </div>
 
       {admin ? (
-        <Link
+        <LinkButton
           href={`/mailchimp/unmatched?member=${member.id}#link-panel`}
           aria-current={selected ? 'true' : undefined}
-          className="text-sm font-medium text-brand-700 underline-offset-2 hover:underline"
+          variant="secondary"
+          size="sm"
         >
           Link<span className="sr-only"> {member.email_address} to a contact</span>
-        </Link>
+        </LinkButton>
       ) : null}
     </li>
   )

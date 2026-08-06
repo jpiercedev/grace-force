@@ -44,7 +44,9 @@ export function LeadFilters({ status, assignee, team, counts }: LeadFiltersProps
   return (
     <div className="space-y-4">
       <nav aria-label="Lead statuses">
-        <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+        {/* Wrapping beats horizontal scroll here: a clipped chip row hides
+            whole statuses on a phone with no cue that more exist. */}
+        <ul className="flex flex-wrap gap-1.5">
           {TAB_ORDER.map((option) => {
             const active = option === status
             const label = option === STATUS_ANY ? 'All' : LEAD_STATUS_LABELS[option]

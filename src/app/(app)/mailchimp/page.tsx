@@ -59,9 +59,9 @@ export default async function MailchimpPage() {
         }
       />
 
-      {unavailable ? <SetupExplainer reason={unavailable} /> : null}
+      {unavailable ? <SetupExplainer reason={unavailable} admin={admin} /> : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile
           label="Audiences"
           value={overview.totals.audiences}
@@ -105,10 +105,24 @@ export default async function MailchimpPage() {
   )
 }
 
-function SetupExplainer({ reason }: { reason: string }) {
+function SetupExplainer({ reason, admin }: { reason: string; admin: boolean }) {
+  // Only an admin can act on deployment configuration; anyone else just needs
+  // to know who to ask, not which environment variables exist.
+  if (!admin) {
+    return (
+      <Callout tone="warning" title="Mailchimp is not connected">
+        <p>Ask an administrator to connect Mailchimp.</p>
+      </Callout>
+    )
+  }
+
+  // The callout heading already says it is not connected, so the reason's
+  // opening sentence would repeat it word for word.
+  const detail = reason.replace(/^Mailchimp is not configured\.\s*/, '')
+
   return (
     <Callout tone="warning" title="Mailchimp is not connected">
-      <p>{reason}</p>
+      <p>{detail}</p>
       <p className="mt-2">Set these in the deployment&rsquo;s environment, then redeploy:</p>
       <ul className="mt-1.5 space-y-1">
         <EnvVar name="MAILCHIMP_API_KEY" note="From Account → Extras → API keys." />
@@ -185,7 +199,10 @@ function Audiences({
             <tbody className="divide-y divide-slate-100">
               {audiences.map((audience) => (
                 <tr key={audience.id} className="align-top hover:bg-slate-50/70">
-                  <td className="px-3 py-2.5">
+                  {/* A floor on the one wrappable column, so a narrow screen
+                      scrolls the table instead of crushing names to one word
+                      per line. */}
+                  <td className="min-w-[12rem] px-3 py-2.5">
                     <span className="font-medium text-slate-900">{audience.name}</span>
                     <span className="mt-0.5 block font-mono text-xs text-slate-500">
                       {audience.mailchimp_list_id}
@@ -195,7 +212,7 @@ function Audiences({
                   <Td align="right">{audience.stored.toLocaleString()}</Td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
                     {audience.unmatched === 0 ? (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-500">—</span>
                     ) : (
                       <Badge tone="amber">{audience.unmatched.toLocaleString()}</Badge>
                     )}
@@ -210,7 +227,7 @@ function Audiences({
                         {formatRelative(audience.last_synced_at)}
                       </time>
                     ) : (
-                      <span className="text-slate-400">Never</span>
+                      <span className="text-slate-500">Never</span>
                     )}
                   </td>
                 </tr>
@@ -224,6 +241,11 @@ function Audiences({
 }
 
 function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
+  // The mirror stores scheduled sends alongside finished ones; a future
+  // send_time is the only way to tell them apart, and showing "0 opens" for
+  // an email that has not gone out yet reads as a failure rather than a plan.
+  const now = Date.now()
+
   return (
     <Card>
       <CardHeader
@@ -250,51 +272,94 @@ function Campaigns({ campaigns }: { campaigns: CampaignSummary[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {campaigns.map((campaign) => (
-                <tr key={campaign.id} className="align-top hover:bg-slate-50/70">
-                  <td className="px-3 py-2.5">
-                    <span className="font-medium text-slate-900">
-                      {campaign.subject_line?.trim() || campaign.title?.trim() || 'Untitled campaign'}
-                    </span>
-                    {campaign.archive_url ? (
-                      <a
-                        href={campaign.archive_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-0.5 block text-xs text-brand-700 underline-offset-2 hover:underline"
-                      >
-                        View the sent email
-                      </a>
-                    ) : null}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
-                    {campaign.send_time ? (
-                      <time dateTime={campaign.send_time}>{formatDateTime(campaign.send_time)}</time>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
-                  <Td align="right">{campaign.emails_sent.toLocaleString()}</Td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
-                    {campaign.unique_opens.toLocaleString()}
-                    <span className="ml-1.5 text-xs text-slate-500">
-                      {formatRate(campaign.open_rate)}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
-                    {campaign.subscriber_clicks.toLocaleString()}
-                    <span className="ml-1.5 text-xs text-slate-500">
-                      {formatRate(campaign.click_rate)}
-                    </span>
-                  </td>
-                  <Td align="right">{campaign.bounces.toLocaleString()}</Td>
-                </tr>
-              ))}
+              {campaigns.map((campaign) => {
+                const scheduled =
+                  campaign.send_time !== null && new Date(campaign.send_time).getTime() > now
+                return (
+                  <tr key={campaign.id} className="align-top hover:bg-slate-50/70">
+                    {/* A floor on the one wrappable column, so a narrow screen
+                        scrolls the table instead of crushing subject lines to
+                        one word per line. */}
+                    <td className="min-w-[12rem] px-3 py-2.5">
+                      <span className="font-medium text-slate-900">
+                        {campaign.subject_line?.trim() || campaign.title?.trim() || 'Untitled campaign'}
+                      </span>
+                      {campaign.archive_url ? (
+                        <a
+                          href={campaign.archive_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-0.5 block whitespace-nowrap text-xs text-brand-700 underline-offset-2 hover:underline"
+                        >
+                          View the sent email
+                        </a>
+                      ) : null}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                      {campaign.send_time ? (
+                        <>
+                          {scheduled ? 'Scheduled for ' : null}
+                          <time dateTime={campaign.send_time}>
+                            {formatDateTime(campaign.send_time)}
+                          </time>
+                        </>
+                      ) : (
+                        <span className="text-slate-500">—</span>
+                      )}
+                    </td>
+                    <Td align="right">
+                      {scheduled ? <NotYet /> : campaign.emails_sent.toLocaleString()}
+                    </Td>
+                    <RateCell scheduled={scheduled} count={campaign.unique_opens} rate={campaign.open_rate} />
+                    <RateCell
+                      scheduled={scheduled}
+                      count={campaign.subscriber_clicks}
+                      rate={campaign.click_rate}
+                    />
+                    <Td align="right">
+                      {scheduled ? <NotYet /> : campaign.bounces.toLocaleString()}
+                    </Td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
     </Card>
+  )
+}
+
+/** Placeholder for a metric a scheduled campaign cannot have yet. */
+function NotYet() {
+  return <span className="text-slate-500">—</span>
+}
+
+function RateCell({
+  scheduled,
+  count,
+  rate,
+}: {
+  scheduled: boolean
+  count: number
+  rate: number | null
+}) {
+  const rateLabel = formatRate(rate)
+  return (
+    <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
+      {scheduled ? (
+        <NotYet />
+      ) : (
+        <>
+          {count.toLocaleString()}
+          {/* Without a rate the placeholder dash would dangle after a real
+              count ("0 —") and read as a typo. */}
+          {rateLabel === '—' ? null : (
+            <span className="ml-1.5 text-xs text-slate-500">{rateLabel}</span>
+          )}
+        </>
+      )}
+    </td>
   )
 }
 
@@ -319,6 +384,7 @@ function SyncRuns({ runs, admin }: { runs: SyncRunSummary[]; admin: boolean }) {
           {runs.map((run) => {
             const warnings = statWarnings(run.stats)
             const summary = summariseStats(run.stats)
+            const duration = durationLabel(run.started_at, run.finished_at)
             return (
               <li key={run.id} className="px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -333,7 +399,9 @@ function SyncRuns({ runs, admin }: { runs: SyncRunSummary[]; admin: boolean }) {
                       {formatRelative(run.started_at)}
                     </time>
                     {' · '}
-                    {durationLabel(run.started_at, run.finished_at)}
+                    {/* "took 1m" — a bare "1m" beside "7h ago" scans as
+                        another age rather than a duration. */}
+                    {duration === 'still running' || duration === '—' ? duration : `took ${duration}`}
                   </span>
                 </div>
 
@@ -361,10 +429,15 @@ function SyncRuns({ runs, admin }: { runs: SyncRunSummary[]; admin: boolean }) {
   )
 }
 
-/** A stored run could name a job this build no longer knows; show it verbatim. */
+/**
+ * A stored run could name a job this build no longer knows; humanize the slug
+ * ("full_sync" → "Full sync") rather than showing developer jargon verbatim.
+ */
 function jobLabel(job: string): string {
   const parsed = parseMailchimpJob(job)
-  return parsed && parsed !== 'all' ? MAILCHIMP_JOB_LABELS[parsed] : job
+  if (parsed && parsed !== 'all') return MAILCHIMP_JOB_LABELS[parsed]
+  const words = job.replace(/_/g, ' ').trim()
+  return words === '' ? job : words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 function Th({ children, align }: { children: ReactNode; align?: 'right' }) {

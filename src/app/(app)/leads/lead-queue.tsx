@@ -4,13 +4,15 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { updateLead } from '@/app/(app)/leads/actions'
 import { LeadRow } from '@/app/(app)/leads/lead-row'
 import { Callout } from '@/components/ui/display'
-import type { LeadActionState } from '@/lib/leads/triage'
+import type { LeadActionState, LeadStatusFilter } from '@/lib/leads/triage'
 import type { LeadQueueItem } from '@/lib/leads/queries'
 import type { TeamProfile } from '@/lib/queries/follow-ups'
 
 export interface LeadQueueProps {
   leads: LeadQueueItem[]
   team: TeamProfile[]
+  /** The active status filter, passed down so rows can skip repeating it. */
+  statusFilter: LeadStatusFilter
   /** Rendered once on the server so relative ages match on hydration. */
   nowIso: string
 }
@@ -23,7 +25,7 @@ export interface LeadQueueProps {
  * time there is anything to say. The outcome therefore lives above the list and
  * takes focus, rather than being announced from a row that no longer exists.
  */
-export function LeadQueue({ leads, team, nowIso }: LeadQueueProps) {
+export function LeadQueue({ leads, team, statusFilter, nowIso }: LeadQueueProps) {
   const [state, formAction] = useActionState<LeadActionState, FormData>(updateLead, {})
   const [resolvedCount, setResolvedCount] = useState(0)
   const statusRef = useRef<HTMLDivElement>(null)
@@ -55,6 +57,7 @@ export function LeadQueue({ leads, team, nowIso }: LeadQueueProps) {
             key={lead.id}
             lead={lead}
             team={team}
+            statusFilter={statusFilter}
             nowIso={nowIso}
             formAction={formAction}
             resetSignal={resolvedCount}

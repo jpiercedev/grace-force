@@ -68,11 +68,9 @@ export function GivingFilters({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm">
-          Apply
-        </Button>
-        <Link href="/giving" className={buttonClasses('ghost', 'sm')}>
-          Reset
+        <Button type="submit">Apply filters</Button>
+        <Link href="/giving" className={buttonClasses('ghost')}>
+          Clear
         </Link>
       </div>
     </form>

@@ -9,8 +9,10 @@ import { Field, Select } from '@/components/ui/form'
 import {
   LEAD_STATUS_LABELS,
   LEAD_STATUS_TONES,
+  STATUS_ANY,
   interestLabel,
   leadDisplayName,
+  type LeadStatusFilter,
 } from '@/lib/leads/triage'
 import type { LeadQueueItem } from '@/lib/leads/queries'
 import type { TeamProfile } from '@/lib/queries/follow-ups'
@@ -22,6 +24,8 @@ type Panel = 'assign' | 'convert' | null
 export interface LeadRowProps {
   lead: LeadQueueItem
   team: TeamProfile[]
+  /** The queue's active status filter, so a row can skip repeating it. */
+  statusFilter: LeadStatusFilter
   /** Rendered once on the server so the relative age matches on hydration. */
   nowIso: string
   /** Owned by the queue, which outlives a row leaving the current status. */
@@ -57,7 +61,7 @@ function utmSummary(utm: Json): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-export function LeadRow({ lead, team, nowIso, formAction, resetSignal }: LeadRowProps) {
+export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSignal }: LeadRowProps) {
   const [panel, setPanel] = useState<Panel>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -90,19 +94,24 @@ export function LeadRow({ lead, team, nowIso, formAction, resetSignal }: LeadRow
     ? lead.assignee.full_name?.trim() || lead.assignee.email
     : 'Nobody yet'
   const converted = lead.status === 'converted'
+  // Under a single-status filter every row would repeat the badge the card
+  // heading already announces; it only differentiates on the mixed "All" view.
+  const showStatusBadge = statusFilter === STATUS_ANY || lead.status !== statusFilter
 
   return (
     <li className="px-4 py-4">
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="id" value={lead.id} />
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-3">
           <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold text-slate-900">{name}</h3>
-              <Badge tone={LEAD_STATUS_TONES[lead.status]}>
-                {LEAD_STATUS_LABELS[lead.status]}
-              </Badge>
+              {showStatusBadge ? (
+                <Badge tone={LEAD_STATUS_TONES[lead.status]}>
+                  {LEAD_STATUS_LABELS[lead.status]}
+                </Badge>
+              ) : null}
               {interest ? <Badge tone="indigo">{interest}</Badge> : null}
             </div>
 
@@ -121,7 +130,7 @@ export function LeadRow({ lead, team, nowIso, formAction, resetSignal }: LeadRow
             </div>
 
             {lead.message ? (
-              <p className="whitespace-pre-wrap text-sm text-slate-700">
+              <p className="whitespace-pre-wrap break-words text-sm text-slate-700">
                 {truncate(lead.message, 600)}
               </p>
             ) : (
@@ -129,7 +138,7 @@ export function LeadRow({ lead, team, nowIso, formAction, resetSignal }: LeadRow
             )}
 
             <p className="text-xs text-slate-500">
-              <span className="font-medium text-slate-600">{lead.form_key}</span> ·{' '}
+              via <span className="font-medium text-slate-600">{lead.form_key}</span> ·{' '}
               <time dateTime={lead.created_at} title={formatDateTime(lead.created_at)}>
                 {formatRelative(lead.created_at, now)}
               </time>{' '}
@@ -165,7 +174,7 @@ export function LeadRow({ lead, team, nowIso, formAction, resetSignal }: LeadRow
           </div>
 
           {converted ? null : (
-            <div className="flex flex-wrap gap-2 lg:justify-end">
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 size="sm"

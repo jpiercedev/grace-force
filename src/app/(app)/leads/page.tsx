@@ -74,7 +74,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
             }
           />
         ) : (
-          <LeadQueue leads={leads} team={team} nowIso={now.toISOString()} />
+          <LeadQueue leads={leads} team={team} statusFilter={status} nowIso={now.toISOString()} />
         )}
       </Card>
     </div>

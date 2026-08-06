@@ -8,6 +8,7 @@ import { LinkButton } from '@/components/ui/button'
 import { Badge, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
 import type { BadgeTone } from '@/components/ui/display'
 import { canWrite, requireProfile } from '@/lib/auth'
+import { interestLabel } from '@/lib/leads/triage'
 import { searchEverything, type SearchResults } from '@/lib/queries/search'
 import { formatDate, formatDateTime, formatRelative, pluralize } from '@/lib/utils'
 import type { LeadStatus } from '@/types/database'
@@ -63,7 +64,7 @@ export default async function SearchPage({
         <Card>
           <EmptyState
             title="What are you looking for?"
-            description="Search a person's name, an email address, an organisation, or a phrase from a note. Two letters or fewer will match on partial words; longer queries also read notes and timeline entries."
+            description="Two letters or fewer match on partial words; longer queries also read notes and timeline entries."
           />
         </Card>
       ) : results.total === 0 ? (
@@ -204,34 +205,37 @@ function ActivityResults({ results }: { results: SearchResults }) {
     <Card>
       <CardHeader title="Timeline" description={pluralize(total, 'match', 'matches')} />
       <ul className="divide-y divide-slate-100">
-        {items.map((activity) => (
-          <li key={activity.id} className="px-4 py-3">
-            <p className="text-sm font-medium text-slate-900">
-              {activity.subject?.trim() || ACTIVITY_TYPE_LABELS[activity.type]}
-            </p>
-            {activity.snippet ? (
-              <p className="mt-0.5 text-sm text-slate-600">{activity.snippet}</p>
-            ) : null}
-            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
-              {activity.contact ? (
-                <Link
-                  href={`/contacts/${activity.contact.id}`}
-                  className="font-medium text-brand-700 underline-offset-2 hover:underline"
-                >
-                  {activity.contact.name}
-                </Link>
-              ) : (
-                <span className="text-slate-400">Unknown contact</span>
-              )}
-              <span aria-hidden="true">·</span>
-              <span>{ACTIVITY_TYPE_LABELS[activity.type]}</span>
-              <span aria-hidden="true">·</span>
-              <time dateTime={activity.occurred_at} title={formatDateTime(activity.occurred_at)}>
-                {formatRelative(activity.occurred_at)}
-              </time>
-            </p>
-          </li>
-        ))}
+        {items.map((activity) => {
+          const title = activity.subject?.trim() || ACTIVITY_TYPE_LABELS[activity.type]
+          return (
+            <li key={activity.id} className="px-4 py-3">
+              <p className="text-sm font-medium text-slate-900">{title}</p>
+              {/* A body-less activity's snippet is its subject again; printing
+                  the same line twice reads as a glitch. */}
+              {activity.snippet && activity.snippet !== title ? (
+                <p className="mt-0.5 text-sm text-slate-600">{activity.snippet}</p>
+              ) : null}
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+                {activity.contact ? (
+                  <Link
+                    href={`/contacts/${activity.contact.id}`}
+                    className="font-medium text-brand-700 underline-offset-2 hover:underline"
+                  >
+                    {activity.contact.name}
+                  </Link>
+                ) : (
+                  <span className="text-slate-500">Unknown contact</span>
+                )}
+                <span aria-hidden="true">·</span>
+                <span>{ACTIVITY_TYPE_LABELS[activity.type]}</span>
+                <span aria-hidden="true">·</span>
+                <time dateTime={activity.occurred_at} title={formatDateTime(activity.occurred_at)}>
+                  {formatRelative(activity.occurred_at)}
+                </time>
+              </p>
+            </li>
+          )
+        })}
       </ul>
       {total > items.length ? (
         <CardBody className="border-t border-slate-100 py-3">
@@ -283,7 +287,7 @@ function LeadResults({ results }: { results: SearchResults }) {
               {lead.interest ? (
                 <>
                   {lead.email || lead.organization_name ? <span aria-hidden="true">·</span> : null}
-                  <span>{lead.interest}</span>
+                  <span>{interestLabel(lead.interest)}</span>
                 </>
               ) : null}
             </p>
