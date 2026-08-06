@@ -9,12 +9,35 @@
 
 | Field | Value |
 | --- | --- |
-| Current phase | Deployed to Vercel; shaking out production-only faults |
-| Current branch | `claude/crm-bridge-implementation-zj6y21` |
-| Overall status | Feature-complete and deployed; three production faults found and fixed (see below) |
+| Current phase | Visual-polish pass complete on `claude/crm-visual-design-polish-eevkm0`; awaiting review/merge |
+| Current branch | `claude/crm-visual-design-polish-eevkm0` (from `claude/crm-bridge-implementation-zj6y21`) |
+| Overall status | Feature-complete and deployed; three production faults found and fixed (see below); full UI polish pass applied |
 | Tests | 475 Vitest + 28 browser passing; 8 browser skipped (blocked by sandbox egress, see below) |
 | Build | `next build` succeeds — 36 routes |
 | Deployment | `grace-force` on Vercel (`prj_X6jiKLWkjr7y5pc3TxHpw3NsMkkf`), production target, git-connected |
+
+## Visual polish pass (2026-08-06)
+
+A dedicated visual/responsive/accessibility pass over every route — no
+business logic, auth, permissions, API or schema changes. Every screen was
+audited from real screenshots (desktop 1440 / tablet 834 / mobile 390, as
+admin/staff/viewer) served by a local stack (Postgres 16 + PostgREST + a
+fake auth shim reproducing the Supabase contract), since this container
+cannot reach `*.supabase.co`.
+
+Highlights: WCAG-AA muted-text and control-contrast floor; 60+-friendly
+control sizes (36–48px buttons, 16px inputs under the `sm` breakpoint so iOS
+stops zooming on focus); sticky sidebar/topbar and a truly modal nav drawer
+(inert background, scroll lock, focus trap); contacts table no longer clips
+its Owner column; contact detail drops duplicate status badges and dead
+action bars, and leads with details on phones; follow-up tabs and lead tabs
+wrap instead of hiding off-screen; pipeline boards always show a scroll cue
+column; import commit panel no longer contradicts a failed batch; Mailchimp
+tables hold readable widths and scheduled campaigns read as scheduled;
+settings tables stop crushing on phones; auth/intake forms share one card
+surface. axe-core (WCAG 2.1 AA) reports zero violations across all 27
+routes; `tests/e2e` copy assertions updated for two intentional wording
+changes (queue meta line, login title).
 
 ## Completed
 
