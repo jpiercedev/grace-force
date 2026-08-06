@@ -13,8 +13,8 @@ export default async function LoginPage({
 
   return (
     <AuthCard
-      title="Sign in to Grace Force CRM"
-      description="Grace Force relationship management."
+      title="Sign in"
+      description="Use your Grace Force staff account."
       footer={
         <p className="text-sm text-slate-600">
           No account yet?{' '}

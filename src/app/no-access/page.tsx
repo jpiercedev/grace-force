@@ -1,4 +1,5 @@
 import { signOut } from '@/app/(auth)/actions'
+import { BrandMark } from '@/app/(auth)/auth-card'
 import { Button } from '@/components/ui/button'
 import { Callout } from '@/components/ui/display'
 import { loadProfile } from '@/lib/auth'
@@ -45,6 +46,10 @@ export default async function NoAccessPage({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-12">
+      <div className="mb-8">
+        <BrandMark />
+      </div>
+
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{TITLES[state]}</h1>
 
       <Callout tone={state === 'error' ? 'danger' : 'warning'} className="mt-4">

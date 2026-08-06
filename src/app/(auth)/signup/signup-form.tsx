@@ -10,7 +10,14 @@ import { Field, Input } from '@/components/ui/form'
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+    // Pending is busy, not unavailable: keep "Creating account…" fully
+    // readable instead of letting the generic disabled fade wash it out.
+    <Button
+      type="submit"
+      size="lg"
+      className="w-full disabled:opacity-100 disabled:bg-brand-500"
+      disabled={pending}
+    >
       {pending ? 'Creating account…' : 'Create account'}
     </Button>
   )
@@ -29,7 +36,15 @@ export function SignupForm() {
 
       <Field label="Full name" required>
         {(props) => (
-          <Input {...props} name="fullName" autoComplete="name" required autoFocus placeholder="Jane Carter" />
+          <Input
+            {...props}
+            name="fullName"
+            autoComplete="name"
+            required
+            autoFocus
+            placeholder="e.g. Jane Carter"
+            invalid={!!state.error}
+          />
         )}
       </Field>
 
@@ -41,7 +56,8 @@ export function SignupForm() {
             type="email"
             autoComplete="email"
             required
-            placeholder="you@graceforce.org"
+            placeholder="e.g. jane@graceforce.org"
+            invalid={!!state.error}
           />
         )}
       </Field>
@@ -55,6 +71,7 @@ export function SignupForm() {
             autoComplete="new-password"
             minLength={8}
             required
+            invalid={!!state.error}
           />
         )}
       </Field>

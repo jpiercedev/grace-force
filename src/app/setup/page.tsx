@@ -1,8 +1,15 @@
+import { BrandMark } from '@/app/(auth)/auth-card'
 import { Callout } from '@/components/ui/display'
 import { isSupabaseConfigured } from '@/lib/env'
 import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Setup required' }
+
+/*
+ * 13px mono sits optically level with the surrounding 14px prose; text-xs
+ * made filenames the hardest text to read in the instructions.
+ */
+const CODE = 'font-mono text-[0.8125rem]'
 
 /**
  * Shown when Supabase credentials are absent. Failing here with a clear,
@@ -14,6 +21,10 @@ export default function SetupPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-6 py-12">
+      <div className="mb-8">
+        <BrandMark />
+      </div>
+
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
         Grace Force CRM needs configuring
       </h1>
@@ -23,8 +34,8 @@ export default function SetupPage() {
 
       <Callout tone="warning" className="mt-6" title="Missing environment variables">
         <p>
-          <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
-          <code className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> must be set.
+          <code className={CODE}>NEXT_PUBLIC_SUPABASE_URL</code> and{' '}
+          <code className={CODE}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> must be set.
         </p>
       </Callout>
 
@@ -32,24 +43,23 @@ export default function SetupPage() {
         <li className="flex gap-3">
           <span className="font-semibold text-brand-700">1.</span>
           <span>
-            Create a project at{' '}
-            <span className="font-mono text-xs">supabase.com/dashboard</span>.
+            Create a project at <code className={CODE}>supabase.com/dashboard</code>.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="font-semibold text-brand-700">2.</span>
           <span>
-            Copy <span className="font-mono text-xs">.env.example</span> to{' '}
-            <span className="font-mono text-xs">.env.local</span> and fill in the project URL, anon
-            key and service-role key.
+            Copy <code className={CODE}>.env.example</code> to{' '}
+            <code className={CODE}>.env.local</code> and fill in the project URL, anon key and
+            service-role key.
           </span>
         </li>
         <li className="flex gap-3">
           <span className="font-semibold text-brand-700">3.</span>
           <span>
-            Apply the migrations in <span className="font-mono text-xs">supabase/migrations</span>{' '}
-            (<span className="font-mono text-xs">supabase db push</span>, or paste them into the SQL
-            editor in filename order).
+            Apply the migrations in <code className={CODE}>supabase/migrations</code> (
+            <code className={CODE}>supabase db push</code>, or paste them into the SQL editor in
+            filename order).
           </span>
         </li>
         <li className="flex gap-3">
@@ -60,8 +70,8 @@ export default function SetupPage() {
         </li>
       </ol>
 
-      <p className="mt-8 text-xs text-slate-500">
-        Full instructions live in <span className="font-mono">docs/SETUP.md</span>.
+      <p className="mt-8 text-sm text-slate-600">
+        Full instructions live in <code className={CODE}>docs/SETUP.md</code>.
       </p>
     </main>
   )

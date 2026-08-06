@@ -10,7 +10,14 @@ import { Field, Input } from '@/components/ui/form'
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+    // Pending is busy, not unavailable: keep "Signing in…" fully readable
+    // instead of letting the generic disabled fade wash it out.
+    <Button
+      type="submit"
+      size="lg"
+      className="w-full disabled:opacity-100 disabled:bg-brand-500"
+      disabled={pending}
+    >
       {pending ? 'Signing in…' : 'Sign in'}
     </Button>
   )
@@ -38,7 +45,6 @@ export function LoginForm({ next }: { next?: string }) {
             autoComplete="email"
             required
             autoFocus
-            placeholder="you@graceforce.org"
             invalid={!!state.error}
           />
         )}

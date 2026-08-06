@@ -107,13 +107,18 @@ export function IntakeForm({ formKey }: { formKey: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-      <div ref={outcomeRef} tabIndex={-1}>
-        {error ? (
+      {/*
+        Rendered only on failure: an always-present empty div would add a
+        phantom space-y gap above the first row. The focus effect still finds
+        the ref because it runs after the error render commits.
+      */}
+      {error ? (
+        <div ref={outcomeRef} tabIndex={-1}>
           <Callout tone="danger" role="alert">
             {error}
           </Callout>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="First name" error={fieldErrors.first_name}>
@@ -228,14 +233,19 @@ export function IntakeForm({ formKey }: { formKey: string }) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="lg" disabled={sending}>
-          {sending ? 'Sending…' : 'Send message'}
-        </Button>
-        <p className="text-xs text-slate-500">
-          We use your details only to reply to you.
-        </p>
-      </div>
+      {/*
+        Pending is busy, not unavailable: keep "Sending…" fully readable
+        instead of letting the generic disabled fade wash it out. The privacy
+        note lives once, in the layout footer.
+      */}
+      <Button
+        type="submit"
+        size="lg"
+        className="disabled:opacity-100 disabled:bg-brand-500"
+        disabled={sending}
+      >
+        {sending ? 'Sending…' : 'Send message'}
+      </Button>
     </form>
   )
 }
