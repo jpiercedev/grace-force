@@ -5,22 +5,36 @@ import { cn, initials } from '@/lib/utils'
 // --- Badge ------------------------------------------------------------------
 
 /**
- * Colours are looked up from a static map rather than interpolated into a
- * class string, because Tailwind's compiler only keeps classes it can see
- * literally in the source.
+ * Soft tint + a colored dot + text. The dot restates the tone so color is
+ * never the only signal, and the tint stays quiet enough that a row with
+ * three chips does not shout. Tone names are looked up from a static map
+ * because Tailwind's compiler only keeps classes it can see literally.
  */
 const BADGE_TONES = {
-  slate: 'bg-slate-100 text-slate-700 ring-slate-200',
-  zinc: 'bg-zinc-100 text-zinc-700 ring-zinc-200',
-  emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  sky: 'bg-sky-50 text-sky-700 ring-sky-200',
-  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-200',
-  amber: 'bg-amber-50 text-amber-800 ring-amber-200',
-  rose: 'bg-rose-50 text-rose-700 ring-rose-200',
-  red: 'bg-red-50 text-red-700 ring-red-200',
-  brand: 'bg-brand-50 text-brand-700 ring-brand-200',
+  slate: 'bg-slate-100 text-slate-700',
+  zinc: 'bg-slate-100 text-slate-600',
+  emerald: 'bg-emerald-50 text-emerald-800',
+  sky: 'bg-sky-50 text-sky-800',
+  indigo: 'bg-indigo-50 text-indigo-800',
+  violet: 'bg-violet-50 text-violet-800',
+  amber: 'bg-amber-50 text-amber-800',
+  rose: 'bg-rose-50 text-rose-800',
+  red: 'bg-red-50 text-red-800',
+  brand: 'bg-brand-50 text-brand-800',
 } as const
+
+const BADGE_DOTS: Record<keyof typeof BADGE_TONES, string> = {
+  slate: 'bg-slate-400',
+  zinc: 'bg-slate-400',
+  emerald: 'bg-emerald-500',
+  sky: 'bg-sky-500',
+  indigo: 'bg-indigo-500',
+  violet: 'bg-violet-500',
+  amber: 'bg-amber-500',
+  rose: 'bg-rose-500',
+  red: 'bg-red-600',
+  brand: 'bg-brand-500',
+}
 
 export type BadgeTone = keyof typeof BADGE_TONES
 
@@ -31,19 +45,21 @@ export function badgeTone(value: string | null | undefined): BadgeTone {
 export function Badge({
   tone = 'slate',
   className,
+  children,
   ...props
 }: ComponentProps<'span'> & { tone?: BadgeTone }) {
   return (
     <span
       {...props}
       className={cn(
-        // whitespace-nowrap: a squeezed column must never fold a pill onto two
-        // lines — the surrounding flex-wrap containers handle overflow instead.
-        'inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium',
         BADGE_TONES[tone],
         className,
       )}
-    />
+    >
+      <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', BADGE_DOTS[tone])} />
+      {children}
+    </span>
   )
 }
 
@@ -53,7 +69,7 @@ export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       {...props}
-      className={cn('rounded-lg border border-slate-200 bg-white shadow-sm', className)}
+      className={cn('rounded-xl border border-slate-200/70 bg-white shadow-card', className)}
     />
   )
 }
@@ -72,7 +88,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3',
+        'flex flex-wrap items-start justify-between gap-3 border-b border-slate-200/70 px-5 py-4',
         className,
       )}
     >
@@ -86,30 +102,39 @@ export function CardHeader({
 }
 
 export function CardBody({ className, ...props }: ComponentProps<'div'>) {
-  return <div {...props} className={cn('px-4 py-4', className)} />
+  return <div {...props} className={cn('px-5 py-4', className)} />
 }
 
 // --- Page chrome ------------------------------------------------------------
 
+/**
+ * Page titles speak in the serif display voice — the moment that tells you
+ * where you are should feel like a chapter heading, not a bold form label.
+ * The optional eyebrow is a small caps waypoint above the title.
+ */
 export function PageHeader({
   title,
   description,
   action,
+  eyebrow,
 }: {
   title: string
   description?: ReactNode
   action?: ReactNode
+  eyebrow?: ReactNode
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 pb-5">
-      {/* basis-64 guarantees the title block a readable column: when the
-          actions would squeeze it below ~16rem they wrap underneath instead,
-          and long action rows also wrap internally (min-w-0, not shrink-0). */}
+    <header className="flex flex-wrap items-end justify-between gap-4 pb-6">
       <div className="min-w-0 flex-1 basis-64">
-        <h1 className="break-words text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        {eyebrow ? (
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h1 className="break-words font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
           {title}
         </h1>
-        {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
+        {description ? <p className="mt-1.5 text-[15px] text-slate-600">{description}</p> : null}
       </div>
       {action ? <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div> : null}
     </header>
@@ -128,21 +153,29 @@ export function EmptyState({
   icon?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-8 text-center sm:py-12">
-      {icon ? <div className="mb-3 text-slate-300">{icon}</div> : null}
-      <p className="text-sm font-medium text-slate-900">{title}</p>
-      {description ? (
-        <p className="mt-1 max-w-md text-sm text-slate-500">{description}</p>
+    <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:py-14">
+      {icon ? (
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+          {icon}
+        </div>
       ) : null}
-      {action ? <div className="mt-4">{action}</div> : null}
+      <p className="font-display text-lg font-semibold text-slate-900">{title}</p>
+      {description ? (
+        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-600">{description}</p>
+      ) : null}
+      {action ? <div className="mt-5">{action}</div> : null}
     </div>
   )
 }
 
 // --- Callout ----------------------------------------------------------------
 
+/**
+ * Info callouts are neutral ink-on-tint rather than blue: most of them are
+ * ambient guidance, and a blue box makes every page look like an alert.
+ */
 const CALLOUT_TONES = {
-  info: 'border-sky-200 bg-sky-50 text-sky-900',
+  info: 'border-slate-200 bg-slate-100/80 text-slate-800',
   warning: 'border-amber-200 bg-amber-50 text-amber-900',
   danger: 'border-red-200 bg-red-50 text-red-900',
   success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
@@ -166,7 +199,7 @@ export function Callout({
   return (
     <div
       role={role}
-      className={cn('rounded-md border px-4 py-3 text-sm', CALLOUT_TONES[tone], className)}
+      className={cn('rounded-lg border px-4 py-3 text-sm', CALLOUT_TONES[tone], className)}
     >
       {title ? <p className="font-semibold">{title}</p> : null}
       {children ? <div className={cn(title && 'mt-1')}>{children}</div> : null}
@@ -176,26 +209,49 @@ export function Callout({
 
 // --- Avatar -----------------------------------------------------------------
 
+/**
+ * People get faces. The hue is derived from the name so the same person is
+ * always the same color — six warm tones from the system palette, deep
+ * enough for white initials at AA contrast.
+ */
+const AVATAR_HUES = [
+  'bg-brand-600',
+  'bg-accent-600',
+  'bg-[#8a5a44]',
+  'bg-[#6d6b35]',
+  'bg-[#7d4a5e]',
+  'bg-[#44657d]',
+]
+
+function avatarHue(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0
+  return AVATAR_HUES[Math.abs(hash) % AVATAR_HUES.length] ?? 'bg-brand-600'
+}
+
 export function Avatar({
   name,
   size = 'md',
   className,
 }: {
   name: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
 }) {
   const sizes = {
     sm: 'h-6 w-6 text-[10px]',
     md: 'h-8 w-8 text-xs',
     lg: 'h-12 w-12 text-sm',
+    xl: 'h-16 w-16 text-xl',
   }
   return (
     <span
       aria-hidden="true"
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full bg-brand-100 font-semibold text-brand-800',
+        'inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold text-white',
+        avatarHue(name),
         sizes[size],
+        size === 'xl' && 'font-display',
         className,
       )}
     >
@@ -205,6 +261,24 @@ export function Avatar({
 }
 
 // --- Stat tile --------------------------------------------------------------
+
+/**
+ * A quiet figure, not an admin widget: eyebrow label, serif number, one hint
+ * line. Tone colors the figure itself (and a dot beside the label) when the
+ * number is a genuine alert — no more accent-bar strips.
+ */
+const STAT_FIGURES: Record<BadgeTone, string> = {
+  slate: 'text-slate-900',
+  zinc: 'text-slate-900',
+  emerald: 'text-emerald-800',
+  sky: 'text-sky-800',
+  indigo: 'text-indigo-800',
+  violet: 'text-violet-800',
+  amber: 'text-amber-700',
+  rose: 'text-rose-700',
+  red: 'text-red-700',
+  brand: 'text-brand-700',
+}
 
 export function StatTile({
   label,
@@ -221,26 +295,28 @@ export function StatTile({
 }) {
   const content = (
     <>
-      <dt className="truncate text-xs font-medium uppercase tracking-wide text-slate-500">
+      <dt className="flex items-center gap-1.5 truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {tone !== 'slate' && tone !== 'zinc' ? (
+          <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', BADGE_DOTS[tone])} />
+        ) : null}
         {label}
       </dt>
-      <dd className="mt-1.5 text-2xl font-semibold tabular-nums text-slate-900">{value}</dd>
-      {/* A second <dd> for the same term — a <p> is not valid directly inside <dl>. */}
-      {hint ? <dd className="mt-1 text-xs text-slate-500">{hint}</dd> : null}
+      <dd
+        className={cn(
+          'mt-1 font-display text-[1.75rem] font-semibold leading-none tabular-nums',
+          STAT_FIGURES[tone],
+        )}
+      >
+        {value}
+      </dd>
+      {hint ? <dd className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</dd> : null}
     </>
   )
 
-  // The left border is always present (transparent when neutral) so a toned
-  // tile does not sit 3px narrower than its neighbours, and each tone repeats
-  // its colour under hover: so the card-wide hover:border-brand-300 shorthand
-  // cannot repaint an alert bar.
   const shell = cn(
-    'block rounded-lg border border-slate-200 border-l-4 border-l-transparent bg-white px-4 py-3 shadow-sm',
-    href && 'transition-colors hover:border-brand-300 hover:bg-brand-50/40',
-    tone === 'red' && 'border-l-red-400 hover:border-l-red-400',
-    tone === 'amber' && 'border-l-amber-400 hover:border-l-amber-400',
-    tone === 'emerald' && 'border-l-emerald-400 hover:border-l-emerald-400',
-    tone === 'brand' && 'border-l-brand-400 hover:border-l-brand-400',
+    'block rounded-xl border border-slate-200/70 bg-white px-5 py-4 shadow-card',
+    href &&
+      'transition-all duration-150 hover:-translate-y-px hover:shadow-raised motion-reduce:hover:translate-y-0',
   )
 
   if (href) {
@@ -250,7 +326,5 @@ export function StatTile({
       </Link>
     )
   }
-  return (
-    <dl className={shell}>{content}</dl>
-  )
+  return <dl className={shell}>{content}</dl>
 }

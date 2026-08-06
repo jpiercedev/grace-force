@@ -16,6 +16,12 @@
     font-family: var(--font-sans);
   }
 
+  /* Text selection in the brand tint — a small signature that a default
+     theme never has. */
+  ::selection {
+    @apply bg-brand-100 text-brand-950;
+  }
+
   /*
    * A visible focus ring on every interactive element is the difference
    * between a keyboard-usable CRM and one that silently loses the caret.

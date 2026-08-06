@@ -5,12 +5,18 @@ import { cn } from '@/lib/utils'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline'
 type Size = 'sm' | 'md' | 'lg'
 
+/**
+ * Two honest levels and two quiet ones — see docs/DESIGN.md. Secondary is a
+ * tonal fill rather than a white outlined box: outlined secondaries are the
+ * single strongest "admin template" tell, and the tonal fill reads calmer
+ * while giving a larger perceived target.
+ */
 const VARIANTS: Record<Variant, string> = {
   primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm',
-  secondary: 'bg-white text-slate-800 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 shadow-sm',
-  outline: 'bg-transparent text-brand-700 ring-1 ring-inset ring-brand-300 hover:bg-brand-50',
+  secondary: 'bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300',
+  outline: 'bg-brand-50 text-brand-800 hover:bg-brand-100 active:bg-brand-200',
   ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-  danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm',
+  danger: 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900 shadow-sm',
 }
 
 /**
@@ -25,7 +31,7 @@ const SIZES: Record<Size, string> = {
 }
 
 const BASE =
-  'inline-flex items-center justify-center rounded-md font-medium transition-colors ' +
+  'inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150 ' +
   // 60% rather than 50%: pending submit buttons keep their label readable
   // ("Signing in…" on a half-faded brand fill was close to invisible).
   'disabled:pointer-events-none disabled:opacity-60 whitespace-nowrap'
