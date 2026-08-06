@@ -18,7 +18,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#1f47d8',
+  // brand-600 evergreen — keeps mobile browser chrome on the product's color.
+  themeColor: '#2b6a4d',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
