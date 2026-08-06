@@ -19,6 +19,14 @@ import {
 } from '@/lib/validation/contact'
 import type { ContactRow } from '@/types/database'
 
+/**
+ * Section legends speak in the serif display voice — this form is about a
+ * person, and the chapter headings should say so. Styled from here via
+ * arbitrary variants because the `Fieldset` primitive stays shared.
+ */
+const SECTION =
+  '[&>legend]:font-display [&>legend]:text-lg [&>legend]:font-semibold [&>legend]:tracking-tight'
+
 export function ContactForm({
   action,
   contact,
@@ -45,7 +53,7 @@ export function ContactForm({
 
       <FormError state={state} />
 
-      <Fieldset legend="Name">
+      <Fieldset legend="Name" description="Who they are, and what they actually go by." className={SECTION}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name" error={errors.first_name}>
             {(props) => (
@@ -102,7 +110,11 @@ export function ContactForm({
           the legend down onto the border line. */}
       <hr className="border-slate-200" />
 
-      <Fieldset legend="How to reach them">
+      <Fieldset
+        legend="How to reach them"
+        description="Channels for staying in touch. Email and phone appear on the contact card."
+        className={SECTION}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Email" error={errors.email}>
             {(props) => (
@@ -155,7 +167,11 @@ export function ContactForm({
 
       <hr className="border-slate-200" />
 
-      <Fieldset legend="Address">
+      <Fieldset
+        legend="Address"
+        description="For mailings, visits and year-end letters."
+        className={SECTION}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Address line 1" error={errors.address_line1} className="sm:col-span-2">
             {(props) => (
@@ -228,7 +244,11 @@ export function ContactForm({
 
       <hr className="border-slate-200" />
 
-      <Fieldset legend="Organisation">
+      <Fieldset
+        legend="Organisation"
+        description="Their workplace or ministry affiliation, if it matters to the relationship."
+        className={SECTION}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Organisation" error={errors.organization_name}>
             {(props) => (
@@ -260,6 +280,7 @@ export function ContactForm({
       <Fieldset
         legend="Relationship"
         description="Engagements — donor, volunteer, prayer partner — are added on the contact record itself."
+        className={SECTION}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Lifecycle stage" error={errors.lifecycle_stage}>
@@ -347,7 +368,11 @@ export function ContactForm({
 
       <hr className="border-slate-200" />
 
-      <Fieldset legend="Communication preferences">
+      <Fieldset
+        legend="Communication preferences"
+        description="Hard limits they have asked for. These override every list and campaign."
+        className={SECTION}
+      >
         <div className="space-y-3">
           <Checkbox
             name="do_not_contact"
@@ -366,7 +391,11 @@ export function ContactForm({
 
       <hr className="border-slate-200" />
 
-      <Fieldset legend="Notes">
+      <Fieldset
+        legend="Notes"
+        description="Context the whole team should carry into the next conversation."
+        className={SECTION}
+      >
         <Field label="Internal notes" error={errors.notes}>
           {(props) => (
             <Textarea

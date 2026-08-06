@@ -1,5 +1,6 @@
 'use client'
 
+import { Mail, Phone } from 'lucide-react'
 import { useActionState } from 'react'
 import {
   ContactStatusBadge,
@@ -13,15 +14,16 @@ import {
   useDisclosure,
 } from '@/components/domain/contact-form-controls'
 import { Button, LinkButton, buttonClasses } from '@/components/ui/button'
-import { Avatar, Badge, Card, CardBody, PageHeader } from '@/components/ui/display'
+import { Avatar, Badge, Card } from '@/components/ui/display'
 import { Field, Select } from '@/components/ui/form'
 import type { TeamMember } from '@/lib/queries/contacts'
 import type { ContactActionState } from '@/lib/validation/contact'
 import type { ContactRow } from '@/types/database'
 
 /**
- * The contact detail header: who this is, who owns them, and the four things
- * staff most often want to do next.
+ * The identity band: one composed zone that says who this is — face, serif
+ * name, standing, how to reach them, who owns the relationship — with the
+ * four things staff most often want to do next on its shoulder.
  *
  * The quick actions are plain in-page anchors rather than buttons, so they work
  * before hydration and can be linked to from elsewhere. Each panel they point
@@ -60,59 +62,98 @@ export function ContactHeader({
 
   const owners = ownerOptions(team, contact.owner_id)
   const subtitle = [contact.organization_name, contact.job_title].filter(Boolean).join(' · ')
+  const phone = contact.phone ?? contact.mobile_phone
 
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title={name}
-        description={
-          <span className="block space-y-2">
-            {subtitle ? <span className="block">{subtitle}</span> : null}
-            <span className="flex flex-wrap gap-1.5">
-              <LifecycleStageBadge stage={contact.lifecycle_stage} />
-              {/* An active record is the normal case; showing it next to the
-                  lifecycle badge produced a duplicate "Active Active" pair.
-                  Only the exceptional statuses earn a badge — same rule as
-                  the contact table. */}
-              {contact.status !== 'active' ? <ContactStatusBadge status={contact.status} /> : null}
-              {contact.do_not_contact ? <Badge tone="red">Do not contact</Badge> : null}
-              {contact.do_not_email ? <Badge tone="amber">Do not email</Badge> : null}
-              {contact.tags.map((tag) => (
-                <Badge key={tag} tone="zinc">
-                  {tag}
-                </Badge>
-              ))}
-            </span>
-          </span>
-        }
-        action={
-          canEdit ? (
-            <>
-              <a href="#log-activity" className={buttonClasses('primary', 'md')}>
-                Log activity
-              </a>
-              <a href="#add-follow-up" className={buttonClasses('secondary', 'md')}>
-                Add follow-up
-              </a>
-              <a href="#add-engagement" className={buttonClasses('secondary', 'md')}>
-                Add engagement
-              </a>
-              <LinkButton href={`/contacts/${contact.id}/edit`} variant="secondary">
-                Edit
-              </LinkButton>
-            </>
-          ) : null
-        }
-      />
-
+    <header>
       <Card>
-        <CardBody className="space-y-3">
+        <div className="px-5 pb-5 pt-6 sm:px-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+              <Avatar name={name} size="xl" className="mt-1" />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Contact
+                </p>
+                <h1 className="mt-0.5 break-words font-display text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl">
+                  {name}
+                </h1>
+                {subtitle ? <p className="mt-1 text-[15px] text-slate-600">{subtitle}</p> : null}
+
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <LifecycleStageBadge stage={contact.lifecycle_stage} />
+                  {/* An active record is the normal case; showing it next to the
+                      lifecycle badge produced a duplicate "Active Active" pair.
+                      Only the exceptional statuses earn a badge — same rule as
+                      the contact table. */}
+                  {contact.status !== 'active' ? (
+                    <ContactStatusBadge status={contact.status} />
+                  ) : null}
+                  {contact.do_not_contact ? <Badge tone="red">Do not contact</Badge> : null}
+                  {contact.do_not_email ? <Badge tone="amber">Do not email</Badge> : null}
+                  {contact.tags.map((tag) => (
+                    <Badge key={tag} tone="zinc">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+
+                {contact.email || phone ? (
+                  <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+                    {contact.email ? (
+                      <a
+                        href={`mailto:${contact.email}`}
+                        title={contact.email}
+                        className="inline-flex min-w-0 items-center gap-1.5 text-slate-600 hover:text-brand-700 hover:underline"
+                      >
+                        <Mail aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <span className="truncate">{contact.email}</span>
+                      </a>
+                    ) : null}
+                    {phone ? (
+                      <a
+                        href={`tel:${phone}`}
+                        className="inline-flex items-center gap-1.5 whitespace-nowrap text-slate-600 hover:text-brand-700 hover:underline"
+                      >
+                        <Phone aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        {phone}
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {canEdit ? (
+              <div className="flex flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end">
+                <a href="#log-activity" className={buttonClasses('primary', 'md')}>
+                  Log activity
+                </a>
+                <a href="#add-follow-up" className={buttonClasses('secondary', 'md')}>
+                  Add follow-up
+                </a>
+                <a href="#add-engagement" className={buttonClasses('secondary', 'md')}>
+                  Add engagement
+                </a>
+                <LinkButton href={`/contacts/${contact.id}/edit`} variant="ghost">
+                  Edit
+                </LinkButton>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* The stewardship strip: who holds this relationship, and the two
+            administrative moves that change the record itself. */}
+        <div className="space-y-3 rounded-b-xl border-t border-slate-200/70 bg-slate-100/50 px-5 py-3 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               {owner ? <Avatar name={owner.name} size="sm" /> : null}
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Owner</p>
-                <p className="truncate text-sm text-slate-900">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Owner
+                </p>
+                <p className="truncate text-sm font-medium text-slate-800">
                   {owner ? owner.name : 'Unassigned'}
                 </p>
               </div>
@@ -124,7 +165,7 @@ export function ContactHeader({
                   ref={reassign.triggerRef}
                   type="button"
                   variant="secondary"
-                  size="md"
+                  size="sm"
                   onClick={reassign.toggle}
                   aria-expanded={reassign.open}
                   aria-controls={reassign.open ? 'reassign-owner-panel' : undefined}
@@ -137,7 +178,7 @@ export function ContactHeader({
                   ref={archive.triggerRef}
                   type="button"
                   variant="ghost"
-                  size="md"
+                  size="sm"
                   onClick={archive.toggle}
                   aria-expanded={archive.open}
                   aria-controls={archive.open ? 'archive-contact-panel' : undefined}
@@ -152,7 +193,7 @@ export function ContactHeader({
             <form
               id="reassign-owner-panel"
               action={reassignFormAction}
-              className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3"
+              className="space-y-3 rounded-lg bg-white p-4 ring-1 ring-slate-200/70"
               noValidate
             >
               <input type="hidden" name="contact_id" value={contact.id} />
@@ -188,7 +229,7 @@ export function ContactHeader({
             <form
               id="archive-contact-panel"
               action={archiveFormAction}
-              className="space-y-3 rounded-md border border-red-200 bg-red-50 p-3"
+              className="space-y-3 rounded-lg bg-red-50 p-4 ring-1 ring-red-200"
               noValidate
             >
               <input type="hidden" name="contact_id" value={contact.id} />
@@ -207,8 +248,8 @@ export function ContactHeader({
               </div>
             </form>
           ) : null}
-        </CardBody>
+        </div>
       </Card>
-    </div>
+    </header>
   )
 }

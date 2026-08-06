@@ -71,7 +71,8 @@ export function EngagementPanel({
       />
 
       {disclosure.open ? (
-        <CardBody id="add-engagement-panel" className="border-b border-slate-200 bg-slate-50">
+        // A tinted zone, not a nested card — docs/DESIGN.md.
+        <CardBody id="add-engagement-panel" className="border-b border-slate-200/70 bg-slate-100/50">
           <EngagementForm
             action={actions.add}
             contactId={contactId}
@@ -155,7 +156,7 @@ function EngagementRow({
   const label = engagement.type?.label ?? 'Engagement'
 
   return (
-    <li className="px-4 py-3">
+    <li className="px-5 py-3.5">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -182,7 +183,7 @@ function EngagementRow({
             <Button
               type="button"
               variant="secondary"
-              size="md"
+              size="sm"
               onClick={() => setPanel(panel === 'edit' ? null : 'edit')}
               aria-expanded={panel === 'edit'}
             >
@@ -193,7 +194,7 @@ function EngagementRow({
               <Button
                 type="button"
                 variant="ghost"
-                size="md"
+                size="sm"
                 onClick={() => setPanel(panel === 'end' ? null : 'end')}
                 aria-expanded={panel === 'end'}
               >
@@ -206,7 +207,7 @@ function EngagementRow({
       </div>
 
       {panel ? (
-        <div ref={panelRef} className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+        <div ref={panelRef} className="mt-3 rounded-lg bg-slate-100/70 p-4">
           {panel === 'edit' ? (
             <EngagementForm
               action={actions.update}

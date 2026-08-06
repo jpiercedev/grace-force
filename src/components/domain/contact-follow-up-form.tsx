@@ -155,7 +155,7 @@ export function ContactFollowUpForm({
               </Field>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
               <SubmitButton size="sm">Schedule it</SubmitButton>
               <Button type="button" variant="ghost" size="sm" onClick={disclosure.close}>
                 Discard

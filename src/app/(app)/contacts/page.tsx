@@ -53,7 +53,7 @@ export default async function ContactsPage({
       <ContactFilters filters={filters} team={team} engagementTypes={engagementTypes} />
 
       {result.contacts.length === 0 ? (
-        <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-slate-200/70 bg-white shadow-card">
           {filtered ? (
             <EmptyState
               title="No contacts match these filters"

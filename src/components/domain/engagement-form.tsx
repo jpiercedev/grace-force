@@ -175,7 +175,7 @@ export function EngagementForm({
         </Field>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 border-t border-slate-200/70 pt-4">
         <SubmitButton size="sm">{submitLabel}</SubmitButton>
         <Button type="button" variant="ghost" size="sm" onClick={onDone}>
           Discard

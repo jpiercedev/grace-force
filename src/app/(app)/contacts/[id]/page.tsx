@@ -151,14 +151,14 @@ export default async function ContactDetailPage({
                   : pluralize(timeline.total, 'entry', 'entries')
               }
             />
-            <div className="border-b border-slate-200 px-4 py-3">
+            <div className="border-b border-slate-200/70 px-5 py-3 sm:px-6">
               <TimelineFilters basePath={basePath} type={type} />
             </div>
 
             <Timeline days={days} nowIso={nowIso} filtered={type !== null} />
 
             {canLoadMore ? (
-              <div className="border-t border-slate-200 px-4 py-3">
+              <div className="border-t border-slate-200/70 px-5 py-3 sm:px-6">
                 <Link
                   href={`${basePath}?${moreParams.toString()}`}
                   className={buttonClasses('secondary', 'sm')}
@@ -170,30 +170,30 @@ export default async function ContactDetailPage({
           </Card>
         </div>
 
-        <aside aria-label="Contact summary">
-          {/* Outside the space-y flow so the mobile widths, where this copy is
-              hidden, do not inherit a phantom top margin on the next panel. */}
+        {/* The sidebar answers questions in order of urgency: what is owed
+            next, how they are involved, how they have given, then telemetry.
+            The reference facts close it out — a last child, so its `hidden`
+            copy below lg cannot leave a phantom space-y margin behind. */}
+        <aside aria-label="Contact summary" className="space-y-6">
+          <ContactFollowUpsPanel followUps={followUps} nowIso={nowIso} />
+
+          <EngagementPanel
+            contactId={contact.id}
+            engagements={engagements}
+            engagementTypes={engagementTypes}
+            team={team}
+            canEdit={writable}
+            today={today}
+            actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
+          />
+
+          {/* Absent rather than empty for staff without the giving flag. */}
+          {giving ? <ContactGivingPanel giving={giving} /> : null}
+
+          <ContactEmailPanel engagement={email} />
+
           <div className="hidden lg:block">
             <ContactDetailsPanel contact={contact} />
-          </div>
-
-          <div className="space-y-6 lg:mt-6">
-            <EngagementPanel
-              contactId={contact.id}
-              engagements={engagements}
-              engagementTypes={engagementTypes}
-              team={team}
-              canEdit={writable}
-              today={today}
-              actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
-            />
-
-            <ContactFollowUpsPanel followUps={followUps} nowIso={nowIso} />
-
-            {/* Absent rather than empty for staff without the giving flag. */}
-            {giving ? <ContactGivingPanel giving={giving} /> : null}
-
-            <ContactEmailPanel engagement={email} />
           </div>
         </aside>
       </div>

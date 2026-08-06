@@ -26,9 +26,11 @@ export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
   archived: 'Archived',
 }
 
+// Blue is gone (docs/DESIGN.md): the journey reads slate → evergreen →
+// emerald, with amber marking the stage that needs attention.
 const LIFECYCLE_STAGE_TONES: Record<LifecycleStage, BadgeTone> = {
   prospect: 'slate',
-  engaged: 'sky',
+  engaged: 'brand',
   active: 'emerald',
   lapsed: 'amber',
   archived: 'zinc',
@@ -80,9 +82,11 @@ export const FOLLOW_UP_PRIORITY_LABELS: Record<FollowUpPriority, string> = {
   urgent: 'Urgent',
 }
 
+// Low and normal are both non-alerts, so both stay neutral (the label carries
+// the difference); only high and urgent earn a warning hue.
 const FOLLOW_UP_PRIORITY_TONES: Record<FollowUpPriority, BadgeTone> = {
-  low: 'slate',
-  normal: 'sky',
+  low: 'zinc',
+  normal: 'slate',
   high: 'amber',
   urgent: 'red',
 }

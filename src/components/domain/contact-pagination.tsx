@@ -32,9 +32,9 @@ export function ContactPagination({
   return (
     <nav
       aria-label="Contact list pages"
-      className="flex flex-wrap items-center justify-between gap-3"
+      className="flex flex-wrap items-center justify-between gap-3 px-1"
     >
-      <p className="text-sm text-slate-600" aria-live="polite">
+      <p className="text-sm tabular-nums text-slate-500" aria-live="polite">
         {total === 0
           ? 'No contacts'
           : `Showing ${firstOnPage}–${firstOnPage + shown - 1} of ${pluralize(total, 'contact')}`}
@@ -50,7 +50,7 @@ export function ContactPagination({
               Previous
             </span>
           )}
-          <span className="text-sm text-slate-600">
+          <span className="text-sm tabular-nums text-slate-500">
             Page {page} of {pageCount}
           </span>
           {page < pageCount ? (

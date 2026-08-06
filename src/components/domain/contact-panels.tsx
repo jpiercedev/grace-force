@@ -11,12 +11,20 @@ import type {
   ContactFollowUp,
   ContactGiving,
 } from '@/lib/queries/contacts'
-import { cn, formatCurrency, formatDate, formatDateTime, formatRelative, isOverdue } from '@/lib/utils'
+import {
+  cn,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatRelative,
+  isOverdue,
+  pluralize,
+} from '@/lib/utils'
 import type { ContactRow } from '@/types/database'
 
 /**
- * The right rail of the contact record: the reference facts, and the
- * summaries the relationship is actually judged on.
+ * The right rail of the contact record: what should happen next, how the
+ * relationship stands, and the reference facts — in that order of urgency.
  *
  * All server components — nothing here is interactive.
  */
@@ -25,8 +33,10 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     // A fixed narrow label column: an equal-thirds grid squeezed values so
     // hard that ordinary emails wrapped mid-word.
-    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 py-1.5">
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 py-2">
+      <dt className="pt-px text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </dt>
       <dd className="break-words text-sm text-slate-800">{children}</dd>
     </div>
   )
@@ -130,8 +140,10 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
 
         {contact.notes ? (
           <div className="mt-3 border-t border-slate-100 pt-3">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-slate-500">Notes</h3>
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-slate-700">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Notes
+            </h3>
+            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
               {contact.notes}
             </p>
           </div>
@@ -146,6 +158,10 @@ function Muted({ children }: { children: ReactNode }) {
   return <span className="text-slate-500">{children}</span>
 }
 
+/**
+ * The "Next" moment: what this relationship is owed. It leads the sidebar so
+ * the first glance answers "is anything waiting on us?" before the history.
+ */
 export function ContactFollowUpsPanel({
   followUps,
   nowIso,
@@ -158,7 +174,8 @@ export function ContactFollowUpsPanel({
   return (
     <Card>
       <CardHeader
-        title="Open follow-ups"
+        title="Next"
+        description="Open follow-ups for this contact."
         action={
           <Link href="/follow-ups" className="text-xs font-medium text-brand-700 hover:underline">
             All follow-ups
@@ -172,9 +189,9 @@ export function ContactFollowUpsPanel({
           {followUps.map((followUp) => {
             const overdue = isOverdue(followUp.due_at, now)
             return (
-              <li key={followUp.id} className="space-y-1 px-4 py-3">
+              <li key={followUp.id} className="space-y-1 px-5 py-3">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="text-sm font-medium text-slate-900">{followUp.title}</p>
+                  <p className="text-sm font-semibold text-slate-900">{followUp.title}</p>
                   <FollowUpPriorityBadge priority={followUp.priority} />
                   {overdue ? <Badge tone="red">Overdue</Badge> : null}
                 </div>
@@ -196,6 +213,9 @@ export function ContactFollowUpsPanel({
  * Rendered only when the viewer holds `can_view_giving`. Row Level Security
  * would return nothing regardless, but an empty panel reads as "they have never
  * given" rather than "you cannot see this", which is a worse lie.
+ *
+ * Giving is stewardship context, not accounting: the total speaks in the
+ * serif voice and the ledger of recent gifts stays muted beneath it.
  */
 export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
   const { summary, recent } = giving
@@ -216,36 +236,48 @@ export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
           description="Nothing has been received from this contact yet."
         />
       ) : (
-        <CardBody className="space-y-3">
-          <dl className="grid grid-cols-2 gap-3">
-            <Figure label="Total given" value={formatCurrency(summary.total_cents)} />
-            <Figure label="Gifts" value={summary.gift_count.toLocaleString()} />
+        <CardBody className="space-y-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Total given
+            </p>
+            <p className="mt-1 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-slate-900">
+              {formatCurrency(summary.total_cents)}
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              {pluralize(summary.gift_count, 'gift')} · first {formatDate(summary.first_gift_on)}{' '}
+              · most recent{' '}
+              {formatDate(summary.last_gift_on)}
+              {summary.has_recurring ? ' · recurring giver' : ''}
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-3 border-t border-slate-100 pt-3.5">
             <Figure label="This year" value={formatCurrency(summary.ytd_cents)} />
             <Figure label="Last 12 months" value={formatCurrency(summary.trailing_12mo_cents)} />
             <Figure label="Largest" value={formatCurrency(summary.largest_gift_cents)} />
             <Figure label="Average" value={formatCurrency(summary.average_gift_cents)} />
           </dl>
 
-          <p className="text-xs text-slate-500">
-            First gift {formatDate(summary.first_gift_on)} · most recent{' '}
-            {formatDate(summary.last_gift_on)}
-            {summary.has_recurring ? ' · recurring giver' : ''}
-          </p>
-
           {recent.length > 0 ? (
-            <ul className="divide-y divide-slate-100 border-t border-slate-100 pt-1">
-              {recent.map((gift) => (
-                <li key={gift.id} className="flex items-baseline justify-between gap-2 py-1.5">
-                  <span className="text-sm tabular-nums text-slate-900">
-                    {formatCurrency(gift.amount_cents, gift.currency)}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {formatDate(gift.given_on)}
-                    {gift.fund ? ` · ${gift.fund}` : ''}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="border-t border-slate-100 pt-3">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Recent gifts
+              </h3>
+              <ul className="mt-1 divide-y divide-slate-100">
+                {recent.map((gift) => (
+                  <li key={gift.id} className="flex items-baseline justify-between gap-2 py-1.5">
+                    <span className="text-sm font-medium tabular-nums text-slate-800">
+                      {formatCurrency(gift.amount_cents, gift.currency)}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {formatDate(gift.given_on)}
+                      {gift.fund ? ` · ${gift.fund}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </CardBody>
       )}
@@ -256,9 +288,22 @@ export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
 function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      {/* text-base so the summary figures outrank the recent-gift rows below. */}
-      <dd className="text-base font-semibold tabular-nums text-slate-900">{value}</dd>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      {/* Serif, a step below the headline total, so the four supporting
+          figures read as context rather than competing headlines. */}
+      <dd className="mt-0.5 font-display text-lg font-semibold tabular-nums text-slate-900">
+        {value}
+      </dd>
+    </div>
+  )
+}
+
+/** Machine data stays in the sans voice, and quiet: it is telemetry, not story. */
+function QuietFigure({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      <dd className="mt-0.5 text-sm font-semibold tabular-nums text-slate-700">{value}</dd>
     </div>
   )
 }
@@ -278,9 +323,9 @@ export function ContactEmailPanel({ engagement }: { engagement: ContactEmailEnga
       ) : (
         <CardBody className="space-y-3">
           <dl className="grid grid-cols-3 gap-3">
-            <Figure label="Received" value={summary.emails_received.toLocaleString()} />
-            <Figure label="Opened" value={summary.campaigns_opened.toLocaleString()} />
-            <Figure label="Clicked" value={summary.campaigns_clicked.toLocaleString()} />
+            <QuietFigure label="Received" value={summary.emails_received.toLocaleString()} />
+            <QuietFigure label="Opened" value={summary.campaigns_opened.toLocaleString()} />
+            <QuietFigure label="Clicked" value={summary.campaigns_clicked.toLocaleString()} />
           </dl>
 
           {summary.bounces > 0 || summary.unsubscribes > 0 ? (
@@ -301,7 +346,7 @@ export function ContactEmailPanel({ engagement }: { engagement: ContactEmailEnga
             <ul className="divide-y divide-slate-100 border-t border-slate-100 pt-1">
               {recent.map((event) => (
                 <li key={event.id} className="flex items-baseline justify-between gap-2 py-1.5">
-                  <span className="min-w-0 text-sm text-slate-800">
+                  <span className="min-w-0 text-sm text-slate-700">
                     <span className="font-medium">{MAILCHIMP_ACTION_LABELS[event.action]}</span>
                     {event.campaign ? (
                       <span className="block truncate text-xs text-slate-500">

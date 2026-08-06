@@ -19,7 +19,11 @@ export default async function EditContactPage({
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title={`Edit ${contactName(contact)}`} />
+      <PageHeader
+        eyebrow="Contacts"
+        title={`Edit ${contactName(contact)}`}
+        description="Changes apply to the record as soon as they are saved."
+      />
       <ContactForm
         action={updateContact}
         contact={contact}

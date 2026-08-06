@@ -13,6 +13,7 @@ export default async function NewContactPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
+        eyebrow="Contacts"
         title="New contact"
         description="A first or last name, or an organisation, is all that is required."
       />
