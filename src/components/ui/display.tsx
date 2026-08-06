@@ -225,7 +225,8 @@ export function StatTile({
         {label}
       </dt>
       <dd className="mt-1.5 text-2xl font-semibold tabular-nums text-slate-900">{value}</dd>
-      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+      {/* A second <dd> for the same term — a <p> is not valid directly inside <dl>. */}
+      {hint ? <dd className="mt-1 text-xs text-slate-500">{hint}</dd> : null}
     </>
   )
 
