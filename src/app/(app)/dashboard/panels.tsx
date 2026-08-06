@@ -1,15 +1,31 @@
 import { parseISO } from 'date-fns'
 import Link from 'next/link'
+import { CalendarClock, CircleCheckBig, KanbanSquare, Sparkles } from 'lucide-react'
 import { ACTIVITY_TYPE_LABELS, FollowUpPriorityBadge } from '@/components/domain/contact-badges'
 import { LinkButton } from '@/components/ui/button'
-import { Badge, Card, CardBody, CardHeader, EmptyState, badgeTone } from '@/components/ui/display'
+import {
+  Avatar,
+  Badge,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  badgeTone,
+} from '@/components/ui/display'
 import type {
   DashboardActivity,
   DashboardFollowUp,
   DashboardPipelineGroup,
 } from '@/lib/queries/dashboard'
 import type { GivingSnapshot } from '@/lib/queries/giving'
-import { formatCurrency, formatDate, formatDateTime, formatRelative, isOverdue } from '@/lib/utils'
+import {
+  cn,
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatRelative,
+  isOverdue,
+} from '@/lib/utils'
 
 /**
  * Dashboard panels.
@@ -18,6 +34,10 @@ import { formatCurrency, formatDate, formatDateTime, formatRelative, isOverdue }
  * read. Each panel owns its own empty state, because a fresh install shows
  * every one of them at once and "nothing yet" has to read as calm rather than
  * broken.
+ *
+ * The page is deliberately not five equal boxes: "Needs attention" leads in a
+ * hero treatment, the week's work follows, and the activity feed sits directly
+ * on the canvas as a quieter story rail.
  */
 
 /**
@@ -42,6 +62,28 @@ function ContactLink({ contact }: { contact: { id: string; name: string } | null
   )
 }
 
+function DueLabel({
+  dueAt,
+  now,
+  className,
+}: {
+  dueAt: string
+  now: Date
+  className?: string
+}) {
+  const overdue = isOverdue(dueAt, now)
+  return (
+    // Colour never carries "overdue" on its own; the word is there too.
+    <time
+      dateTime={dueAt}
+      title={formatDateTime(dueAt)}
+      className={cn(overdue ? 'font-medium text-red-700' : undefined, className)}
+    >
+      {overdue ? `Overdue ${formatRelative(dueAt, now)}` : `Due ${formatRelative(dueAt, now)}`}
+    </time>
+  )
+}
+
 export function FollowUpPanel({
   title,
   description,
@@ -51,6 +93,7 @@ export function FollowUpPanel({
   href,
   linkLabel,
   nowIso,
+  hero = false,
 }: {
   title: string
   description: string
@@ -60,8 +103,77 @@ export function FollowUpPanel({
   href: string
   linkLabel: string
   nowIso: string
+  /** The "Needs attention" treatment: serif heading, avatar rows, primary action. */
+  hero?: boolean
 }) {
   const now = new Date(nowIso)
+
+  if (hero) {
+    return (
+      <Card>
+        {/* The one serif card heading on the page — this panel is why you came in. */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">
+              {title}
+            </h2>
+            <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+          </div>
+          {/* Primary only while there is work behind it; a loud button over an
+              empty list would nag. */}
+          <LinkButton href={href} variant={items.length > 0 ? 'primary' : 'secondary'} size="sm">
+            {linkLabel}
+          </LinkButton>
+        </div>
+        {items.length === 0 ? (
+          <EmptyState
+            icon={<CircleCheckBig className="h-5 w-5" aria-hidden="true" />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <li key={item.id} className="flex items-start gap-3 px-5 py-3.5 sm:items-center sm:gap-4">
+                <Avatar name={item.contact?.name ?? 'Unknown contact'} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-snug text-slate-900">{item.title}</p>
+                  <p className="mt-0.5 text-sm leading-snug">
+                    <ContactLink contact={item.contact} />
+                  </p>
+                  {/* On a phone the chip and due label sit under the words —
+                      three columns in 390px would crush the title. */}
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:hidden">
+                    <FollowUpPriorityBadge priority={item.priority} />
+                    <DueLabel
+                      dueAt={item.due_at}
+                      now={now}
+                      className={cn(
+                        'text-sm tabular-nums',
+                        !isOverdue(item.due_at, now) && 'text-slate-500',
+                      )}
+                    />
+                  </p>
+                </div>
+                {/* From sm up, chip + due label form a scannable right column. */}
+                <div className="hidden shrink-0 items-center gap-x-4 sm:flex">
+                  <FollowUpPriorityBadge priority={item.priority} />
+                  <DueLabel
+                    dueAt={item.due_at}
+                    now={now}
+                    className={cn(
+                      'w-32 whitespace-nowrap text-right text-sm tabular-nums',
+                      !isOverdue(item.due_at, now) && 'text-slate-500',
+                    )}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -75,11 +187,15 @@ export function FollowUpPanel({
         }
       />
       {items.length === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState
+          icon={<CalendarClock className="h-5 w-5" aria-hidden="true" />}
+          title={emptyTitle}
+          description={emptyDescription}
+        />
       ) : (
         <ul className="divide-y divide-slate-100">
           {items.map((item) => (
-            <li key={item.id} className="px-4 py-3">
+            <li key={item.id} className="px-5 py-3">
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
                 <p className="min-w-0 text-sm font-medium text-slate-900">{item.title}</p>
                 <FollowUpPriorityBadge priority={item.priority} />
@@ -87,16 +203,7 @@ export function FollowUpPanel({
               <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
                 <ContactLink contact={item.contact} />
                 <span aria-hidden="true">·</span>
-                {/* Colour never carries "overdue" on its own; the word is there too. */}
-                <time
-                  dateTime={item.due_at}
-                  title={formatDateTime(item.due_at)}
-                  className={isOverdue(item.due_at, now) ? 'font-medium text-red-700' : undefined}
-                >
-                  {isOverdue(item.due_at, now)
-                    ? `Overdue ${formatRelative(item.due_at, now)}`
-                    : `Due ${formatRelative(item.due_at, now)}`}
-                </time>
+                <DueLabel dueAt={item.due_at} now={now} />
               </p>
             </li>
           ))}
@@ -106,6 +213,10 @@ export function FollowUpPanel({
   )
 }
 
+/**
+ * The team's story, told quietly: no card, just a labelled rail sitting on the
+ * canvas with hairlines between entries — context, not a queue.
+ */
 export function ActivityPanel({
   items,
   nowIso,
@@ -116,52 +227,68 @@ export function ActivityPanel({
   const now = new Date(nowIso)
 
   return (
-    <Card>
-      <CardHeader
-        title="Recent activity"
-        description="What has happened across every relationship."
-      />
+    <section aria-labelledby="recent-activity-heading">
+      <div className="border-b border-slate-200 pb-2.5">
+        <h2
+          id="recent-activity-heading"
+          className="text-xs font-semibold uppercase tracking-wider text-slate-500"
+        >
+          Recent activity
+        </h2>
+      </div>
       {items.length === 0 ? (
         <EmptyState
-          title="Nothing has happened yet"
-          description="Calls, notes, gifts and pipeline moves all land here as soon as anyone logs one."
+          icon={<Sparkles className="h-5 w-5" aria-hidden="true" />}
+          title="The story starts here"
+          description="Calls, notes, gifts and pipeline moves from the whole team gather here as they happen."
         />
       ) : (
-        <ul className="divide-y divide-slate-100">
-          {items.map((item) => (
-            <li key={item.id} className="px-4 py-3">
-              <p className="text-sm font-medium text-slate-900">
-                {item.subject?.trim() || ACTIVITY_TYPE_LABELS[item.type]}
-              </p>
-              {item.body ? (
-                <p className="mt-0.5 line-clamp-2 text-sm text-slate-600">{item.body}</p>
-              ) : null}
-              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
-                <ContactLink contact={item.contact} />
-                {/* The type label only appears when the title is a subject —
-                    otherwise the title already is this label, verbatim. */}
-                {item.subject?.trim() ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{ACTIVITY_TYPE_LABELS[item.type]}</span>
-                  </>
-                ) : null}
-                {item.actor ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span>{item.actor}</span>
-                  </>
-                ) : null}
-                <span aria-hidden="true">·</span>
-                <time dateTime={item.occurred_at} title={formatDateTime(item.occurred_at)}>
-                  {formatRelative(item.occurred_at, now)}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ul>
+        <ol className="divide-y divide-slate-200/70">
+          {items.map((item) => {
+            const subject = item.subject?.trim()
+            return (
+              <li key={item.id} className="flex gap-3 py-3">
+                <Avatar
+                  name={item.contact?.name ?? ACTIVITY_TYPE_LABELS[item.type]}
+                  size="sm"
+                  className="mt-0.5"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug text-slate-900">
+                    <ContactLink contact={item.contact} />{' '}
+                    <span className="text-slate-600">— {subject || ACTIVITY_TYPE_LABELS[item.type]}</span>
+                  </p>
+                  {item.body ? (
+                    <p className="mt-0.5 line-clamp-1 text-[13px] leading-snug text-slate-600">
+                      {item.body}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-600">
+                    {/* The type label only appears when the headline is a subject —
+                        otherwise the headline already is this label, verbatim. */}
+                    {subject ? (
+                      <>
+                        <span>{ACTIVITY_TYPE_LABELS[item.type]}</span>
+                        <span aria-hidden="true">·</span>
+                      </>
+                    ) : null}
+                    {item.actor ? (
+                      <>
+                        <span>{item.actor}</span>
+                        <span aria-hidden="true">·</span>
+                      </>
+                    ) : null}
+                    <time dateTime={item.occurred_at} title={formatDateTime(item.occurred_at)}>
+                      {formatRelative(item.occurred_at, now)}
+                    </time>
+                  </p>
+                </div>
+              </li>
+            )
+          })}
+        </ol>
       )}
-    </Card>
+    </section>
   )
 }
 
@@ -179,13 +306,14 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
       />
       {groups.length === 0 ? (
         <EmptyState
-          title="No cards assigned to you"
-          description="Cards you own on any pipeline board will be listed here."
+          icon={<KanbanSquare className="h-5 w-5" aria-hidden="true" />}
+          title="No cards carry your name"
+          description="When you own a card on any pipeline board, it will keep its place here."
         />
       ) : (
         <ul className="divide-y divide-slate-100">
           {groups.map((group) => (
-            <li key={group.id} className="px-4 py-3">
+            <li key={group.id} className="px-5 py-3.5">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <Link
                   href={`/pipelines/${group.slug}`}
@@ -202,7 +330,7 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
                   </span>
                 ) : null}
               </div>
-              <ul className="mt-2 space-y-2">
+              <ul className="mt-2 space-y-2.5">
                 {group.cards.map((card) => (
                   // Two fixed lines (badge + title, then meta) so every card
                   // stacks the same way instead of wrapping unpredictably.
@@ -243,7 +371,8 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
 /**
  * Rendered only for profiles that pass `canViewGiving`. The caller omits it
  * entirely otherwise, rather than showing an empty box that hints at data the
- * reader is not allowed to see.
+ * reader is not allowed to see. It sits below the work panels on purpose:
+ * giving is context for the day, not a task on it.
  */
 export function GivingStrip({ snapshot }: { snapshot: GivingSnapshot }) {
   const hasGiving = snapshot.recent.length > 0 || snapshot.yearToDateCents > 0
@@ -259,32 +388,33 @@ export function GivingStrip({ snapshot }: { snapshot: GivingSnapshot }) {
           </LinkButton>
         }
       />
-      <CardBody className="space-y-4">
-        <dl className="grid gap-4 sm:grid-cols-2">
+      <CardBody className="grid gap-x-10 gap-y-5 sm:grid-cols-[11rem,minmax(0,1fr)]">
+        {/* Ledger totals in the quiet serif voice, beside the recent entries. */}
+        <dl className="flex flex-wrap gap-x-10 gap-y-5 sm:flex-col sm:gap-y-6">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               This month
             </dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <dd className="mt-1.5 font-display text-[1.75rem] font-semibold leading-none tabular-nums text-slate-900">
               {formatCurrency(snapshot.monthToDateCents)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
               Year to date
             </dt>
-            <dd className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+            <dd className="mt-1.5 font-display text-[1.75rem] font-semibold leading-none tabular-nums text-slate-900">
               {formatCurrency(snapshot.yearToDateCents)}
             </dd>
           </div>
         </dl>
 
         {hasGiving ? (
-          <ul className="divide-y divide-slate-100 border-t border-slate-100">
+          <ul className="divide-y divide-slate-100 border-t border-slate-200/70 pt-1 sm:border-l sm:border-t-0 sm:pl-10 sm:pt-0">
             {snapshot.recent.map((gift) => (
               <li
                 key={gift.id}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2 first:pt-3 last:pb-0"
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2 first:pt-2 last:pb-0 sm:first:pt-0"
               >
                 <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
                   <ContactLink contact={gift.contact} />
@@ -305,7 +435,7 @@ export function GivingStrip({ snapshot }: { snapshot: GivingSnapshot }) {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm leading-relaxed text-slate-600 sm:border-l sm:border-slate-200/70 sm:pl-10">
             No gifts have been recorded yet. Import a giving history and totals will appear here.
           </p>
         )}
