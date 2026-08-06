@@ -97,7 +97,7 @@ export default async function TeamPage() {
         )}
       </Card>
 
-      <p className="px-1 text-xs text-slate-500">
+      <p className="px-1 text-sm text-slate-500">
         Accounts are never deleted. Deactivating removes sign-in while keeping the contacts,
         gifts and timeline entries that point at that person, and it can be undone at any time.
       </p>

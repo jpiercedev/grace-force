@@ -153,7 +153,7 @@ export default async function ImportBatchPage({
         }
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile
           label={committed ? 'Created' : 'To create'}
           value={committed ? batch.created_rows : (planned?.create ?? batch.valid_rows)}
@@ -208,7 +208,10 @@ export default async function ImportBatchPage({
           description="How each column in the file was read. Nothing else was looked at."
         />
         {!mapping.success ? (
-          <EmptyState title="The mapping could not be read" />
+          <EmptyState
+            title="Column mapping unavailable"
+            description="This batch was staged in a format this version cannot display. The rows themselves are unaffected."
+          />
         ) : (
           <CardBody className="space-y-4">
             <div className="overflow-x-auto">
@@ -272,14 +275,21 @@ export default async function ImportBatchPage({
       <Card>
         <CardHeader
           title="Preview"
+          // "The first 0 of 240 rows" is nonsense — with nothing staged the
+          // empty state below explains, and the header stays quiet.
           description={
-            batch.total_rows > (previewRows?.length ?? 0)
-              ? `The first ${previewRows?.length ?? 0} of ${batch.total_rows.toLocaleString()} rows.`
-              : pluralize(previewRows?.length ?? 0, 'row')
+            !previewRows || previewRows.length === 0
+              ? undefined
+              : batch.total_rows > previewRows.length
+                ? `The first ${previewRows.length} of ${batch.total_rows.toLocaleString()} rows.`
+                : pluralize(previewRows.length, 'row')
           }
         />
         {!previewRows || previewRows.length === 0 ? (
-          <EmptyState title="No rows were staged" />
+          <EmptyState
+            title="No rows were staged"
+            description="There are no staged rows to preview for this batch."
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">

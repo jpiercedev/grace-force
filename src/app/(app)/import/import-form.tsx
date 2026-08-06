@@ -80,7 +80,16 @@ export function ImportForm({
             required
           >
             {(props) => (
-              <Input {...props} type="file" name="file" accept=".csv,text/csv" required />
+              <Input
+                {...props}
+                type="file"
+                name="file"
+                accept=".csv,text/csv"
+                required
+                // The browser-default bezel button clashes with the design
+                // system; file: modifiers restyle it without a custom picker.
+                className="file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+              />
             )}
           </Field>
 

@@ -63,6 +63,28 @@ const NOTIFICATION_STATUS_TONES: Record<NotificationStatus, BadgeTone> = {
   skipped: 'zinc',
 }
 
+// The database stores machine slugs; the people reading these tables do not.
+// Unknown values fall back to sentence case rather than leaking snake_case.
+const NOTIFICATION_KIND_LABELS: Record<string, string> = {
+  lead_submitted: 'New lead',
+  follow_up_due: 'Follow-up due',
+}
+
+const INTEGRATION_LABELS: Record<string, string> = {
+  resend: 'Resend',
+  mailchimp: 'Mailchimp',
+}
+
+const SYNC_JOB_LABELS: Record<string, string> = {
+  full_sync: 'Full sync',
+  follow_up_reminders: 'Follow-up reminders',
+}
+
+function humanizeSlug(value: string): string {
+  const words = value.replace(/[_-]+/g, ' ').trim()
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : value
+}
+
 export default async function IntegrationsPage() {
   await requireAdmin()
 
@@ -148,17 +170,20 @@ export default async function IntegrationsPage() {
           note: 'Comma-separated recipients. With none set, notifications are skipped even when the key is valid.',
         },
       ],
+      // While Resend is entirely unconfigured the "Until this is set" paragraph
+      // already says notifications are skipped; repeating it as a warning here
+      // would dilute the one state signal the card should give.
       extra:
-        status.notificationRecipients === 0 ? (
+        status.notificationRecipients > 0 ? (
+          <p className="text-xs text-slate-500">
+            {pluralize(status.notificationRecipients, 'internal recipient')} configured.
+          </p>
+        ) : status.resend ? (
           <Callout tone="warning">
             No internal recipients are configured, so notifications are recorded and skipped rather
             than sent.
           </Callout>
-        ) : (
-          <p className="text-xs text-slate-500">
-            {pluralize(status.notificationRecipients, 'internal recipient')} configured.
-          </p>
-        ),
+        ) : null,
     },
   ]
 
@@ -182,7 +207,7 @@ export default async function IntegrationsPage() {
         </Callout>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatTile
           label="Sent"
           value={notificationCounts.sent.toLocaleString()}
@@ -326,8 +351,8 @@ function SyncRuns({ runs }: { runs: SyncRunListItem[] }) {
             <tbody className="divide-y divide-slate-100">
               {runs.map((run) => (
                 <tr key={run.id} className="align-top hover:bg-slate-50/70">
-                  <Td>{run.integration}</Td>
-                  <Td>{run.job}</Td>
+                  <Td>{INTEGRATION_LABELS[run.integration] ?? humanizeSlug(run.integration)}</Td>
+                  <Td>{SYNC_JOB_LABELS[run.job] ?? humanizeSlug(run.job)}</Td>
                   <td className="whitespace-nowrap px-3 py-2.5">
                     <Badge tone={SYNC_STATUS_TONES[run.status]}>
                       {SYNC_STATUS_LABELS[run.status]}
@@ -340,11 +365,14 @@ function SyncRuns({ runs }: { runs: SyncRunListItem[] }) {
                   </td>
                   <Td>{durationLabel(run.started_at, run.finished_at)}</Td>
                   <td className="px-3 py-2.5 text-slate-600">
-                    <span className="block max-w-md text-xs">
+                    {/* The min width keeps narrow screens from crushing the one
+                        wrappable column into skyscraper rows — the table widens
+                        into its scroll container instead. */}
+                    <span className="block min-w-[18rem] max-w-md text-xs">
                       {summariseStats(run.stats) || '—'}
                     </span>
                     {run.error ? (
-                      <span className="mt-1 block max-w-md text-xs font-medium text-red-700">
+                      <span className="mt-1 block min-w-[18rem] max-w-md text-xs font-medium text-red-700">
                         {truncate(run.error, 200)}
                       </span>
                     ) : null}
@@ -387,11 +415,15 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
             <tbody className="divide-y divide-slate-100">
               {notifications.map((notification) => (
                 <tr key={notification.id} className="align-top hover:bg-slate-50/70">
-                  <Td>{notification.kind}</Td>
+                  <Td>{NOTIFICATION_KIND_LABELS[notification.kind] ?? humanizeSlug(notification.kind)}</Td>
                   <td className="px-3 py-2.5 text-slate-700">
-                    <span className="block max-w-md">{truncate(notification.subject, 120)}</span>
+                    {/* Same floor as the sync-runs table: without it, the only
+                        wrappable column collapses to one word per line at 390px. */}
+                    <span className="block min-w-[16rem] max-w-md">
+                      {truncate(notification.subject, 120)}
+                    </span>
                     {notification.error ? (
-                      <span className="mt-1 block max-w-md text-xs font-medium text-red-700">
+                      <span className="mt-1 block min-w-[16rem] max-w-md text-xs font-medium text-red-700">
                         {truncate(notification.error, 200)}
                         {notification.attempts > 1
                           ? ` (${notification.attempts} attempts)`

@@ -17,7 +17,7 @@ import { createEngagementType } from './actions'
 function CreateButton() {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="sm" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending ? 'Adding…' : 'Add engagement type'}
     </Button>
   )
@@ -87,15 +87,16 @@ export function NewEngagementType() {
         </Callout>
       ) : null}
 
+      {/* "Close" while open, matching the roster and catalogue toggles — the
+          in-panel ghost button is the one labelled Cancel. */}
       <Button
         type="button"
         variant={open ? 'ghost' : 'secondary'}
-        size="sm"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={open ? formId : undefined}
       >
-        {open ? 'Cancel' : 'Add an engagement type'}
+        {open ? 'Close' : 'Add an engagement type'}
       </Button>
 
       {open ? (
@@ -209,8 +210,8 @@ export function NewEngagementType() {
 
             <div className="flex flex-wrap gap-2">
               <CreateButton />
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                Discard
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
               </Button>
             </div>
           </div>

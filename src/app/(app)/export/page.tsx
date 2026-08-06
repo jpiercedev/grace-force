@@ -34,7 +34,7 @@ export default async function ExportPage() {
   )
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5">
+    <div className="mx-auto max-w-5xl space-y-5">
       <PageHeader
         title="Export"
         description="Every dataset as CSV, with the relationships between them intact."
@@ -47,6 +47,15 @@ export default async function ExportPage() {
         <code className="font-mono text-xs">engagement_id</code> column. A spreadsheet, a database
         or a script can rebuild the whole picture from the CSVs alone.
       </Callout>
+
+      {/* Sits directly above the list it qualifies, so someone scanning the
+          datasets for giving sees why it is missing without scrolling on. */}
+      {access.canViewGiving ? null : (
+        <Callout tone="warning" title="Giving history is not included">
+          Exporting gifts needs the giving permission, which your account does not have. An
+          administrator can grant it or run that export for you.
+        </Callout>
+      )}
 
       <Card>
         <CardHeader
@@ -66,7 +75,7 @@ export default async function ExportPage() {
               href={exportEndpoint(MANIFEST_KEY)}
               download
               aria-label={`Download the ${MANIFEST_LABEL.toLowerCase()} as CSV`}
-              className={buttonClasses('secondary', 'sm')}
+              className={buttonClasses('secondary', 'md')}
             >
               Download CSV
             </a>
@@ -89,13 +98,6 @@ export default async function ExportPage() {
           </p>
         </CardBody>
       </Card>
-
-      {access.canViewGiving ? null : (
-        <Callout tone="warning" title="Giving history is not included">
-          Exporting gifts needs the giving permission, which your account does not have. An
-          administrator can grant it or run that export for you.
-        </Callout>
-      )}
     </div>
   )
 }
@@ -125,7 +127,7 @@ function DatasetRow({ dataset, rowCount }: { dataset: ExportDataset; rowCount: n
         href={exportEndpoint(dataset.key)}
         download
         aria-label={`Download ${dataset.label.toLowerCase()} as CSV`}
-        className={buttonClasses('secondary', 'sm')}
+        className={buttonClasses('secondary', 'md')}
       >
         Download CSV
       </a>

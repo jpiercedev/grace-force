@@ -79,7 +79,9 @@ export default async function ImportPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
+            {/* The width floor keeps columns at natural size on phones, so the
+                table clips cleanly at the scroll edge instead of crushing headers. */}
+            <table className="w-full min-w-[40rem] divide-y divide-slate-200 text-sm">
               <caption className="sr-only">Past import batches</caption>
               <thead className="bg-slate-50">
                 <tr>
@@ -114,9 +116,13 @@ export default async function ImportPage() {
                       {batch.total_rows.toLocaleString()}
                     </td>
                     <td className="px-3 py-2.5 text-slate-600">
-                      {batch.committed_at
-                        ? `${batch.created_rows} created · ${batch.updated_rows} updated`
-                        : `${batch.valid_rows} ready · ${batch.error_rows} with errors`}
+                      {/* "0 with errors" beside a red Failed chip is contradictory —
+                          a failed batch has no outcome to count. */}
+                      {batch.status === 'failed'
+                        ? '—'
+                        : batch.committed_at
+                          ? `${batch.created_rows} created · ${batch.updated_rows} updated`
+                          : `${batch.valid_rows} ready · ${batch.error_rows} with errors`}
                     </td>
                     <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
                       <time dateTime={batch.created_at}>{formatDateTime(batch.created_at)}</time>

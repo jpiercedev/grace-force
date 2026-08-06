@@ -7,7 +7,7 @@ import { Avatar, Badge, Callout } from '@/components/ui/display'
 import { Checkbox, Field, Select } from '@/components/ui/form'
 import { ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/lib/permissions'
 import type { TeamMemberDetail } from '@/lib/queries/team'
-import { formatDateTime, formatRelative } from '@/lib/utils'
+import { formatDate, formatDateTime, formatRelative } from '@/lib/utils'
 import type { UserRole } from '@/types/database'
 import { ROLES, ROLE_TONES } from './access'
 
@@ -28,7 +28,7 @@ export interface MemberRowProps {
 function SaveButton({ name }: { name: string }) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="sm" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending ? 'Saving…' : 'Save changes'}
       <span className="sr-only">: {name}</span>
     </Button>
@@ -85,7 +85,12 @@ export function MemberRow({
             </div>
 
             <p className="truncate text-sm text-slate-600">
-              <a href={`mailto:${member.email}`} className="hover:underline">
+              {/* A persistent quiet underline: hover never happens on touch,
+                  so the link has to declare itself. */}
+              <a
+                href={`mailto:${member.email}`}
+                className="underline decoration-slate-300 underline-offset-2 hover:decoration-slate-500"
+              >
                 {member.email}
               </a>
             </p>
@@ -107,7 +112,11 @@ export function MemberRow({
                 'Has not signed in yet'
               )}
               {' · Joined '}
-              <time dateTime={member.created_at}>{formatDateTime(member.created_at)}</time>
+              {/* Day precision only: the time of day is noise on a roster and
+                  forces a mid-timestamp wrap on phones. */}
+              <time dateTime={member.created_at} title={formatDateTime(member.created_at)}>
+                {formatDate(member.created_at)}
+              </time>
             </p>
           </div>
         </div>
@@ -115,7 +124,6 @@ export function MemberRow({
         <Button
           type="button"
           variant="secondary"
-          size="sm"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-controls={open ? panelId : undefined}
@@ -162,12 +170,17 @@ export function MemberRow({
               defaultChecked={member.can_view_giving}
             />
 
-            <Checkbox
-              name="is_active"
-              label={`${name} can sign in`}
-              hint="Deactivating keeps every record they created and can be undone. There is no delete."
-              defaultChecked={member.is_active}
-            />
+            {/* Removing sign-in is the roster's most consequential action, so
+                it gets its own section rather than blending into routine edits. */}
+            <div className="space-y-3 border-t border-slate-200 pt-4">
+              <h4 className="text-sm font-semibold text-slate-900">Sign-in access</h4>
+              <Checkbox
+                name="is_active"
+                label={`${name} can sign in`}
+                hint="Deactivating keeps every record they created and can be undone. There is no delete."
+                defaultChecked={member.is_active}
+              />
+            </div>
 
             {lastAdmin ? (
               <Callout tone="warning">
@@ -185,8 +198,8 @@ export function MemberRow({
 
             <div className="flex flex-wrap gap-2">
               <SaveButton name={name} />
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                Discard
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
                 <span className="sr-only">: {name}</span>
               </Button>
             </div>

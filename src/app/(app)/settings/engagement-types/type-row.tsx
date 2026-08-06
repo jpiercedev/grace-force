@@ -25,7 +25,7 @@ export interface TypeRowProps {
 function SaveButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
   return (
-    <Button type="submit" size="sm" disabled={pending}>
+    <Button type="submit" disabled={pending}>
       {pending ? 'Saving…' : 'Save changes'}
       <span className="sr-only">: {label}</span>
     </Button>
@@ -86,7 +86,7 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
           {type.description ? (
             <p className="text-sm text-slate-600">{type.description}</p>
           ) : (
-            <p className="text-sm italic text-slate-400">No description.</p>
+            <p className="text-sm italic text-slate-500">No description.</p>
           )}
 
           <p className="text-xs text-slate-500">
@@ -102,7 +102,6 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
         <Button
           type="button"
           variant="secondary"
-          size="sm"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-controls={open ? panelId : undefined}
@@ -236,8 +235,8 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
 
             <div className="flex flex-wrap gap-2">
               <SaveButton label={type.label} />
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
-                Discard
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
                 <span className="sr-only">: {type.label}</span>
               </Button>
             </div>

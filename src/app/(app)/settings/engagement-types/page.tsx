@@ -60,12 +60,12 @@ export default async function EngagementTypesPage() {
       <Card>
         <CardHeader
           title="Add a type"
-          description="Colours come from a fixed list, because a free-text colour would not survive the CSS build."
+          description="Pick a label, a colour from the fixed palette, and where it sorts in pickers."
         />
         <NewEngagementType />
       </Card>
 
-      <p className="px-1 text-xs text-slate-500">
+      <p className="px-1 text-sm text-slate-500">
         Types are never deleted. Engagements point at them, and a form somewhere may still post the
         slug; deactivating removes it from pickers while leaving history intact.
       </p>

@@ -55,9 +55,11 @@ export function CommitPanel({
       <CardHeader
         title="Apply this import"
         description={
-          errorRows > 0
-            ? `Rows with errors are left alone — fix them in the file and upload it again.`
-            : 'Every row passed validation.'
+          validRows === 0
+            ? 'No rows are ready to write — fix the file and upload it again.'
+            : errorRows > 0
+              ? `Rows with errors are left alone — fix them in the file and upload it again.`
+              : 'Every row passed validation.'
         }
       />
       <CardBody className="space-y-4">
@@ -68,15 +70,20 @@ export function CommitPanel({
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <form action={commit}>
-            <input type="hidden" name="batch_id" value={batchId} />
-            <SubmitButton
-              label={`Write ${validRows.toLocaleString()} ${validRows === 1 ? 'row' : 'rows'}`}
-              pendingLabel="Applying…"
-              variant="primary"
-              disabled={blockedReason !== null || validRows === 0}
-            />
-          </form>
+          {/* "Write 0 rows" reads as broken UI, so with nothing to write the
+              only offer is Discard — the panel itself stays, because a failed
+              commit is retryable once the file is fixed and re-uploaded. */}
+          {validRows > 0 ? (
+            <form action={commit}>
+              <input type="hidden" name="batch_id" value={batchId} />
+              <SubmitButton
+                label={`Write ${validRows.toLocaleString()} ${validRows === 1 ? 'row' : 'rows'}`}
+                pendingLabel="Applying…"
+                variant="primary"
+                disabled={blockedReason !== null}
+              />
+            </form>
+          ) : null}
 
           <form action={discard}>
             <input type="hidden" name="batch_id" value={batchId} />
