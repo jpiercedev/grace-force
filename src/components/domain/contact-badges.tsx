@@ -189,7 +189,9 @@ export function EngagementTypeBadge({
     <Badge tone={status === 'ended' ? 'zinc' : badgeTone(color)}>
       {label}
       {status && status !== 'active' ? (
-        <span className="font-normal opacity-75">· {ENGAGEMENT_STATUS_LABELS[status]}</span>
+        // Weight alone de-emphasises the status; fading it dropped the suffix
+        // below AA contrast at badge size.
+        <span className="font-normal">· {ENGAGEMENT_STATUS_LABELS[status]}</span>
       ) : null}
     </Badge>
   )

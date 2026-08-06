@@ -42,11 +42,11 @@ export function ContactPagination({
       {pageCount > 1 ? (
         <div className="flex items-center gap-2">
           {page > 1 ? (
-            <Link href={hrefForPage(filters, page - 1)} className={buttonClasses('secondary', 'sm')}>
+            <Link href={hrefForPage(filters, page - 1)} className={buttonClasses('secondary', 'md')}>
               Previous
             </Link>
           ) : (
-            <span className={`${buttonClasses('secondary', 'sm')} pointer-events-none opacity-50`}>
+            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none opacity-60`}>
               Previous
             </span>
           )}
@@ -54,11 +54,11 @@ export function ContactPagination({
             Page {page} of {pageCount}
           </span>
           {page < pageCount ? (
-            <Link href={hrefForPage(filters, page + 1)} className={buttonClasses('secondary', 'sm')}>
+            <Link href={hrefForPage(filters, page + 1)} className={buttonClasses('secondary', 'md')}>
               Next
             </Link>
           ) : (
-            <span className={`${buttonClasses('secondary', 'sm')} pointer-events-none opacity-50`}>
+            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none opacity-60`}>
               Next
             </span>
           )}

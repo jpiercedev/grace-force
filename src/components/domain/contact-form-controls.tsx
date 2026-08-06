@@ -33,10 +33,11 @@ export interface Disclosure {
 export function useDisclosure({ hash }: { hash?: string } = {}): Disclosure {
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const restoreFocusRef = useRef(false)
 
   const close = useCallback(() => {
+    restoreFocusRef.current = true
     setOpen(false)
-    triggerRef.current?.focus()
     if (hash && window.location.hash === `#${hash}`) {
       // Clearing the hash lets the same quick action reopen the panel later;
       // otherwise the link would not change the URL and nothing would happen.
@@ -50,12 +51,26 @@ export function useDisclosure({ hash }: { hash?: string } = {}): Disclosure {
     if (!open) return
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      setOpen(false)
-      triggerRef.current?.focus()
+      close()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  }, [open, close])
+
+  // Focus is restored after the close has rendered, because a panel's card may
+  // hide itself entirely once closed and take the trigger with it — in that
+  // case keyboard focus falls back to the header quick action that points here
+  // rather than being dropped on <body>.
+  useEffect(() => {
+    if (open || !restoreFocusRef.current) return
+    restoreFocusRef.current = false
+    const trigger = triggerRef.current
+    if (trigger && trigger.offsetParent !== null) {
+      trigger.focus()
+    } else if (hash) {
+      document.querySelector<HTMLAnchorElement>(`a[href="#${hash}"]`)?.focus()
+    }
+  }, [open, hash])
 
   useEffect(() => {
     if (!hash) return

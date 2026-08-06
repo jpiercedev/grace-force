@@ -120,6 +120,14 @@ export default async function ContactDetailPage({
         archiveAction={archiveContact}
       />
 
+      {/* On phones and tablets the sidebar stacks after the timeline, which
+          buried the phone number and email thousands of pixels down. This
+          duplicate render (a pure server component) surfaces them first;
+          the aside copy takes over from lg up. */}
+      <div className="lg:hidden">
+        <ContactDetailsPanel contact={contact} />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {writable ? (
@@ -162,25 +170,31 @@ export default async function ContactDetailPage({
           </Card>
         </div>
 
-        <aside className="space-y-6" aria-label="Contact summary">
-          <ContactDetailsPanel contact={contact} />
+        <aside aria-label="Contact summary">
+          {/* Outside the space-y flow so the mobile widths, where this copy is
+              hidden, do not inherit a phantom top margin on the next panel. */}
+          <div className="hidden lg:block">
+            <ContactDetailsPanel contact={contact} />
+          </div>
 
-          <EngagementPanel
-            contactId={contact.id}
-            engagements={engagements}
-            engagementTypes={engagementTypes}
-            team={team}
-            canEdit={writable}
-            today={today}
-            actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
-          />
+          <div className="space-y-6 lg:mt-6">
+            <EngagementPanel
+              contactId={contact.id}
+              engagements={engagements}
+              engagementTypes={engagementTypes}
+              team={team}
+              canEdit={writable}
+              today={today}
+              actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
+            />
 
-          <ContactFollowUpsPanel followUps={followUps} nowIso={nowIso} />
+            <ContactFollowUpsPanel followUps={followUps} nowIso={nowIso} />
 
-          {/* Absent rather than empty for staff without the giving flag. */}
-          {giving ? <ContactGivingPanel giving={giving} /> : null}
+            {/* Absent rather than empty for staff without the giving flag. */}
+            {giving ? <ContactGivingPanel giving={giving} /> : null}
 
-          <ContactEmailPanel engagement={email} />
+            <ContactEmailPanel engagement={email} />
+          </div>
         </aside>
       </div>
     </div>

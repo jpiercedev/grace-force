@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import {
   CONTACT_STATUS_LABELS,
   LIFECYCLE_STAGE_LABELS,
@@ -52,6 +52,20 @@ export function ContactFilters({
     (type) => type.is_active || type.id === filters.engagementTypeId,
   )
 
+  // On a phone the seven expanded controls fill the whole first screen before
+  // a single contact shows, so everything but Search starts collapsed there —
+  // unless one of the hidden filters is active, which must stay visible to
+  // explain why the list looks thinned out. From `sm` up all controls show.
+  const hasCollapsibleFilter = Boolean(
+    filters.ownerId ||
+      filters.engagementTypeId ||
+      filters.lifecycleStage ||
+      filters.status ||
+      filters.tag ||
+      filters.sort !== 'recent',
+  )
+  const [filtersOpen, setFiltersOpen] = useState(hasCollapsibleFilter)
+
   return (
     <form
       method="get"
@@ -65,7 +79,7 @@ export function ContactFilters({
         <Field
           label="Search"
           hint="Name, email, phone or organisation."
-          className="sm:col-span-2 lg:col-span-1"
+          className="sm:col-span-2"
         >
           {(props) => (
             <Input
@@ -78,80 +92,105 @@ export function ContactFilters({
           )}
         </Field>
 
-        <Field label="Owner">
-          {(props) => (
-            <Select {...props} name="owner" defaultValue={filters.ownerId ?? ''}>
-              <option value="">Anyone</option>
-              {team.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+        <Button
+          type="button"
+          variant="secondary"
+          className="sm:hidden"
+          aria-expanded={filtersOpen}
+          aria-controls="contact-filters-more"
+          onClick={() => setFiltersOpen((open) => !open)}
+        >
+          {filtersOpen ? 'Hide filters' : 'Show filters'}
+        </Button>
 
-        <Field label="Engagement">
-          {(props) => (
-            <Select {...props} name="type" defaultValue={filters.engagementTypeId ?? ''}>
-              <option value="">Any engagement</option>
-              {activeTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.label}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+        {/* `contents` keeps these fields in the grid above while giving the
+            disclosure a single element to hide below `sm`. */}
+        <div
+          id="contact-filters-more"
+          className={filtersOpen ? 'contents' : 'hidden sm:contents'}
+        >
+          <Field label="Owner">
+            {(props) => (
+              <Select {...props} name="owner" defaultValue={filters.ownerId ?? ''}>
+                <option value="">Anyone</option>
+                {team.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
 
-        <Field label="Lifecycle stage">
-          {(props) => (
-            <Select {...props} name="stage" defaultValue={filters.lifecycleStage ?? ''}>
-              <option value="">Any stage</option>
-              {LIFECYCLE_STAGES.map((stage) => (
-                <option key={stage} value={stage}>
-                  {LIFECYCLE_STAGE_LABELS[stage]}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+          <Field label="Engagement">
+            {(props) => (
+              <Select {...props} name="type" defaultValue={filters.engagementTypeId ?? ''}>
+                <option value="">Any engagement</option>
+                {activeTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
 
-        <Field label="Record status">
-          {(props) => (
-            <Select {...props} name="status" defaultValue={filters.status ?? ''}>
-              <option value="">Any status</option>
-              {CONTACT_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {CONTACT_STATUS_LABELS[status]}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
+          <Field label="Lifecycle stage">
+            {(props) => (
+              <Select {...props} name="stage" defaultValue={filters.lifecycleStage ?? ''}>
+                <option value="">Any stage</option>
+                {LIFECYCLE_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {LIFECYCLE_STAGE_LABELS[stage]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
 
-        <Field label="Tag">
-          {(props) => (
-            <Input {...props} name="tag" defaultValue={filters.tag ?? ''} placeholder="e.g. board" />
-          )}
-        </Field>
+          <Field label="Record status">
+            {(props) => (
+              <Select {...props} name="status" defaultValue={filters.status ?? ''}>
+                <option value="">Any status</option>
+                {CONTACT_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {CONTACT_STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
 
-        <Field label="Sort by">
-          {(props) => (
-            <Select {...props} name="sort" defaultValue={filters.sort === 'recent' ? '' : filters.sort}>
-              <option value="">{SORT_LABELS.recent}</option>
-              <option value="name">{SORT_LABELS.name}</option>
-              <option value="created">{SORT_LABELS.created}</option>
-            </Select>
-          )}
-        </Field>
+          <Field label="Tag">
+            {(props) => (
+              <Input
+                {...props}
+                name="tag"
+                defaultValue={filters.tag ?? ''}
+                placeholder="e.g. board"
+              />
+            )}
+          </Field>
+
+          <Field label="Sort by">
+            {(props) => (
+              <Select
+                {...props}
+                name="sort"
+                defaultValue={filters.sort === 'recent' ? '' : filters.sort}
+              >
+                <option value="">{SORT_LABELS.recent}</option>
+                <option value="name">{SORT_LABELS.name}</option>
+                <option value="created">{SORT_LABELS.created}</option>
+              </Select>
+            )}
+          </Field>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button type="submit" size="sm">
-          Apply filters
-        </Button>
-        <Link href="/contacts" className={buttonClasses('ghost', 'sm')}>
+        <Button type="submit">Apply filters</Button>
+        <Link href="/contacts" className={buttonClasses('ghost', 'md')}>
           Clear
         </Link>
       </div>

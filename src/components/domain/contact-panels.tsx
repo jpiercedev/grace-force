@@ -23,23 +23,28 @@ import type { ContactRow } from '@/types/database'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-2 py-1.5">
+    // A fixed narrow label column: an equal-thirds grid squeezed values so
+    // hard that ordinary emails wrapped mid-word.
+    <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 py-1.5">
       <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="col-span-2 break-words text-sm text-slate-800">{children}</dd>
+      <dd className="break-words text-sm text-slate-800">{children}</dd>
     </div>
   )
 }
 
 function addressLines(contact: ContactRow): string[] {
   const cityLine = [contact.city, contact.region].filter(Boolean).join(', ')
-  return [
+  const lines = [
     contact.address_line1,
     contact.address_line2,
     [cityLine, contact.postal_code].filter(Boolean).join(' '),
-    contact.country,
   ]
     .map((line) => line?.trim() ?? '')
     .filter((line) => line !== '')
+  // A bare country with nothing else on file reads as a data glitch and
+  // falsely implies an address exists — let the row say "Not recorded".
+  const country = contact.country?.trim()
+  return country && lines.length > 0 ? [...lines, country] : lines
 }
 
 export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
@@ -52,7 +57,9 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
         <dl className="divide-y divide-slate-100">
           <Row label="Email">
             {contact.email ? (
-              <a href={`mailto:${contact.email}`} className="text-brand-700 hover:underline">
+              // break-all: when an address must wrap, an even break beats
+              // break-words orphaning a single character on the next line.
+              <a href={`mailto:${contact.email}`} className="break-all text-brand-700 hover:underline">
                 {contact.email}
               </a>
             ) : (
@@ -61,7 +68,7 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
             {contact.secondary_email ? (
               <a
                 href={`mailto:${contact.secondary_email}`}
-                className="mt-0.5 block text-brand-700 hover:underline"
+                className="mt-0.5 block break-all text-brand-700 hover:underline"
               >
                 {contact.secondary_email}
               </a>
@@ -135,7 +142,8 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
 }
 
 function Muted({ children }: { children: ReactNode }) {
-  return <span className="text-slate-400">{children}</span>
+  // slate-500 is the floor for muted text: slate-400 fails AA at this size.
+  return <span className="text-slate-500">{children}</span>
 }
 
 export function ContactFollowUpsPanel({
@@ -249,7 +257,8 @@ function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="text-sm font-semibold tabular-nums text-slate-900">{value}</dd>
+      {/* text-base so the summary figures outrank the recent-gift rows below. */}
+      <dd className="text-base font-semibold tabular-nums text-slate-900">{value}</dd>
     </div>
   )
 }

@@ -70,7 +70,11 @@ export function ContactHeader({
             {subtitle ? <span className="block">{subtitle}</span> : null}
             <span className="flex flex-wrap gap-1.5">
               <LifecycleStageBadge stage={contact.lifecycle_stage} />
-              <ContactStatusBadge status={contact.status} />
+              {/* An active record is the normal case; showing it next to the
+                  lifecycle badge produced a duplicate "Active Active" pair.
+                  Only the exceptional statuses earn a badge — same rule as
+                  the contact table. */}
+              {contact.status !== 'active' ? <ContactStatusBadge status={contact.status} /> : null}
               {contact.do_not_contact ? <Badge tone="red">Do not contact</Badge> : null}
               {contact.do_not_email ? <Badge tone="amber">Do not email</Badge> : null}
               {contact.tags.map((tag) => (
@@ -120,7 +124,7 @@ export function ContactHeader({
                   ref={reassign.triggerRef}
                   type="button"
                   variant="secondary"
-                  size="sm"
+                  size="md"
                   onClick={reassign.toggle}
                   aria-expanded={reassign.open}
                   aria-controls={reassign.open ? 'reassign-owner-panel' : undefined}
@@ -133,7 +137,7 @@ export function ContactHeader({
                   ref={archive.triggerRef}
                   type="button"
                   variant="ghost"
-                  size="sm"
+                  size="md"
                   onClick={archive.toggle}
                   aria-expanded={archive.open}
                   aria-controls={archive.open ? 'archive-contact-panel' : undefined}

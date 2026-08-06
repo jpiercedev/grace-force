@@ -28,7 +28,7 @@ import {
   ACTIVITY_DIRECTION_LABELS,
   ACTIVITY_TYPE_LABELS,
 } from '@/components/domain/contact-badges'
-import { EmptyState } from '@/components/ui/display'
+import { Badge, EmptyState } from '@/components/ui/display'
 import type { TimelineActivity, TimelineDay } from '@/lib/queries/contacts'
 import { formatDate, formatDateTime, formatRelative } from '@/lib/utils'
 import type { ActivitySource, ActivityType } from '@/types/database'
@@ -157,7 +157,8 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
   const Icon = style.icon
   const typeLabel = ACTIVITY_TYPE_LABELS[activity.type]
   const sourceLabel = SOURCE_LABELS[activity.source]
-  const heading = activity.subject?.trim() || typeLabel
+  const subject = activity.subject?.trim()
+  const heading = subject || typeLabel
 
   return (
     <li className="flex gap-3">
@@ -171,10 +172,10 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <p className="text-sm font-medium text-slate-900">{heading}</p>
           {activity.is_pinned ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+            <Badge tone="amber">
               <Pin className="h-3 w-3" aria-hidden="true" />
               Pinned
-            </span>
+            </Badge>
           ) : null}
         </div>
 
@@ -184,10 +185,16 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
           </p>
         ) : null}
 
-        {/* Colour alone never carries the type, so it is repeated in this line. */}
+        {/* Colour alone never carries the type, so it is repeated in this
+            line — except when the heading already is the type label, which
+            would print the same words twice in a row. */}
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
-          <span>{typeLabel}</span>
-          <span aria-hidden="true">·</span>
+          {subject ? (
+            <>
+              <span>{typeLabel}</span>
+              <span aria-hidden="true">·</span>
+            </>
+          ) : null}
           <span>{actorName(activity)}</span>
           {activity.direction !== 'internal' ? (
             <>

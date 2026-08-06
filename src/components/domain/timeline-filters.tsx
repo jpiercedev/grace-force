@@ -31,7 +31,8 @@ export function TimelineFilters({
       className="flex flex-wrap items-end gap-2"
       aria-label="Filter the timeline"
     >
-      <Field label="Activity type" className="min-w-[11rem] flex-1">
+      {/* max-w-xs: a short enum list does not earn the full card width. */}
+      <Field label="Activity type" className="w-full max-w-xs">
         {(props) => (
           <Select {...props} name="type" defaultValue={type ?? ''}>
             <option value="">All activity</option>

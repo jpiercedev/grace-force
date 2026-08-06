@@ -40,7 +40,7 @@ export function ContactForm({
   const owners = ownerOptions(team, contact?.owner_id ?? null)
 
   return (
-    <form action={formAction} className="space-y-8" noValidate>
+    <form action={formAction} className="space-y-6" noValidate>
       {contact ? <input type="hidden" name="id" value={contact.id} /> : null}
 
       <FormError state={state} />
@@ -97,6 +97,11 @@ export function ContactForm({
         </div>
       </Fieldset>
 
+      {/* Hairlines between the eight sections keep the long form scannable;
+          they sit on <hr>s because a border on the fieldset itself would pull
+          the legend down onto the border line. */}
+      <hr className="border-slate-200" />
+
       <Fieldset legend="How to reach them">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Email" error={errors.email}>
@@ -147,6 +152,8 @@ export function ContactForm({
           </Field>
         </div>
       </Fieldset>
+
+      <hr className="border-slate-200" />
 
       <Fieldset legend="Address">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -219,6 +226,8 @@ export function ContactForm({
         </div>
       </Fieldset>
 
+      <hr className="border-slate-200" />
+
       <Fieldset legend="Organisation">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Organisation" error={errors.organization_name}>
@@ -245,6 +254,8 @@ export function ContactForm({
           </Field>
         </div>
       </Fieldset>
+
+      <hr className="border-slate-200" />
 
       <Fieldset
         legend="Relationship"
@@ -334,6 +345,8 @@ export function ContactForm({
         </div>
       </Fieldset>
 
+      <hr className="border-slate-200" />
+
       <Fieldset legend="Communication preferences">
         <div className="space-y-3">
           <Checkbox
@@ -350,6 +363,8 @@ export function ContactForm({
           />
         </div>
       </Fieldset>
+
+      <hr className="border-slate-200" />
 
       <Fieldset legend="Notes">
         <Field label="Internal notes" error={errors.notes}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 import { FOLLOW_UP_PRIORITY_LABELS } from '@/components/domain/contact-badges'
 import {
   FormError,
@@ -45,8 +45,26 @@ export function ContactFollowUpForm({
     (member) => (member.is_active && member.role !== 'viewer') || member.id === defaultAssigneeId,
   )
 
+  // Collapsed, this card was a dead bar duplicating the header's "Add
+  // follow-up" button, so it hides entirely until the disclosure opens. That
+  // means the browser cannot scroll to the anchor itself (no box while
+  // hidden) and `close()` cannot hand focus to the in-card trigger — both are
+  // done here instead, against the header quick action.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (disclosure.open && !wasOpen.current && window.location.hash === '#add-follow-up') {
+      document.getElementById('add-follow-up')?.scrollIntoView()
+    }
+    if (!disclosure.open && wasOpen.current) {
+      document.querySelector<HTMLAnchorElement>('a[href="#add-follow-up"]')?.focus()
+    }
+    wasOpen.current = disclosure.open
+  }, [disclosure.open])
+
   return (
-    <Card id="add-follow-up">
+    // The `hidden` attribute (not the class) so the column's space-y rhythm
+    // skips the card while it is closed.
+    <Card id="add-follow-up" hidden={!disclosure.open}>
       <CardHeader
         title="Add a follow-up"
         description="Put the next step in someone's queue."

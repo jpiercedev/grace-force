@@ -178,11 +178,11 @@ function EngagementRow({
         </div>
 
         {canEdit ? (
-          <div className="flex shrink-0 flex-wrap gap-1.5">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Button
               type="button"
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={() => setPanel(panel === 'edit' ? null : 'edit')}
               aria-expanded={panel === 'edit'}
             >
@@ -193,7 +193,7 @@ function EngagementRow({
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="md"
                 onClick={() => setPanel(panel === 'end' ? null : 'end')}
                 aria-expanded={panel === 'end'}
               >

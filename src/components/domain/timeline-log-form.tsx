@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 import {
   ACTIVITY_DIRECTION_LABELS,
   ACTIVITY_TYPE_LABELS,
@@ -40,8 +40,26 @@ export function TimelineLogForm({
   useCloseOnSuccess(state, disclosure.close)
   const errors = state.fieldErrors ?? {}
 
+  // Collapsed, this card was a dead bar duplicating the header's "Log
+  // activity" button, so it hides entirely until the disclosure opens. That
+  // means the browser cannot scroll to the anchor itself (no box while
+  // hidden) and `close()` cannot hand focus to the in-card trigger — both are
+  // done here instead, against the header quick action.
+  const wasOpen = useRef(false)
+  useEffect(() => {
+    if (disclosure.open && !wasOpen.current && window.location.hash === '#log-activity') {
+      document.getElementById('log-activity')?.scrollIntoView()
+    }
+    if (!disclosure.open && wasOpen.current) {
+      document.querySelector<HTMLAnchorElement>('a[href="#log-activity"]')?.focus()
+    }
+    wasOpen.current = disclosure.open
+  }, [disclosure.open])
+
   return (
-    <Card id="log-activity">
+    // The `hidden` attribute (not the class) so the column's space-y rhythm
+    // skips the card while it is closed.
+    <Card id="log-activity" hidden={!disclosure.open}>
       <CardHeader
         title="Log activity"
         description="Record a conversation, a visit or a note."
