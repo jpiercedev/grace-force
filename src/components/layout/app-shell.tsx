@@ -127,6 +127,7 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const drawerRef = useRef<HTMLDivElement>(null)
 
   // Close the drawer on navigation, so a tap-through does not leave it open
   // over the page it just opened.
@@ -136,15 +137,34 @@ export function AppShell({
 
   // Escape closes the drawer — expected for anything modal. While it is open
   // the page behind must actually behave as inert: no scrolling underneath
-  // (body lock here) and no keyboard focus escaping into it (`inert` on the
-  // content wrapper below).
+  // (body lock), no keyboard focus escaping (`inert` on the content wrapper
+  // plus the Tab trap here — the skip link and body sit outside the inert
+  // subtree, so `inert` alone still lets Tab walk out of the dialog).
   useEffect(() => {
     if (!mobileOpen) return
     closeButtonRef.current?.focus()
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setMobileOpen(false)
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        return
+      }
+      if (event.key !== 'Tab' || !drawerRef.current) return
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (!first || !last) return
+      const active = document.activeElement
+      if (event.shiftKey && (active === first || !drawerRef.current.contains(active))) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && (active === last || !drawerRef.current.contains(active))) {
+        event.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => {
@@ -190,6 +210,7 @@ export function AppShell({
             className="absolute inset-0 h-full w-full bg-slate-900/40"
           />
           <div
+            ref={drawerRef}
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
