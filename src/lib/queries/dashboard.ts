@@ -262,6 +262,8 @@ export interface DashboardPipelineCard {
   value_cents: number | null
   expected_close_on: string | null
   stage_name: string
+  /** Operator-set stage colour, so the badge tone matches the pipeline board. */
+  stage_color: string | null
   contact: ContactRef | null
 }
 
@@ -327,14 +329,14 @@ export async function listMyPipelineCards(
       .order('name', { ascending: true }),
     supabase
       .from('pipeline_stages')
-      .select('id, name')
+      .select('id, name, color')
       .in('id', [...new Set(cards.map((card) => card.stage_id))]),
   ])
 
   if (pipelines.error) fail('your pipelines', pipelines.error)
   if (stages.error) fail('pipeline stages', stages.error)
 
-  const stageNames = new Map((stages.data ?? []).map((stage) => [stage.id, stage.name]))
+  const stagesById = new Map((stages.data ?? []).map((stage) => [stage.id, stage]))
 
   return (pipelines.data ?? []).map((pipeline) => {
     const mine = cards.filter((card) => card.pipeline_id === pipeline.id)
@@ -347,7 +349,8 @@ export async function listMyPipelineCards(
         title: card.title,
         value_cents: card.value_cents,
         expected_close_on: card.expected_close_on,
-        stage_name: stageNames.get(card.stage_id) ?? 'Unknown stage',
+        stage_name: stagesById.get(card.stage_id)?.name ?? 'Unknown stage',
+        stage_color: stagesById.get(card.stage_id)?.color ?? null,
         contact: toContactRef(card.contact),
       })),
       value_cents: pipeline.tracks_value

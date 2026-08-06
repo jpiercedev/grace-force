@@ -2,7 +2,7 @@ import { parseISO } from 'date-fns'
 import Link from 'next/link'
 import { ACTIVITY_TYPE_LABELS, FollowUpPriorityBadge } from '@/components/domain/contact-badges'
 import { LinkButton } from '@/components/ui/button'
-import { Badge, Card, CardBody, CardHeader, EmptyState } from '@/components/ui/display'
+import { Badge, Card, CardBody, CardHeader, EmptyState, badgeTone } from '@/components/ui/display'
 import type {
   DashboardActivity,
   DashboardFollowUp,
@@ -30,7 +30,8 @@ function formatDay(value: string): string {
 }
 
 function ContactLink({ contact }: { contact: { id: string; name: string } | null }) {
-  if (!contact) return <span className="text-slate-400">Unknown contact</span>
+  // Italic marks the placeholder as not-a-name; slate-500 keeps it readable (AA).
+  if (!contact) return <span className="italic text-slate-500">Unknown contact</span>
   return (
     <Link
       href={`/contacts/${contact.id}`}
@@ -83,7 +84,7 @@ export function FollowUpPanel({
                 <p className="min-w-0 text-sm font-medium text-slate-900">{item.title}</p>
                 <FollowUpPriorityBadge priority={item.priority} />
               </div>
-              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
                 <ContactLink contact={item.contact} />
                 <span aria-hidden="true">·</span>
                 {/* Colour never carries "overdue" on its own; the word is there too. */}
@@ -135,11 +136,16 @@ export function ActivityPanel({
               {item.body ? (
                 <p className="mt-0.5 line-clamp-2 text-sm text-slate-600">{item.body}</p>
               ) : null}
-              {/* The type is repeated in text because the panel carries no icon. */}
-              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
                 <ContactLink contact={item.contact} />
-                <span aria-hidden="true">·</span>
-                <span>{ACTIVITY_TYPE_LABELS[item.type]}</span>
+                {/* The type label only appears when the title is a subject —
+                    otherwise the title already is this label, verbatim. */}
+                {item.subject?.trim() ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>{ACTIVITY_TYPE_LABELS[item.type]}</span>
+                  </>
+                ) : null}
                 {item.actor ? (
                   <>
                     <span aria-hidden="true">·</span>
@@ -198,10 +204,15 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
               </div>
               <ul className="mt-2 space-y-2">
                 {group.cards.map((card) => (
-                  <li key={card.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <Badge tone="violet">{card.stage_name}</Badge>
-                    <span className="min-w-0 text-sm text-slate-900">{card.title}</span>
-                    <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+                  // Two fixed lines (badge + title, then meta) so every card
+                  // stacks the same way instead of wrapping unpredictably.
+                  <li key={card.id}>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {/* Tone follows the stage's own colour, matching the board. */}
+                      <Badge tone={badgeTone(card.stage_color)}>{card.stage_name}</Badge>
+                      <span className="min-w-0 text-sm text-slate-900">{card.title}</span>
+                    </div>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
                       <ContactLink contact={card.contact} />
                       {card.value_cents !== null ? (
                         <>
@@ -217,7 +228,7 @@ export function PipelinePanel({ groups }: { groups: DashboardPipelineGroup[] }) 
                           </time>
                         </>
                       ) : null}
-                    </span>
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -273,17 +284,20 @@ export function GivingStrip({ snapshot }: { snapshot: GivingSnapshot }) {
             {snapshot.recent.map((gift) => (
               <li
                 key={gift.id}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pt-2 first:pt-3"
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 py-2 first:pt-3 last:pb-0"
               >
-                <span className="flex flex-wrap items-center gap-x-1.5 text-sm">
+                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm">
                   <ContactLink contact={gift.contact} />
                   {gift.fund ? <span className="text-xs text-slate-500">{gift.fund}</span> : null}
                 </span>
-                <span className="flex items-center gap-2 text-sm">
+                {/* Fixed-width date column right-aligns every amount above the
+                    one below it; ml-auto keeps the pair flush right when the
+                    row wraps on narrow screens. */}
+                <span className="ml-auto flex items-baseline gap-2 text-sm">
                   <span className="font-semibold tabular-nums text-slate-900">
                     {formatCurrency(gift.amount_cents, gift.currency)}
                   </span>
-                  <time className="text-xs text-slate-500" dateTime={gift.given_on}>
+                  <time className="w-24 text-right text-xs text-slate-500" dateTime={gift.given_on}>
                     {formatDay(gift.given_on)}
                   </time>
                 </span>

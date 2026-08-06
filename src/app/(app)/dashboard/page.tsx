@@ -9,6 +9,7 @@ import {
   listRecentActivity,
 } from '@/lib/queries/dashboard'
 import { getGivingSnapshot } from '@/lib/queries/giving'
+import { cn } from '@/lib/utils'
 import {
   ActivityPanel,
   FollowUpPanel,
@@ -53,7 +54,9 @@ export default async function DashboardPage({
     getDashboardStats(profile.id, { includeLeads: writable }, now),
     listMyOverdueFollowUps(profile.id, ATTENTION_LIMIT, now),
     listMyUpcomingFollowUps(profile.id, ATTENTION_LIMIT, now),
-    listRecentActivity(),
+    // Eight keeps the two-column panel grid roughly level on sparse installs;
+    // the full stream lives on each contact's timeline.
+    listRecentActivity(8),
     listMyPipelineCards(profile.id),
     showGiving ? getGivingSnapshot(now) : null,
   ])
@@ -71,13 +74,20 @@ export default async function DashboardPage({
       />
 
       {deniedMessage ? (
-        <Callout tone="warning" title="You were sent back here">
+        <Callout tone="warning" title="That page isn't available to you">
           {deniedMessage}
         </Callout>
       ) : null}
 
-      {/* Each StatTile is its own <dl>, so the grid around them is a plain div. */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* Each StatTile is its own <dl>, so the grid around them is a plain div.
+          Read-only accounts see four tiles (no leads), so their row is sized to
+          fill without a dangling empty cell. */}
+      <div
+        className={cn(
+          'grid grid-cols-2 gap-3',
+          writable ? 'md:grid-cols-3 xl:grid-cols-5' : 'md:grid-cols-4',
+        )}
+      >
         <StatTile
           label="My follow-ups"
           value={stats.openFollowUps}
@@ -97,13 +107,13 @@ export default async function DashboardPage({
           hint="People you are responsible for"
           href={`/contacts?owner=${profile.id}`}
         />
+        {/* No tone on New leads: the accent bar is reserved for the Overdue alert. */}
         {stats.newLeadsThisWeek !== null ? (
           <StatTile
             label="New leads"
             value={stats.newLeadsThisWeek}
             hint="Submitted in the last seven days"
             href="/leads"
-            tone={stats.newLeadsThisWeek > 0 ? 'brand' : 'slate'}
           />
         ) : null}
         <StatTile
@@ -116,7 +126,8 @@ export default async function DashboardPage({
 
       {giving ? <GivingStrip snapshot={giving} /> : null}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      {/* gap-5 keeps the panel grid on the same rhythm as the page's space-y-5. */}
+      <div className="grid items-start gap-5 lg:grid-cols-2">
         <FollowUpPanel
           title="Needs attention"
           description="Overdue and assigned to you."
@@ -132,7 +143,12 @@ export default async function DashboardPage({
           description="The next seven days."
           items={upcoming}
           emptyTitle="Nothing is due this week"
-          emptyDescription="Schedule a follow-up and it will appear here."
+          emptyDescription={
+            // Read-only accounts cannot schedule, so the nudge would mislead.
+            writable
+              ? 'Schedule a follow-up and it will appear here.'
+              : 'Follow-ups due in the next seven days will appear here.'
+          }
           href="/follow-ups?segment=week"
           linkLabel="Open queue"
           nowIso={nowIso}
