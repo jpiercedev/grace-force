@@ -41,19 +41,57 @@ vi.mock('react', async (importOriginal) => ({
 
 let sessionUser: { id: string; email: string } | null = null
 let profileRow: Record<string, unknown> | null = null
+let queryError: { code: string; message: string } | null = null
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: async () => ({
-    auth: { getUser: async () => ({ data: { user: sessionUser } }) },
-    from: () => ({
-      select: () => ({
-        eq: () => ({ maybeSingle: async () => ({ data: profileRow }) }),
-      }),
-    }),
+/** How many clients were built, and whether each had resolved its session. */
+let clientsCreated = 0
+let queriedWithoutSession = 0
+
+vi.mock('@/lib/env', () => ({
+  publicEnv: () => ({
+    supabaseUrl: 'https://phhkhvewcclzjkdbjmqw.supabase.co',
+    supabaseAnonKey: 'sb_publishable_test',
   }),
 }))
 
-const { requireProfile, getSessionUser, getCurrentProfile } = await import('@/lib/auth')
+vi.mock('@/lib/supabase/server', () => ({
+  createClient: async () => {
+    clientsCreated += 1
+    // Mirrors supabase-js: the access token is attached from auth state, so a
+    // client that never resolved its session queries as `anon`.
+    let sessionResolved = false
+    return {
+      auth: {
+        getUser: async () => {
+          sessionResolved = true
+          return { data: { user: sessionUser } }
+        },
+      },
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => {
+              if (!sessionResolved) {
+                queriedWithoutSession += 1
+                // `anon` has no table privileges in this schema.
+                return {
+                  data: null,
+                  error: { code: '42501', message: 'permission denied for table profiles' },
+                }
+              }
+              if (queryError) return { data: null, error: queryError }
+              return { data: profileRow, error: null }
+            },
+          }),
+        }),
+      }),
+    }
+  },
+}))
+
+const { requireProfile, getSessionUser, getCurrentProfile, loadProfile } = await import(
+  '@/lib/auth'
+)
 
 async function redirectFrom(fn: () => Promise<unknown>): Promise<string | null> {
   try {
@@ -76,6 +114,9 @@ const ACTIVE_PROFILE = {
 beforeEach(() => {
   sessionUser = null
   profileRow = null
+  queryError = null
+  clientsCreated = 0
+  queriedWithoutSession = 0
 })
 
 describe('requireProfile', () => {
@@ -202,5 +243,74 @@ describe('middleware and guard compose without looping', () => {
   it('settles a signed-out visitor at /login', async () => {
     const { path } = await walk('/dashboard', false)
     expect(path).toBe('/login?next=%2Fdashboard')
+  })
+})
+
+/**
+ * Read-path contract.
+ *
+ * The refactor that split session and profile lookup introduced a second
+ * Supabase client which queried before resolving its session. `supabase-js`
+ * attaches the caller's token from auth state, so that request went out as
+ * `anon` — and `anon` has no table privileges in this schema, so it failed
+ * with a permission error that the old `const { data }` destructuring then
+ * discarded into `null`. A signed-in admin was told their account was not set
+ * up.
+ *
+ * These pin the two properties that prevent it recurring: query on a
+ * session-resolved client, and never swallow the error.
+ */
+describe('profile read path', () => {
+  it('resolves the session before querying, so the query is never anonymous', async () => {
+    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    profileRow = ACTIVE_PROFILE
+
+    const result = await loadProfile()
+
+    expect(result.status).toBe('ok')
+    expect(queriedWithoutSession).toBe(0)
+  })
+
+  it('uses a single client for the session and the profile', async () => {
+    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    profileRow = ACTIVE_PROFILE
+
+    await loadProfile()
+
+    // Two clients is how the anonymous-query bug got in.
+    expect(clientsCreated).toBe(1)
+  })
+
+  it('reports a query failure as an error rather than a missing profile', async () => {
+    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    profileRow = ACTIVE_PROFILE
+    queryError = { code: '42501', message: 'permission denied for table profiles' }
+
+    const result = await loadProfile()
+
+    expect(result.status).toBe('error')
+    if (result.status === 'error') {
+      expect(result.code).toBe('42501')
+      expect(result.message).toContain('permission denied')
+    }
+  })
+
+  it('sends a query failure to /no-access?reason=error, not to /login or "not set up"', async () => {
+    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    queryError = { code: 'PGRST301', message: 'JWT expired' }
+
+    const target = await redirectFrom(requireProfile)
+
+    // Not /login: that would misdiagnose a fault as a credentials problem and
+    // re-enter the middleware loop.
+    expect(target).toBe('/no-access?reason=error')
+  })
+
+  it('still distinguishes a genuinely absent row from a failure', async () => {
+    sessionUser = { id: 'orphan', email: 'orphan@graceforce.test' }
+    profileRow = null
+
+    const result = await loadProfile()
+    expect(result.status).toBe('not-found')
   })
 })

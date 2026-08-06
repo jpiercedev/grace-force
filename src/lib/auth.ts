@@ -2,6 +2,7 @@ import 'server-only'
 
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
+import { publicEnv } from '@/lib/env'
 import { canWrite } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { ProfileRow } from '@/types/database'
@@ -25,33 +26,92 @@ export {
  */
 
 /**
- * The signed-in auth user, independent of whether a profile row exists.
+ * Why the profile lookup came back without a profile.
  *
- * Keeping this separate from `getCurrentProfile` is what lets the guards tell
- * "not signed in" apart from "signed in but unprovisioned" — two states that
- * look identical from a null profile and must be handled differently, because
- * only one of them can safely be sent to /login.
+ * These four outcomes look identical from a `null`, and treating them alike is
+ * how a configuration fault masquerades as "your account is not set up".
+ */
+export type ProfileLookup =
+  | { status: 'ok'; user: SessionUser; profile: ProfileRow }
+  | { status: 'no-session' }
+  | { status: 'not-found'; user: SessionUser }
+  | { status: 'error'; user: SessionUser; code: string | null; message: string }
+
+type SessionUser = { id: string; email?: string | null }
+
+/**
+ * Loads the session and the profile using **one** Supabase client.
+ *
+ * The single client matters. `supabase-js` attaches the caller's access token
+ * to PostgREST requests from the auth state it has hydrated; a client that has
+ * not resolved its session yet can issue the query as `anon`. In this schema
+ * `anon` holds no table privileges at all, so that request does not come back
+ * empty — it comes back as a permission error, which then reads as "no
+ * profile" if the error is discarded. Calling `getUser()` first, on the same
+ * client, is what guarantees the query runs as the signed-in user.
  *
  * Deduplicated per request, so a layout and its pages share one round-trip.
  */
-export const getSessionUser = cache(async () => {
+export const loadProfile = cache(async (): Promise<ProfileLookup> => {
   const supabase = await createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  return user
+  if (!user) return { status: 'no-session' }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (error) {
+    // Loud, and specific enough to act on: a PostgREST code plus the project
+    // being queried separates "RLS denied" from "pointed at the wrong project"
+    // without ever touching a key.
+    console.error('[auth] profile lookup failed', {
+      userId: user.id,
+      supabaseProject: projectRef(),
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    })
+    return { status: 'error', user, code: error.code ?? null, message: error.message }
+  }
+
+  if (!data) {
+    console.warn('[auth] no profile row for authenticated user', {
+      userId: user.id,
+      supabaseProject: projectRef(),
+    })
+    return { status: 'not-found', user }
+  }
+
+  return { status: 'ok', user, profile: data }
 })
+
+/** Project ref from the configured URL. Identifies the project, reveals no secret. */
+function projectRef(): string {
+  try {
+    return new URL(publicEnv().supabaseUrl).hostname.split('.')[0] ?? 'unknown'
+  } catch {
+    return 'unconfigured'
+  }
+}
+
+/** The signed-in auth user, independent of whether a profile row exists. */
+export async function getSessionUser(): Promise<SessionUser | null> {
+  const result = await loadProfile()
+  return result.status === 'no-session' ? null : result.user
+}
 
 /** Deduplicated per request, so a layout and its pages share one round-trip. */
-export const getCurrentProfile = cache(async (): Promise<ProfileRow | null> => {
-  const user = await getSessionUser()
-  if (!user) return null
-
-  const supabase = await createClient()
-  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-
-  return data ?? null
-})
+export async function getCurrentProfile(): Promise<ProfileRow | null> {
+  const result = await loadProfile()
+  return result.status === 'ok' ? result.profile : null
+}
 
 /**
  * Guarantees an active profile, or navigates away.
@@ -71,15 +131,26 @@ export const getCurrentProfile = cache(async (): Promise<ProfileRow | null> => {
  * belongs on /no-access where it can be explained and is terminal.
  */
 export async function requireProfile(): Promise<ProfileRow> {
-  const profile = await getCurrentProfile()
-  if (profile) {
-    if (!profile.is_active) redirect('/no-access')
-    return profile
-  }
+  const result = await loadProfile()
 
-  const user = await getSessionUser()
-  if (!user) redirect('/login')
-  redirect('/no-access?reason=unprovisioned')
+  switch (result.status) {
+    case 'ok':
+      if (!result.profile.is_active) redirect('/no-access')
+      return result.profile
+
+    // The only state that is actually a credentials problem.
+    case 'no-session':
+      redirect('/login')
+
+    case 'not-found':
+      redirect('/no-access?reason=unprovisioned')
+
+    // A failed query is a fault, not a verdict on the account. Sending it to
+    // /login would both misdiagnose it and re-enter the middleware loop; the
+    // real cause is in the server logs.
+    case 'error':
+      redirect('/no-access?reason=error')
+  }
 }
 
 export async function requireWriteAccess(): Promise<ProfileRow> {

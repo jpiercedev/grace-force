@@ -1,7 +1,7 @@
 import { signOut } from '@/app/(auth)/actions'
 import { Button } from '@/components/ui/button'
 import { Callout } from '@/components/ui/display'
-import { getCurrentProfile, getSessionUser } from '@/lib/auth'
+import { loadProfile } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Access paused' }
@@ -21,24 +21,40 @@ export default async function NoAccessPage({
 }: {
   searchParams: Promise<{ reason?: string }>
 }) {
-  const user = await getSessionUser()
-  if (!user) redirect('/login')
-
-  const profile = await getCurrentProfile()
-  if (profile?.is_active) redirect('/dashboard')
+  const result = await loadProfile()
+  if (result.status === 'no-session') redirect('/login')
+  if (result.status === 'ok' && result.profile.is_active) redirect('/dashboard')
 
   const { reason } = await searchParams
-  const unprovisioned = !profile || reason === 'unprovisioned'
-  const email = profile?.email ?? user.email ?? 'your account'
+  const email = result.status === 'ok' ? result.profile.email : (result.user.email ?? 'your account')
+
+  // A failed query is a system fault. Saying "your account is not set up"
+  // would send someone chasing an account problem that does not exist.
+  const state =
+    result.status === 'error' || reason === 'error'
+      ? 'error'
+      : result.status === 'not-found' || reason === 'unprovisioned'
+        ? 'unprovisioned'
+        : 'paused'
+
+  const TITLES = {
+    error: 'Something went wrong',
+    unprovisioned: 'Account not set up',
+    paused: 'Access paused',
+  } as const
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        {unprovisioned ? 'Account not set up' : 'Access paused'}
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{TITLES[state]}</h1>
 
-      <Callout tone="warning" className="mt-4">
-        {unprovisioned ? (
+      <Callout tone={state === 'error' ? 'danger' : 'warning'} className="mt-4">
+        {state === 'error' ? (
+          <>
+            You are signed in as {email}, but the CRM could not load your profile. This is a
+            problem with the application, not with your account — the cause has been written to
+            the server logs. Try again shortly, and tell an administrator if it persists.
+          </>
+        ) : state === 'unprovisioned' ? (
           <>
             You are signed in as {email}, but this account has no Grace Force CRM profile yet, so
             there is nothing it can open. An administrator can create one — or sign out and sign up
