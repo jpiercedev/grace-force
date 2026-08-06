@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PipelineBoard } from '@/components/domain/pipeline-board'
 import { LinkButton } from '@/components/ui/button'
-import { Callout, Card, EmptyState, PageHeader, StatTile } from '@/components/ui/display'
+import { Callout, Card, EmptyState, PageHeader } from '@/components/ui/display'
 import { canWrite, requireProfile } from '@/lib/auth'
 import { getPipelineBoard, getPipelineBySlug } from '@/lib/queries/pipelines'
 import { formatCurrency } from '@/lib/utils'
@@ -16,6 +16,31 @@ export async function generateMetadata({ params }: { params: RouteParams }): Pro
   return { title: pipeline?.name ?? 'Pipeline' }
 }
 
+/** Eyebrow label + serif figure, inline on the canvas — not a row of tiles. */
+function BoardFigure({
+  label,
+  value,
+  dot,
+  figureClass = 'text-slate-900',
+}: {
+  label: string
+  value: string | number
+  dot?: string
+  figureClass?: string
+}) {
+  return (
+    <div>
+      <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        {dot ? <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} /> : null}
+        {label}
+      </dt>
+      <dd className={`mt-1.5 font-display text-[1.75rem] font-semibold leading-none tabular-nums ${figureClass}`}>
+        {value}
+      </dd>
+    </div>
+  )
+}
+
 export default async function PipelineBoardPage({ params }: { params: RouteParams }) {
   const profile = await requireProfile()
   const { slug } = await params
@@ -27,6 +52,7 @@ export default async function PipelineBoardPage({ params }: { params: RouteParam
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow="Pipeline"
         title={board.pipeline.name}
         description={board.pipeline.description}
         action={
@@ -47,23 +73,26 @@ export default async function PipelineBoardPage({ params }: { params: RouteParam
         </Callout>
       )}
 
-      {/* StatTile renders its own <dl>, so the grid stays a plain container.
-          Column count follows tile count: a board without a value tile gets
-          three columns so the row has no empty slot or orphaned tile. */}
-      <div
-        className={
-          board.open_value_cents !== null
-            ? 'grid grid-cols-2 gap-3 sm:grid-cols-4'
-            : 'grid grid-cols-3 gap-3'
-        }
-      >
-        <StatTile label="Open cards" value={board.open_count} tone="brand" />
+      {/* A ledger summary rule rather than a grid of tiles: the figures sit
+          inline on the canvas between two hairlines. */}
+      <dl className="flex flex-wrap items-end gap-x-10 gap-y-4 border-y border-slate-200/70 py-4">
+        <BoardFigure label="Open cards" value={board.open_count} />
         {board.open_value_cents !== null ? (
-          <StatTile label="Open value" value={formatCurrency(board.open_value_cents)} />
+          <BoardFigure label="Open value" value={formatCurrency(board.open_value_cents)} />
         ) : null}
-        <StatTile label="Won" value={board.won_count} tone="emerald" />
-        <StatTile label="Lost" value={board.lost_count} />
-      </div>
+        <BoardFigure
+          label="Won"
+          value={board.won_count}
+          dot="bg-emerald-500"
+          figureClass="text-emerald-800"
+        />
+        <BoardFigure
+          label="Lost"
+          value={board.lost_count}
+          dot="bg-slate-400"
+          figureClass="text-slate-600"
+        />
+      </dl>
 
       {board.stages.length === 0 ? (
         <Card>

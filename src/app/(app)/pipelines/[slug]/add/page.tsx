@@ -2,7 +2,15 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PipelineAddForm } from '@/components/domain/pipeline-add-form'
 import { Button, LinkButton } from '@/components/ui/button'
-import { Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
+import {
+  Avatar,
+  Callout,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+} from '@/components/ui/display'
 import { Input, Label } from '@/components/ui/form'
 import { requireWriteAccess } from '@/lib/auth'
 import { getContactForFollowUp } from '@/lib/queries/follow-ups'
@@ -43,6 +51,7 @@ export default async function AddToPipelinePage({
 
   const header = (
     <PageHeader
+      eyebrow="Pipeline"
       title={`Add to ${pipeline.name}`}
       description="One open card per contact per pipeline — close the old one before starting another."
       action={
@@ -59,7 +68,7 @@ export default async function AddToPipelinePage({
       <div className="mx-auto max-w-2xl space-y-5">
         {header}
         <Card>
-          <CardBody>
+          <CardBody className="py-5">
             <PipelineAddForm
               action={addContactToPipeline}
               pipelineId={pipeline.id}
@@ -82,13 +91,9 @@ export default async function AddToPipelinePage({
       {header}
 
       {contactId && !contact ? (
-        <Card>
-          <CardBody>
-            <p className="text-sm text-red-700">
-              That contact could not be found. Search for someone else below.
-            </p>
-          </CardBody>
-        </Card>
+        <Callout tone="danger" role="alert">
+          That contact could not be found. Search for someone else below.
+        </Callout>
       ) : null}
 
       <Card>
@@ -127,31 +132,44 @@ export default async function AddToPipelinePage({
           ) : null}
 
           {matches.length > 0 ? (
-            <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-              {matches.map((match) => (
-                <li key={match.id} className="px-3 py-2.5 text-sm">
-                  {match.has_open_card ? (
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="font-medium text-slate-500">
-                        {contactDisplayName(match)}
-                      </span>
-                      <span className="text-xs text-slate-500">Already on this pipeline</span>
-                    </div>
-                  ) : (
-                    <Link
-                      href={`/pipelines/${pipeline.slug}/add?contact=${match.id}`}
-                      className="flex flex-wrap items-baseline justify-between gap-2 hover:underline"
-                    >
-                      <span className="font-medium text-slate-900">
-                        {contactDisplayName(match)}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {match.email ?? match.organization_name ?? 'No email on file'}
-                      </span>
-                    </Link>
-                  )}
-                </li>
-              ))}
+            <ul className="divide-y divide-slate-200/70 overflow-hidden rounded-lg border border-slate-200/70">
+              {matches.map((match) => {
+                const name = contactDisplayName(match)
+                return (
+                  <li key={match.id}>
+                    {match.has_open_card ? (
+                      <div className="flex items-center gap-3 px-3.5 py-3 text-sm">
+                        <Avatar name={name} size="md" className="opacity-50 saturate-50" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-slate-500">{name}</span>
+                        </span>
+                        <span className="shrink-0 text-xs text-slate-500">
+                          Already on this pipeline
+                        </span>
+                      </div>
+                    ) : (
+                      <Link
+                        href={`/pipelines/${pipeline.slug}/add?contact=${match.id}`}
+                        className="group flex items-center gap-3 px-3.5 py-3 text-sm transition-colors duration-150 hover:bg-slate-100/70"
+                      >
+                        <Avatar name={name} size="md" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium text-slate-900">{name}</span>
+                          <span className="block truncate text-xs text-slate-500">
+                            {match.email ?? match.organization_name ?? 'No email on file'}
+                          </span>
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="text-slate-400 transition-colors duration-150 group-hover:text-brand-700"
+                        >
+                          →
+                        </span>
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           ) : null}
         </CardBody>

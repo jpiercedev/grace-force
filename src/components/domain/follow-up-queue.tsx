@@ -46,7 +46,7 @@ export function FollowUpQueue({ items, team, canEdit, nowIso, action }: FollowUp
   return (
     <div>
       {message ? (
-        <div ref={statusRef} tabIndex={-1} className="px-4 pt-4">
+        <div ref={statusRef} tabIndex={-1} className="px-4 pt-4 sm:px-5">
           <Callout
             tone={state.error ? 'danger' : 'success'}
             role={state.error ? 'alert' : 'status'}

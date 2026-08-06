@@ -1,7 +1,7 @@
 import { FollowUpFilters } from '@/components/domain/follow-up-filters'
 import { FollowUpQueue } from '@/components/domain/follow-up-queue'
 import { LinkButton } from '@/components/ui/button'
-import { Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
+import { Card, EmptyState, PageHeader } from '@/components/ui/display'
 import { canWrite, requireProfile } from '@/lib/auth'
 import { listAssignableProfiles, listFollowUps } from '@/lib/queries/follow-ups'
 import { pluralize } from '@/lib/utils'
@@ -55,13 +55,24 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Se
         }
       />
 
-      <FollowUpFilters segment={segment} assignee={assignee} priority={priority} team={team} />
+      <FollowUpFilters
+        segment={segment}
+        assignee={assignee}
+        priority={priority}
+        team={team}
+        activeCount={items.length}
+      />
 
       <Card>
-        <CardHeader
-          title={SEGMENT_LABELS[segment]}
-          description={pluralize(items.length, 'follow-up')}
-        />
+        {/* An eyebrow rule, not a second title: the segmented control already
+            says where we are, so the ledger header just restates it quietly
+            and carries the count. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200/70 px-4 py-3.5 sm:px-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            {SEGMENT_LABELS[segment]}
+          </h2>
+          <p className="text-sm tabular-nums text-slate-500">{pluralize(items.length, 'follow-up')}</p>
+        </div>
         {items.length === 0 ? (
           <EmptyState title="All clear" description={SEGMENT_EMPTY_MESSAGES[segment]} />
         ) : (

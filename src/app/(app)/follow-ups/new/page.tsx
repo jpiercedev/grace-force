@@ -2,7 +2,15 @@ import { addDays } from 'date-fns'
 import Link from 'next/link'
 import { FollowUpForm } from '@/components/domain/follow-up-form'
 import { Button, LinkButton } from '@/components/ui/button'
-import { Callout, Card, CardBody, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
+import {
+  Avatar,
+  Callout,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+} from '@/components/ui/display'
 import { Input, Label } from '@/components/ui/form'
 import { requireWriteAccess } from '@/lib/auth'
 import {
@@ -42,6 +50,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
     return (
       <div className="mx-auto max-w-2xl space-y-5">
         <PageHeader
+          eyebrow="Follow-ups"
           title="New follow-up"
           description="Commitments show up in the queue until someone closes them out."
           action={
@@ -51,7 +60,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
           }
         />
         <Card>
-          <CardBody>
+          <CardBody className="py-5">
             <FollowUpForm
               action={createFollowUp}
               contact={contact}
@@ -71,6 +80,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <PageHeader
+        eyebrow="Follow-ups"
         title="New follow-up"
         description="Start by choosing who it is about."
         action={
@@ -118,22 +128,32 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
           ) : null}
 
           {matches.length > 0 ? (
-            <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-              {matches.map((match) => (
-                <li key={match.id}>
-                  <Link
-                    href={`/follow-ups/new?contact=${match.id}`}
-                    className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2.5 text-sm hover:bg-slate-50"
-                  >
-                    <span className="font-medium text-slate-900">
-                      {contactDisplayName(match)}
-                    </span>
-                    <span className="text-xs text-slate-500">
-                      {match.email ?? match.organization_name ?? 'No email on file'}
-                    </span>
-                  </Link>
-                </li>
-              ))}
+            <ul className="divide-y divide-slate-200/70 overflow-hidden rounded-lg border border-slate-200/70">
+              {matches.map((match) => {
+                const name = contactDisplayName(match)
+                return (
+                  <li key={match.id}>
+                    <Link
+                      href={`/follow-ups/new?contact=${match.id}`}
+                      className="group flex items-center gap-3 px-3.5 py-3 text-sm transition-colors duration-150 hover:bg-slate-100/70"
+                    >
+                      <Avatar name={name} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-slate-900">{name}</span>
+                        <span className="block truncate text-xs text-slate-500">
+                          {match.email ?? match.organization_name ?? 'No email on file'}
+                        </span>
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="text-slate-400 transition-colors duration-150 group-hover:text-brand-700"
+                      >
+                        →
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           ) : null}
         </CardBody>

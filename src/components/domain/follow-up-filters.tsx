@@ -23,6 +23,11 @@ export interface FollowUpFiltersProps {
   assignee: string
   priority: FollowUpPriority | 'all'
   team: TeamProfile[]
+  /**
+   * How many items the current segment holds. Only the active segment's count
+   * is known without extra queries, so only the active tab shows one.
+   */
+  activeCount?: number
 }
 
 /**
@@ -33,7 +38,13 @@ export interface FollowUpFiltersProps {
  * It is a Client Component only because `Field` takes a render prop, and a
  * function cannot cross the server/client boundary.
  */
-export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpFiltersProps) {
+export function FollowUpFilters({
+  segment,
+  assignee,
+  priority,
+  team,
+  activeCount,
+}: FollowUpFiltersProps) {
   function hrefFor(target: FollowUpSegment): string {
     const params = new URLSearchParams({ segment: target })
     if (assignee !== ASSIGNEE_ME) params.set('assignee', assignee)
@@ -44,9 +55,11 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
   return (
     <div className="space-y-4">
       <nav aria-label="Follow-up segments">
-        {/* Wrap rather than scroll: a scrolled row hides the last segment with
-            no affordance that more exist. */}
-        <ul className="-mx-1 flex flex-wrap gap-1.5 px-1">
+        {/* One tonal track, one white pill: a segmented control rather than a
+            row of disconnected buttons. It wraps rather than scrolls — a
+            scrolled row hides the last segment with no affordance that more
+            exist. */}
+        <ul className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg bg-slate-100 p-1 ring-1 ring-inset ring-slate-200/60">
           {FOLLOW_UP_SEGMENTS.map((option) => {
             const active = option === segment
             return (
@@ -55,13 +68,18 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
                   href={hrefFor(option)}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'inline-flex whitespace-nowrap rounded-md px-3.5 py-2 text-sm font-medium transition-colors',
+                    'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors duration-150',
                     active
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-white text-slate-600 ring-1 ring-inset ring-slate-300 hover:bg-slate-50',
+                      ? 'bg-white font-semibold text-brand-800 shadow-sm'
+                      : 'font-medium text-slate-600 hover:bg-white/60 hover:text-slate-900',
                   )}
                 >
                   {SEGMENT_LABELS[option]}
+                  {active && typeof activeCount === 'number' ? (
+                    <span className="text-xs font-semibold tabular-nums text-slate-500">
+                      {activeCount}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             )
@@ -100,7 +118,11 @@ export function FollowUpFilters({ segment, assignee, priority, team }: FollowUpF
           )}
         </Field>
 
-        <Button type="submit">Apply filters</Button>
+        {/* Tonal, not primary: applying a filter is housekeeping, and the one
+            evergreen action on this page should stay "New follow-up". */}
+        <Button type="submit" variant="secondary">
+          Apply filters
+        </Button>
         <LinkButton href={`/follow-ups?segment=${segment}`} variant="ghost">
           Clear
         </LinkButton>

@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { Button, type ButtonProps } from '@/components/ui/button'
 import { FollowUpPriorityBadge } from '@/components/domain/contact-badges'
-import { Badge } from '@/components/ui/display'
+import { Avatar, Badge } from '@/components/ui/display'
 import { Field, Select, Textarea } from '@/components/ui/form'
 import type { FollowUpQueueItem, TeamProfile } from '@/lib/queries/follow-ups'
 import { SNOOZE_ACTIONS } from '@/lib/validation/follow-up'
@@ -54,6 +54,10 @@ function Subject({ title }: { title: string }) {
   return <span className="sr-only">: {title}</span>
 }
 
+/** Shared look for the quiet secondaries inside the tonal action group. */
+const GROUP_BUTTON =
+  'rounded-none px-2.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+
 export function FollowUpRow({
   item,
   team,
@@ -88,6 +92,7 @@ export function FollowUpRow({
 
   const now = new Date(nowIso)
   const overdue = item.status === 'open' && isOverdue(item.due_at, now)
+  const completed = item.status === 'completed'
   const contactName = item.contact ? contactDisplayName(item.contact) : 'Unknown contact'
   const assigneeName = item.assignee
     ? (item.assignee.full_name?.trim() || item.assignee.email)
@@ -95,54 +100,87 @@ export function FollowUpRow({
   const actionable = canEdit && item.status === 'open'
 
   return (
-    <li className="px-4 py-3.5">
+    <li className="px-4 py-4 sm:px-5">
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="id" value={item.id} />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href={`/contacts/${item.contact_id}`}
-                className="text-sm font-semibold text-brand-700 underline-offset-2 hover:underline"
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          {/* The person anchors the row; the task is the loudest line in it. */}
+          <div className="flex min-w-0 flex-1 gap-3">
+            <Avatar
+              name={contactName}
+              size="md"
+              className={cn('mt-0.5', completed && 'opacity-60 saturate-50')}
+            />
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Link
+                  href={`/contacts/${item.contact_id}`}
+                  className={cn(
+                    'text-sm font-semibold underline-offset-2 hover:text-brand-700 hover:underline',
+                    completed ? 'text-slate-600' : 'text-slate-900',
+                  )}
+                >
+                  {contactName}
+                </Link>
+                {item.status === 'open' ? <FollowUpPriorityBadge priority={item.priority} /> : null}
+                {overdue ? <Badge tone="red">Overdue</Badge> : null}
+              </div>
+
+              <p
+                className={cn(
+                  'text-[15px] leading-snug',
+                  completed ? 'text-slate-600' : 'font-medium text-slate-900',
+                )}
               >
-                {contactName}
-              </Link>
-              <FollowUpPriorityBadge priority={item.priority} />
-              {overdue ? <Badge tone="red">Overdue</Badge> : null}
+                {item.title}
+              </p>
+
+              {item.details ? (
+                <p className="text-sm leading-relaxed text-slate-500">
+                  {truncate(item.details, 160)}
+                </p>
+              ) : null}
+
+              {completed ? (
+                <p className="text-sm text-slate-500">
+                  Completed {formatDateTime(item.completed_at)} ·{' '}
+                  <span className="whitespace-nowrap">
+                    {formatRelative(item.completed_at, now)}
+                  </span>
+                  <span> · Assigned to {assigneeName}</span>
+                </p>
+              ) : (
+                // The badge already says "Overdue"; the date names the deadline
+                // without repeating the word or the time of day. The assignee
+                // rides the same line but stays quiet even when the date turns
+                // red — urgency belongs to the deadline, not the person.
+                <p className={cn('text-sm', overdue ? 'font-medium text-red-700' : 'text-slate-500')}>
+                  {overdue ? 'Was due ' : 'Due '}
+                  {formatDate(item.due_at)} ·{' '}
+                  <span className="whitespace-nowrap">{formatRelative(item.due_at, now)}</span>
+                  <span className={cn(overdue && 'font-normal text-slate-500')}>
+                    {' '}
+                    · Assigned to {assigneeName}
+                  </span>
+                </p>
+              )}
+
+              {item.outcome_note ? (
+                <p className="border-l-2 border-slate-300/70 pl-3 text-sm italic leading-relaxed text-slate-600">
+                  {item.outcome_note}
+                </p>
+              ) : null}
             </div>
-
-            <p className="text-sm font-medium text-slate-900">{item.title}</p>
-            {item.details ? (
-              <p className="text-sm text-slate-600">{truncate(item.details, 160)}</p>
-            ) : null}
-
-            {item.status === 'completed' ? (
-              <p className="text-sm text-slate-500">
-                Completed {formatDateTime(item.completed_at)} ·{' '}
-                <span className="whitespace-nowrap">{formatRelative(item.completed_at, now)}</span>
-              </p>
-            ) : (
-              // The badge already says "Overdue"; the date names the deadline
-              // without repeating the word or the time of day.
-              <p className={cn('text-sm', overdue ? 'font-semibold text-red-700' : 'text-slate-500')}>
-                {overdue ? 'Was due ' : 'Due '}
-                {formatDate(item.due_at)} ·{' '}
-                <span className="whitespace-nowrap">{formatRelative(item.due_at, now)}</span>
-              </p>
-            )}
-
-            {item.outcome_note ? (
-              <p className="text-sm text-slate-600">Outcome: {item.outcome_note}</p>
-            ) : null}
-
-            <p className="text-sm text-slate-500">Assigned to {assigneeName}</p>
           </div>
 
           {actionable ? (
-            <div className="flex flex-wrap gap-2 sm:justify-end">
+            // One honest primary; everything else shares a single tonal strip
+            // so five buttons read as one control, not a row of shouting.
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
               <Button
                 type="button"
+                size="sm"
                 onClick={() => setPanel(panel === 'complete' ? null : 'complete')}
                 aria-expanded={panel === 'complete'}
                 aria-controls={panel === 'complete' ? panelId : undefined}
@@ -150,44 +188,52 @@ export function FollowUpRow({
                 Complete
                 <Subject title={item.title} />
               </Button>
-              {SNOOZE_ACTIONS.map((snooze) => (
-                <SubmitButton
-                  key={snooze.intent}
-                  name="intent"
-                  value={snooze.intent}
-                  variant="secondary"
-                  // "+1 day" means nothing on its own, and a hidden "Snooze "
-                  // fragment would be concatenated without its trailing space
-                  // by the accessible-name algorithm ("Snooze+1 day"). The
-                  // whole label is stated instead, visible text included.
-                  aria-label={`Snooze ${snooze.label}: ${item.title}`}
+              <div className="flex max-w-full flex-wrap items-stretch divide-x divide-slate-200/80 overflow-hidden rounded-lg bg-slate-100">
+                {SNOOZE_ACTIONS.map((snooze) => (
+                  <SubmitButton
+                    key={snooze.intent}
+                    name="intent"
+                    value={snooze.intent}
+                    variant="ghost"
+                    size="sm"
+                    className={GROUP_BUTTON}
+                    // "+1 day" means nothing on its own, and a hidden "Snooze "
+                    // fragment would be concatenated without its trailing space
+                    // by the accessible-name algorithm ("Snooze+1 day"). The
+                    // whole label is stated instead, visible text included.
+                    aria-label={`Snooze ${snooze.label}: ${item.title}`}
+                  >
+                    {snooze.label}
+                  </SubmitButton>
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={GROUP_BUTTON}
+                  onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')}
+                  aria-expanded={panel === 'reassign'}
+                  aria-controls={panel === 'reassign' ? panelId : undefined}
                 >
-                  {snooze.label}
-                </SubmitButton>
-              ))}
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setPanel(panel === 'reassign' ? null : 'reassign')}
-                aria-expanded={panel === 'reassign'}
-                aria-controls={panel === 'reassign' ? panelId : undefined}
-              >
-                Reassign
-                <Subject title={item.title} />
-              </Button>
-              {/* Secondary, not ghost: this starts a destructive act, so it
-                  needs a visible boundary wherever the row wraps — ghost stays
-                  reserved for the panels' back-out buttons. */}
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}
-                aria-expanded={panel === 'cancel'}
-                aria-controls={panel === 'cancel' ? panelId : undefined}
-              >
-                Cancel
-                <Subject title={item.title} />
-              </Button>
+                  Reassign
+                  <Subject title={item.title} />
+                </Button>
+                {/* Cancel starts a destructive act, so it keeps the group's
+                    visible tonal boundary rather than floating as bare ghost
+                    text — the confirm panel does the actual guarding. */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={GROUP_BUTTON}
+                  onClick={() => setPanel(panel === 'cancel' ? null : 'cancel')}
+                  aria-expanded={panel === 'cancel'}
+                  aria-controls={panel === 'cancel' ? panelId : undefined}
+                >
+                  Cancel
+                  <Subject title={item.title} />
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -196,7 +242,7 @@ export function FollowUpRow({
           <div
             ref={panelRef}
             id={panelId}
-            className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-3"
+            className="space-y-3 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:ml-11"
           >
             {panel === 'complete' ? (
               <>
