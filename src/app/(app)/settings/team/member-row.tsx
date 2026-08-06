@@ -71,14 +71,14 @@ export function MemberRow({
   const lastAdmin = activeAdminCount <= 1 && member.role === 'admin' && member.is_active
 
   return (
-    <li className="px-4 py-4">
+    <li className="px-5 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 gap-3">
-          <Avatar name={name} />
+        <div className="flex min-w-0 gap-3.5">
+          <Avatar name={name} size="lg" className="mt-0.5" />
           <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-sm font-semibold text-slate-900">{name}</h3>
-              {isSelf ? <Badge tone="indigo">You</Badge> : null}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">{name}</h3>
+              {isSelf ? <Badge tone="slate">You</Badge> : null}
               <Badge tone={ROLE_TONES[member.role]}>{ROLE_LABELS[member.role]}</Badge>
               {member.can_view_giving ? <Badge tone="emerald">Giving access</Badge> : null}
               {member.is_active ? null : <Badge tone="amber">Deactivated</Badge>}
@@ -140,7 +140,7 @@ export function MemberRow({
           <div
             ref={panelRef}
             id={panelId}
-            className="mt-3 space-y-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+            className="mt-4 space-y-4 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:p-5"
           >
             <Field
               label={`Role for ${name}`}
@@ -173,7 +173,9 @@ export function MemberRow({
             {/* Removing sign-in is the roster's most consequential action, so
                 it gets its own section rather than blending into routine edits. */}
             <div className="space-y-3 border-t border-slate-200 pt-4">
-              <h4 className="text-sm font-semibold text-slate-900">Sign-in access</h4>
+              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Sign-in access
+              </h4>
               <Checkbox
                 name="is_active"
                 label={`${name} can sign in`}

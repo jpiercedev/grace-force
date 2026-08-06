@@ -63,14 +63,19 @@ export default async function TeamPage() {
           title="What each role can do"
           description="Roles are enforced by the database, not just by what the screen offers."
         />
-        <CardBody>
-          <dl className="space-y-3">
+        <CardBody className="py-2">
+          <dl className="divide-y divide-slate-100">
             {ROLES.map((role) => (
-              <div key={role} className="flex flex-col gap-1 sm:flex-row sm:gap-3">
+              <div
+                key={role}
+                className="flex flex-col gap-1.5 py-3 sm:flex-row sm:items-baseline sm:gap-4"
+              >
                 <dt className="sm:w-32 sm:shrink-0">
                   <Badge tone={ROLE_TONES[role]}>{ROLE_LABELS[role]}</Badge>
                 </dt>
-                <dd className="text-sm text-slate-600">{ROLE_DESCRIPTIONS[role]}</dd>
+                <dd className="text-sm leading-relaxed text-slate-600">
+                  {ROLE_DESCRIPTIONS[role]}
+                </dd>
               </div>
             ))}
           </dl>

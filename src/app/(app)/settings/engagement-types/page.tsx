@@ -32,9 +32,11 @@ export default async function EngagementTypesPage() {
         <p>
           A type&rsquo;s slug is written once and never changed. The public lead form posts it as
           the visitor&rsquo;s interest and the Mailchimp sync looks up{' '}
-          <code className="rounded bg-sky-100 px-1 py-0.5 font-mono text-xs">newsletter</code> by
-          slug, so renaming one would leave both looking for something that no longer exists — with
-          no error to notice. Change the label instead; it is what everyone actually reads.
+          <code className="rounded bg-white/80 px-1 py-0.5 font-mono text-xs ring-1 ring-inset ring-slate-200">
+            newsletter
+          </code>{' '}
+          by slug, so renaming one would leave both looking for something that no longer exists —
+          with no error to notice. Change the label instead; it is what everyone actually reads.
         </p>
       </Callout>
 
@@ -49,7 +51,7 @@ export default async function EngagementTypesPage() {
             description="The migrations seed eight to start with. Add one below if this catalogue is empty."
           />
         ) : (
-          <ul className="divide-y divide-slate-200">
+          <ul className="divide-y divide-slate-200/70">
             {types.map((type) => (
               <TypeRow key={type.id} type={type} liveEngagements={liveCounts.get(type.id) ?? 0} />
             ))}

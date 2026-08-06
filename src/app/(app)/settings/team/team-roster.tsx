@@ -45,14 +45,14 @@ export function TeamRoster({
   return (
     <div>
       {message ? (
-        <div ref={statusRef} tabIndex={-1} className="px-4 pt-4">
+        <div ref={statusRef} tabIndex={-1} className="px-5 pt-4">
           <Callout tone={state.error ? 'danger' : 'success'} role={state.error ? 'alert' : 'status'}>
             {message}
           </Callout>
         </div>
       ) : null}
 
-      <ul className="divide-y divide-slate-200">
+      <ul className="divide-y divide-slate-200/70">
         {members.map((member) => (
           <MemberRow
             key={member.id}

@@ -56,8 +56,10 @@ const NOTIFICATION_STATUS_LABELS: Record<NotificationStatus, string> = {
   skipped: 'Skipped',
 }
 
+// Amber for pending rather than the old sky blue: blue is gone from the
+// palette, and "claimed but not yet sent" is exactly the watch-this tone.
 const NOTIFICATION_STATUS_TONES: Record<NotificationStatus, BadgeTone> = {
-  pending: 'sky',
+  pending: 'amber',
   sent: 'emerald',
   failed: 'red',
   skipped: 'zinc',
@@ -241,9 +243,11 @@ export default async function IntegrationsPage() {
       <Callout tone="info" title="Changing a variable">
         <p>
           Server-side variables take effect on the next request after a restart. Anything named{' '}
-          <code className="rounded bg-sky-100 px-1 py-0.5 font-mono text-xs">NEXT_PUBLIC_*</code> is
-          compiled into the bundle, including the middleware, so changing one needs a rebuild rather
-          than a restart.
+          <code className="rounded bg-white/80 px-1 py-0.5 font-mono text-xs ring-1 ring-inset ring-slate-200">
+            NEXT_PUBLIC_*
+          </code>{' '}
+          is compiled into the bundle, including the middleware, so changing one needs a rebuild
+          rather than a restart.
         </p>
       </Callout>
 
@@ -280,37 +284,46 @@ export default async function IntegrationsPage() {
 function IntegrationCard({ integration }: { integration: IntegrationView }) {
   return (
     <Card>
-      <CardHeader
-        title={
-          <span className="flex flex-wrap items-center gap-2">
+      {/* Not CardHeader: with a long description its flex-wrap pushes the
+          action under the text, and the status chip must always hold the top
+          right corner — it is the one signal this header exists to give. */}
+      <div className="border-b border-slate-200/70 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+          <h2 className="text-base font-semibold tracking-tight text-slate-900">
             {integration.name}
-            <Badge tone={integration.configured ? 'emerald' : 'amber'}>
-              {integration.configured ? 'Configured' : 'Not configured'}
-            </Badge>
-          </span>
-        }
-        description={integration.purpose}
-      />
-      <CardBody className="space-y-3">
+          </h2>
+          <Badge tone={integration.configured ? 'emerald' : 'amber'}>
+            {integration.configured ? 'Configured' : 'Not configured'}
+          </Badge>
+        </div>
+        <p className="mt-1 max-w-3xl text-sm text-slate-500">{integration.purpose}</p>
+      </div>
+      <CardBody className="space-y-4">
         {integration.configured ? null : (
-          <p className="text-sm text-slate-700">
-            <span className="font-medium">Until this is set: </span>
+          <p className="text-sm leading-relaxed text-slate-700">
+            <span className="font-semibold text-slate-900">Until this is set: </span>
             {integration.degraded}
           </p>
         )}
 
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+        {/* The wiring reference reads as a quiet aside — present when needed,
+            never competing with the card's one status signal. */}
+        <div className="rounded-lg bg-slate-100/70 px-4 py-3">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             Environment variables
           </h3>
-          <ul className="mt-1.5 space-y-1.5">
+          <ul className="mt-1 divide-y divide-slate-200/70">
             {integration.vars.map((variable) => (
-              <li key={variable.name} className="text-sm">
-                <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-xs text-slate-800">
-                  {variable.name}
-                </code>{' '}
-                <span className="text-xs font-medium text-slate-500">{variable.requirement}</span>
-                <p className="text-xs text-slate-600">{variable.note}</p>
+              <li key={variable.name} className="py-2.5 first:pt-1.5 last:pb-1">
+                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-slate-800 ring-1 ring-inset ring-slate-200">
+                    {variable.name}
+                  </code>
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                    {variable.requirement}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">{variable.note}</p>
               </li>
             ))}
           </ul>
@@ -336,10 +349,10 @@ function SyncRuns({ runs }: { runs: SyncRunListItem[] }) {
         />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full text-sm">
             <caption className="sr-only">Recent integration sync runs</caption>
-            <thead className="bg-slate-50">
-              <tr>
+            <thead>
+              <tr className="border-b border-slate-200">
                 <Th>Integration</Th>
                 <Th>Job</Th>
                 <Th>Status</Th>
@@ -350,29 +363,33 @@ function SyncRuns({ runs }: { runs: SyncRunListItem[] }) {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {runs.map((run) => (
-                <tr key={run.id} className="align-top hover:bg-slate-50/70">
-                  <Td>{INTEGRATION_LABELS[run.integration] ?? humanizeSlug(run.integration)}</Td>
+                <tr key={run.id} className={ROW}>
+                  <Td className="font-medium text-slate-900">
+                    {INTEGRATION_LABELS[run.integration] ?? humanizeSlug(run.integration)}
+                  </Td>
                   <Td>{SYNC_JOB_LABELS[run.job] ?? humanizeSlug(run.job)}</Td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <Td>
                     <Badge tone={SYNC_STATUS_TONES[run.status]}>
                       {SYNC_STATUS_LABELS[run.status]}
                     </Badge>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                  </Td>
+                  <Td className="text-slate-600">
                     <time dateTime={run.started_at} title={formatDateTime(run.started_at)}>
                       {formatRelative(run.started_at)}
                     </time>
-                  </td>
-                  <Td>{durationLabel(run.started_at, run.finished_at)}</Td>
-                  <td className="px-3 py-2.5 text-slate-600">
+                  </Td>
+                  <Td className="tabular-nums text-slate-600">
+                    {durationLabel(run.started_at, run.finished_at)}
+                  </Td>
+                  <td className="px-4 py-3 text-slate-600 first:pl-5 last:pr-5">
                     {/* The min width keeps narrow screens from crushing the one
                         wrappable column into skyscraper rows — the table widens
                         into its scroll container instead. */}
-                    <span className="block min-w-[18rem] max-w-md text-xs">
+                    <span className="block min-w-[18rem] max-w-md text-xs leading-relaxed">
                       {summariseStats(run.stats) || '—'}
                     </span>
                     {run.error ? (
-                      <span className="mt-1 block min-w-[18rem] max-w-md text-xs font-medium text-red-700">
+                      <span className="mt-1 block min-w-[18rem] max-w-md text-xs font-medium leading-relaxed text-red-700">
                         {truncate(run.error, 200)}
                       </span>
                     ) : null}
@@ -401,10 +418,10 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
         />
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <table className="min-w-full text-sm">
             <caption className="sr-only">Recent internal notifications</caption>
-            <thead className="bg-slate-50">
-              <tr>
+            <thead>
+              <tr className="border-b border-slate-200">
                 <Th>Kind</Th>
                 <Th>Subject</Th>
                 <Th>Status</Th>
@@ -414,16 +431,18 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
             </thead>
             <tbody className="divide-y divide-slate-100">
               {notifications.map((notification) => (
-                <tr key={notification.id} className="align-top hover:bg-slate-50/70">
-                  <Td>{NOTIFICATION_KIND_LABELS[notification.kind] ?? humanizeSlug(notification.kind)}</Td>
-                  <td className="px-3 py-2.5 text-slate-700">
+                <tr key={notification.id} className={ROW}>
+                  <Td className="font-medium text-slate-900">
+                    {NOTIFICATION_KIND_LABELS[notification.kind] ?? humanizeSlug(notification.kind)}
+                  </Td>
+                  <td className="px-4 py-3 text-slate-700 first:pl-5 last:pr-5">
                     {/* Same floor as the sync-runs table: without it, the only
                         wrappable column collapses to one word per line at 390px. */}
                     <span className="block min-w-[16rem] max-w-md">
                       {truncate(notification.subject, 120)}
                     </span>
                     {notification.error ? (
-                      <span className="mt-1 block min-w-[16rem] max-w-md text-xs font-medium text-red-700">
+                      <span className="mt-1 block min-w-[16rem] max-w-md text-xs font-medium leading-relaxed text-red-700">
                         {truncate(notification.error, 200)}
                         {notification.attempts > 1
                           ? ` (${notification.attempts} attempts)`
@@ -431,22 +450,22 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
                       </span>
                     ) : null}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <Td>
                     <Badge tone={NOTIFICATION_STATUS_TONES[notification.status]}>
                       {NOTIFICATION_STATUS_LABELS[notification.status]}
                     </Badge>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-700">
+                  </Td>
+                  <Td className="text-right tabular-nums text-slate-700">
                     {notification.recipients.length}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                  </Td>
+                  <Td className="text-slate-600">
                     <time
                       dateTime={notification.created_at}
                       title={formatDateTime(notification.created_at)}
                     >
                       {formatRelative(notification.created_at)}
                     </time>
-                  </td>
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -457,11 +476,14 @@ function Notifications({ notifications }: { notifications: NotificationListItem[
   )
 }
 
+/* The system table language: caps hairline header, warm hover, generous cells. */
+const ROW = 'align-top transition-colors hover:bg-slate-100/60'
+
 function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
+      className={`whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 first:pl-5 last:pr-5 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >
@@ -470,6 +492,10 @@ function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
   )
 }
 
-function Td({ children }: { children: ReactNode }) {
-  return <td className="whitespace-nowrap px-3 py-2.5 text-slate-700">{children}</td>
+function Td({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <td className={`whitespace-nowrap px-4 py-3 text-slate-700 first:pl-5 last:pr-5 ${className ?? ''}`}>
+      {children}
+    </td>
+  )
 }

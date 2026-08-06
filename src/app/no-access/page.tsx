@@ -1,5 +1,5 @@
 import { signOut } from '@/app/(auth)/actions'
-import { BrandMark } from '@/app/(auth)/auth-card'
+import { BrandBand } from '@/app/(auth)/auth-card'
 import { Button } from '@/components/ui/button'
 import { Callout } from '@/components/ui/display'
 import { loadProfile } from '@/lib/auth'
@@ -45,40 +45,42 @@ export default async function NoAccessPage({
   } as const
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-6 py-12">
-      <div className="mb-8">
-        <BrandMark />
-      </div>
+    <div className="flex min-h-dvh flex-col">
+      <BrandBand tagline="Account status" width="max-w-lg" />
 
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{TITLES[state]}</h1>
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-10 sm:px-8">
+        <h1 className="font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+          {TITLES[state]}
+        </h1>
 
-      <Callout tone={state === 'error' ? 'danger' : 'warning'} className="mt-4">
-        {state === 'error' ? (
-          <>
-            You are signed in as {email}, but the CRM could not load your profile. This is a
-            problem with the application, not with your account — the cause has been written to
-            the server logs. Try again shortly, and tell an administrator if it persists.
-          </>
-        ) : state === 'unprovisioned' ? (
-          <>
-            You are signed in as {email}, but this account has no Grace Force CRM profile yet, so
-            there is nothing it can open. An administrator can create one — or sign out and sign up
-            again, which provisions a profile automatically.
-          </>
-        ) : (
-          <>
-            Your Grace Force CRM account ({email}) is signed in, but an administrator has paused its
-            access. Ask a Grace Force administrator to reactivate it.
-          </>
-        )}
-      </Callout>
+        <Callout tone={state === 'error' ? 'danger' : 'warning'} className="mt-5">
+          {state === 'error' ? (
+            <>
+              You are signed in as {email}, but the CRM could not load your profile. This is a
+              problem with the application, not with your account — the cause has been written to
+              the server logs. Try again shortly, and tell an administrator if it persists.
+            </>
+          ) : state === 'unprovisioned' ? (
+            <>
+              You are signed in as {email}, but this account has no Grace Force CRM profile yet, so
+              there is nothing it can open. An administrator can create one — or sign out and sign up
+              again, which provisions a profile automatically.
+            </>
+          ) : (
+            <>
+              Your Grace Force CRM account ({email}) is signed in, but an administrator has paused its
+              access. Ask a Grace Force administrator to reactivate it.
+            </>
+          )}
+        </Callout>
 
-      {/* A POST rather than a link: signing out is a state change. */}
-      <form action={signOut} className="mt-6">
-        <Button type="submit" variant="secondary">
-          Sign out
-        </Button>
-      </form>
-    </main>
+        {/* A POST rather than a link: signing out is a state change. */}
+        <form action={signOut} className="mt-6">
+          <Button type="submit" variant="secondary">
+            Sign out
+          </Button>
+        </form>
+      </main>
+    </div>
   )
 }

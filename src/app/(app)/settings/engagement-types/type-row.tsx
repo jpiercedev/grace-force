@@ -74,17 +74,17 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
   }, [state])
 
   return (
-    <li className="px-4 py-4">
+    <li className="px-5 py-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <Badge tone={badgeTone(type.color)}>{type.label}</Badge>
             <code className="font-mono text-xs text-slate-500">{type.slug}</code>
             {type.is_active ? null : <Badge tone="amber">Inactive</Badge>}
           </div>
 
           {type.description ? (
-            <p className="text-sm text-slate-600">{type.description}</p>
+            <p className="text-sm leading-relaxed text-slate-600">{type.description}</p>
           ) : (
             <p className="text-sm italic text-slate-500">No description.</p>
           )}
@@ -94,9 +94,8 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
             {liveEngagements === 0
               ? 'No live engagements'
               : pluralize(liveEngagements, 'live engagement')}
+            {wiredNote ? <> · {wiredNote}</> : null}
           </p>
-
-          {wiredNote ? <p className="text-xs text-slate-500">{wiredNote}.</p> : null}
         </div>
 
         <Button
@@ -130,7 +129,7 @@ export function TypeRow({ type, liveEngagements }: TypeRowProps) {
           <div
             ref={panelRef}
             id={panelId}
-            className="mt-3 space-y-4 rounded-md border border-slate-200 bg-slate-50 p-3"
+            className="mt-4 space-y-4 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:p-5"
           >
             <Field label="Label" error={state.fieldErrors?.label} required className="max-w-md">
               {(props) => (
