@@ -185,3 +185,28 @@ export async function listProposalOptions(
   if (error) fail('proposals for this person', error)
   return data ?? []
 }
+
+/**
+ * Open proposals a person is leading, soonest first.
+ *
+ * Feeds the dashboard, where the question is "what is waiting on me?" — so
+ * undated proposals sort last rather than first: a proposal with no expected
+ * date is not urgent, it is unplanned, and it should not push a real deadline
+ * down the page.
+ */
+export async function listMyOpenProposals(
+  ownerId: string,
+  limit = 5,
+): Promise<ProposalSummary[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select(SUMMARY_SELECT)
+    .eq('owner_id', ownerId)
+    .in('status', OPEN_STATUSES)
+    .order('expected_close_on', { ascending: true, nullsFirst: false })
+    .limit(limit)
+
+  if (error) fail('your proposals', error)
+  return ((data ?? []) as unknown as SummaryRow[]).map(toSummary)
+}

@@ -147,3 +147,17 @@ export async function listEventOptions(): Promise<
   if (error) fail('events', error)
   return data ?? []
 }
+
+/** The next few gatherings, for the dashboard. */
+export async function listUpcomingEvents(today: string, limit = 4): Promise<EventRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .gte('event_date', today)
+    .order('event_date', { ascending: true })
+    .limit(limit)
+
+  if (error) fail('upcoming events', error)
+  return data ?? []
+}

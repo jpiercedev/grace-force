@@ -9,7 +9,8 @@ import {
 } from '@/components/domain/contact-badges'
 import { FormError, SubmitButton, ownerOptions } from '@/components/domain/contact-form-controls'
 import { buttonClasses } from '@/components/ui/button'
-import { Checkbox, Field, Fieldset, Input, Select, Textarea } from '@/components/ui/form'
+import { Disclosure } from '@/components/ui/disclosure'
+import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/form'
 import type { TeamMember } from '@/lib/queries/contacts'
 import {
   CONTACT_SOURCES,
@@ -20,13 +21,23 @@ import {
 import type { ContactRow } from '@/types/database'
 
 /**
- * Section legends speak in the serif display voice — this form is about a
- * person, and the chapter headings should say so. Styled from here via
- * arbitrary variants because the `Fieldset` primitive stays shared.
+ * Adding a person.
+ *
+ * This form used to present twenty-five fields across eight sections, most of
+ * which nobody knows at the moment they meet someone. The brief's instruction
+ * was to "reward gradual data enrichment rather than demanding complete data
+ * entry before a record can exist", so the visible form is now six things:
+ * name, email, phone, who looks after them, where they are in the
+ * relationship, and how we met.
+ *
+ * Everything else is behind a disclosure, and every disclosure that already
+ * holds data opens itself — collapsing a filled-in address would read as data
+ * loss to the person editing it.
+ *
+ * Collapsed fields still post. `hidden` does not exclude a control from form
+ * submission, which is what lets the sections stay closed without silently
+ * clearing what is inside them.
  */
-const SECTION =
-  '[&>legend]:font-display [&>legend]:text-lg [&>legend]:font-semibold [&>legend]:tracking-tight'
-
 export function ContactForm({
   action,
   contact,
@@ -47,14 +58,35 @@ export function ContactForm({
   const ownerId = contact?.owner_id ?? defaultOwnerId ?? ''
   const owners = ownerOptions(team, contact?.owner_id ?? null)
 
+  const hasAddress = !!(
+    contact?.address_line1 ??
+    contact?.address_line2 ??
+    contact?.city ??
+    contact?.region ??
+    contact?.postal_code
+  )
+  const hasOrganisation = !!(contact?.organization_name ?? contact?.job_title)
+  const hasExtras = !!(
+    contact?.preferred_name ??
+    contact?.secondary_email ??
+    contact?.mobile_phone ??
+    contact?.birthday ??
+    contact?.source_detail ??
+    (contact?.tags.length ?? 0) > 0
+  )
+  const hasRules = !!(contact?.do_not_contact || contact?.do_not_email)
+
+  // A field failing validation inside a closed section would be invisible.
+  const anyError = (...names: string[]) => names.some((name) => !!errors[name])
+
   return (
-    <form action={formAction} className="space-y-6" noValidate>
+    <form action={formAction} className="space-y-5" noValidate>
       {contact ? <input type="hidden" name="id" value={contact.id} /> : null}
 
       <FormError state={state} />
 
-      <Fieldset legend="Name" description="Who they are, and what they actually go by." className={SECTION}>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Field label="First name" error={errors.first_name}>
             {(props) => (
               <Input
@@ -63,6 +95,7 @@ export function ContactForm({
                 autoComplete="given-name"
                 defaultValue={contact?.first_name ?? ''}
                 invalid={!!errors.first_name}
+                autoFocus={!contact}
               />
             )}
           </Field>
@@ -77,45 +110,7 @@ export function ContactForm({
               />
             )}
           </Field>
-          <Field
-            label="Preferred name"
-            hint="What they actually go by, if it differs."
-            error={errors.preferred_name}
-          >
-            {(props) => (
-              <Input
-                {...props}
-                name="preferred_name"
-                defaultValue={contact?.preferred_name ?? ''}
-                invalid={!!errors.preferred_name}
-              />
-            )}
-          </Field>
-          <Field label="Birthday" error={errors.birthday}>
-            {(props) => (
-              <Input
-                {...props}
-                name="birthday"
-                type="date"
-                defaultValue={contact?.birthday ?? ''}
-                invalid={!!errors.birthday}
-              />
-            )}
-          </Field>
-        </div>
-      </Fieldset>
 
-      {/* Hairlines between the eight sections keep the long form scannable;
-          they sit on <hr>s because a border on the fieldset itself would pull
-          the legend down onto the border line. */}
-      <hr className="border-slate-200" />
-
-      <Fieldset
-        legend="How to reach them"
-        description="Channels for staying in touch. Email and phone appear on the contact card."
-        className={SECTION}
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Email" error={errors.email}>
             {(props) => (
               <Input
@@ -125,17 +120,6 @@ export function ContactForm({
                 autoComplete="email"
                 defaultValue={contact?.email ?? ''}
                 invalid={!!errors.email}
-              />
-            )}
-          </Field>
-          <Field label="Secondary email" error={errors.secondary_email}>
-            {(props) => (
-              <Input
-                {...props}
-                name="secondary_email"
-                type="email"
-                defaultValue={contact?.secondary_email ?? ''}
-                invalid={!!errors.secondary_email}
               />
             )}
           </Field>
@@ -151,26 +135,92 @@ export function ContactForm({
               />
             )}
           </Field>
-          <Field label="Mobile phone" error={errors.mobile_phone}>
+
+          <Field
+            label="Who looks after them?"
+            hint="The staff member who holds this relationship."
+          >
             {(props) => (
-              <Input
+              <Select {...props} name="owner_id" defaultValue={ownerId}>
+                <option value="">Unassigned</option>
+                {owners.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                    {member.is_active ? '' : ' (deactivated)'}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+
+          <Field
+            label="Where are we with them?"
+            hint="This can change as the relationship grows."
+            error={errors.lifecycle_stage}
+          >
+            {(props) => (
+              <Select
                 {...props}
-                name="mobile_phone"
-                type="tel"
-                defaultValue={contact?.mobile_phone ?? ''}
-                invalid={!!errors.mobile_phone}
-              />
+                name="lifecycle_stage"
+                defaultValue={contact?.lifecycle_stage ?? 'prospect'}
+              >
+                {LIFECYCLE_STAGES.map((stage) => (
+                  <option key={stage} value={stage}>
+                    {LIFECYCLE_STAGE_LABELS[stage]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+
+          <Field
+            label="How did we meet them?"
+            error={errors.source}
+            className="sm:col-span-2 sm:max-w-xs"
+          >
+            {(props) => (
+              <Select {...props} name="source" defaultValue={contact?.source ?? 'manual'}>
+                {CONTACT_SOURCES.map((source) => (
+                  <option key={source} value={source}>
+                    {CONTACT_SOURCE_LABELS[source]}
+                  </option>
+                ))}
+              </Select>
             )}
           </Field>
         </div>
-      </Fieldset>
 
-      <hr className="border-slate-200" />
+        <p className="text-sm leading-relaxed text-slate-600">
+          That is enough to create the record. Everything below can wait until you know it.
+        </p>
+      </div>
 
-      <Fieldset
-        legend="Address"
-        description="For mailings, visits and year-end letters."
-        className={SECTION}
+      <Disclosure
+        label="Relationship summary"
+        summary="A few sentences about how we know them"
+        defaultOpen={!!contact?.notes || anyError('notes')}
+      >
+        <Field
+          label="Summary"
+          hint="The context the whole team should carry into the next conversation."
+          error={errors.notes}
+        >
+          {(props) => (
+            <Textarea
+              {...props}
+              name="notes"
+              rows={5}
+              defaultValue={contact?.notes ?? ''}
+              invalid={!!errors.notes}
+            />
+          )}
+        </Field>
+      </Disclosure>
+
+      <Disclosure
+        label="Address"
+        summary="For mailings, visits and year-end letters"
+        defaultOpen={hasAddress || anyError('address_line1', 'city', 'region', 'postal_code', 'country')}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Address line 1" error={errors.address_line1} className="sm:col-span-2">
@@ -240,28 +290,19 @@ export function ContactForm({
             )}
           </Field>
         </div>
-      </Fieldset>
+      </Disclosure>
 
-      <hr className="border-slate-200" />
-
-      <Fieldset
-        legend="Organisation"
-        description="Their workplace or ministry affiliation, if it matters to the relationship."
-        className={SECTION}
+      <Disclosure
+        label="Work"
+        summary="Occupation and employer"
+        defaultOpen={hasOrganisation || anyError('organization_name', 'job_title')}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Organisation" error={errors.organization_name}>
-            {(props) => (
-              <Input
-                {...props}
-                name="organization_name"
-                autoComplete="organization"
-                defaultValue={contact?.organization_name ?? ''}
-                invalid={!!errors.organization_name}
-              />
-            )}
-          </Field>
-          <Field label="Job title" error={errors.job_title}>
+          <Field
+            label="Occupation or job title"
+            hint="“Retired physician” is as useful as a formal title."
+            error={errors.job_title}
+          >
             {(props) => (
               <Input
                 {...props}
@@ -272,30 +313,88 @@ export function ContactForm({
               />
             )}
           </Field>
+          <Field label="Organisation or employer" error={errors.organization_name}>
+            {(props) => (
+              <Input
+                {...props}
+                name="organization_name"
+                autoComplete="organization"
+                defaultValue={contact?.organization_name ?? ''}
+                invalid={!!errors.organization_name}
+              />
+            )}
+          </Field>
         </div>
-      </Fieldset>
+      </Disclosure>
 
-      <hr className="border-slate-200" />
-
-      <Fieldset
-        legend="Relationship"
-        description="Engagements — donor, volunteer, prayer partner — are added on the contact record itself."
-        className={SECTION}
+      <Disclosure
+        label="Other details"
+        summary="Preferred name, second email, mobile, birthday, tags"
+        defaultOpen={
+          hasExtras ||
+          anyError('preferred_name', 'secondary_email', 'mobile_phone', 'birthday', 'tags', 'source_detail', 'status')
+        }
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Lifecycle stage" error={errors.lifecycle_stage}>
+          <Field
+            label="Preferred name"
+            hint="What they actually go by, if it differs."
+            error={errors.preferred_name}
+          >
             {(props) => (
-              <Select
+              <Input
                 {...props}
-                name="lifecycle_stage"
-                defaultValue={contact?.lifecycle_stage ?? 'prospect'}
-              >
-                {LIFECYCLE_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {LIFECYCLE_STAGE_LABELS[stage]}
-                  </option>
-                ))}
-              </Select>
+                name="preferred_name"
+                defaultValue={contact?.preferred_name ?? ''}
+                invalid={!!errors.preferred_name}
+              />
+            )}
+          </Field>
+          <Field label="Birthday" error={errors.birthday}>
+            {(props) => (
+              <Input
+                {...props}
+                name="birthday"
+                type="date"
+                defaultValue={contact?.birthday ?? ''}
+                invalid={!!errors.birthday}
+              />
+            )}
+          </Field>
+          <Field label="Second email" error={errors.secondary_email}>
+            {(props) => (
+              <Input
+                {...props}
+                name="secondary_email"
+                type="email"
+                defaultValue={contact?.secondary_email ?? ''}
+                invalid={!!errors.secondary_email}
+              />
+            )}
+          </Field>
+          <Field label="Mobile phone" error={errors.mobile_phone}>
+            {(props) => (
+              <Input
+                {...props}
+                name="mobile_phone"
+                type="tel"
+                defaultValue={contact?.mobile_phone ?? ''}
+                invalid={!!errors.mobile_phone}
+              />
+            )}
+          </Field>
+          <Field
+            label="How we met — the detail"
+            hint="Which event, who referred them, which form."
+            error={errors.source_detail}
+          >
+            {(props) => (
+              <Input
+                {...props}
+                name="source_detail"
+                defaultValue={contact?.source_detail ?? ''}
+                invalid={!!errors.source_detail}
+              />
             )}
           </Field>
           <Field label="Record status" error={errors.status}>
@@ -309,48 +408,9 @@ export function ContactForm({
               </Select>
             )}
           </Field>
-          <Field label="Owner" hint="The staff member responsible for this relationship.">
-            {(props) => (
-              <Select {...props} name="owner_id" defaultValue={ownerId}>
-                <option value="">Unassigned</option>
-                {owners.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                    {member.is_active ? '' : ' (deactivated)'}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field label="Source" error={errors.source}>
-            {(props) => (
-              <Select {...props} name="source" defaultValue={contact?.source ?? 'manual'}>
-                {CONTACT_SOURCES.map((source) => (
-                  <option key={source} value={source}>
-                    {CONTACT_SOURCE_LABELS[source]}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-          <Field
-            label="Source detail"
-            hint="Which event, who referred them, which form."
-            error={errors.source_detail}
-            className="sm:col-span-2"
-          >
-            {(props) => (
-              <Input
-                {...props}
-                name="source_detail"
-                defaultValue={contact?.source_detail ?? ''}
-                invalid={!!errors.source_detail}
-              />
-            )}
-          </Field>
           <Field
             label="Tags"
-            hint="Separate with commas, e.g. spanish-speaking, board member."
+            hint="Separate with commas. For labels, not for what they care about — that lives on their record."
             error={errors.tags}
             className="sm:col-span-2"
           >
@@ -364,20 +424,18 @@ export function ContactForm({
             )}
           </Field>
         </div>
-      </Fieldset>
+      </Disclosure>
 
-      <hr className="border-slate-200" />
-
-      <Fieldset
-        legend="Communication preferences"
-        description="Hard limits they have asked for. These override every list and campaign."
-        className={SECTION}
+      <Disclosure
+        label="Please do not contact"
+        summary="Hard limits they have asked for"
+        defaultOpen={hasRules}
       >
         <div className="space-y-3">
           <Checkbox
             name="do_not_contact"
-            label="Do not contact"
-            hint="They have asked not to be approached at all."
+            label="Do not contact at all"
+            hint="They have asked not to be approached."
             defaultChecked={contact?.do_not_contact ?? false}
           />
           <Checkbox
@@ -386,32 +444,18 @@ export function ContactForm({
             hint="Excluded from Mailchimp audiences and email sends."
             defaultChecked={contact?.do_not_email ?? false}
           />
+          <p className="text-sm text-slate-600">
+            Preferred contact method, best time to reach them, and the rest of their preferences
+            live on their record under Overview.
+          </p>
         </div>
-      </Fieldset>
+      </Disclosure>
 
-      <hr className="border-slate-200" />
-
-      <Fieldset
-        legend="Notes"
-        description="Context the whole team should carry into the next conversation."
-        className={SECTION}
-      >
-        <Field label="Internal notes" error={errors.notes}>
-          {(props) => (
-            <Textarea
-              {...props}
-              name="notes"
-              rows={5}
-              defaultValue={contact?.notes ?? ''}
-              invalid={!!errors.notes}
-            />
-          )}
-        </Field>
-      </Fieldset>
-
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-5">
-        <SubmitButton pendingLabel="Saving…">{submitLabel}</SubmitButton>
-        <Link href={cancelHref} className={buttonClasses('secondary', 'md')}>
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <SubmitButton size="lg" pendingLabel="Saving…">
+          {submitLabel}
+        </SubmitButton>
+        <Link href={cancelHref} className={buttonClasses('ghost', 'lg')}>
           Cancel
         </Link>
       </div>
