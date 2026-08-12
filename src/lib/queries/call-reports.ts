@@ -32,7 +32,7 @@ export interface CallReportSummary {
 
 const SUMMARY_SELECT = `
   id, met_on, meeting_kind, status, location, summary, follow_up_on, author_id,
-  contact:contacts(${CONTACT_REF_FIELDS}),
+  contact:contacts!call_reports_contact_id_fkey(${CONTACT_REF_FIELDS}),
   attachments(id)
 `
 
@@ -84,7 +84,7 @@ export async function getContactCallReports(contactId: string): Promise<CallRepo
   const { data, error } = await supabase
     .from('call_reports')
     .select(SUMMARY_SELECT)
-    .eq('contact_id', contactId)
+    .or(`contact_id.eq.${contactId},joint_contact_id.eq.${contactId}`)
     .order('met_on', { ascending: false })
 
   if (error) fail('call reports for this person', error)
@@ -94,6 +94,7 @@ export async function getContactCallReports(contactId: string): Promise<CallRepo
 export interface CallReportDetail {
   report: CallReportRow
   contact: ContactRef | null
+  jointContact: ContactRef | null
   attachments: AttachmentRow[]
 }
 
@@ -101,7 +102,12 @@ export async function getCallReport(id: string): Promise<CallReportDetail | null
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('call_reports')
-    .select(`*, contact:contacts(${CONTACT_REF_FIELDS}), attachments(*)`)
+    .select(
+      `*,
+       contact:contacts!call_reports_contact_id_fkey(${CONTACT_REF_FIELDS}),
+       joint_contact:contacts!call_reports_joint_contact_id_fkey(${CONTACT_REF_FIELDS}),
+       attachments(*)`,
+    )
     .eq('id', id)
     .maybeSingle()
 
@@ -110,12 +116,14 @@ export async function getCallReport(id: string): Promise<CallReportDetail | null
 
   const row = data as unknown as CallReportRow & {
     contact: never
+    joint_contact: never
     attachments: AttachmentRow[]
   }
   const { attachments, ...report } = row
   return {
     report: report as CallReportRow,
     contact: toContactRef(row.contact),
+    jointContact: toContactRef(row.joint_contact),
     attachments: [...attachments].sort((a, b) => a.file_name.localeCompare(b.file_name)),
   }
 }

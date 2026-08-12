@@ -484,6 +484,40 @@ describe('relationship development schema', () => {
       expect(await activitiesFor(ada, 'call_report')).toHaveLength(1)
     })
 
+    it('posts to both donors when the meeting was with a couple', async () => {
+      const joint = await db.asUser(staff.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.call_reports
+             (contact_id, joint_contact_id, author_id, met_on, summary, status, filed_at)
+           values ($1, $2, $3, current_date, 'Sat with them both', 'filed', now())
+           returning id`,
+          [ada, grace, staff.id],
+        ),
+      )
+      expect(joint.rows).toHaveLength(1)
+
+      // One report, two timelines — and Ada's earlier solo report means she
+      // now has two entries while Grace has one.
+      const forAda = await activitiesFor(ada, 'call_report')
+      const forGrace = await activitiesFor(grace, 'call_report')
+      expect(forAda).toHaveLength(2)
+      expect(forGrace).toHaveLength(1)
+      expect(forGrace[0]!.subject).toMatch(/^Call report — /)
+    })
+
+    it('refuses a second donor who is the donor', async () => {
+      const message = await expectRejected(
+        db.asUser(staff.id, (sql) =>
+          sql.query(
+            `insert into public.call_reports (contact_id, joint_contact_id, met_on)
+             values ($1, $1, current_date)`,
+            [ada],
+          ),
+        ),
+      )
+      expect(message).toMatch(/call_reports_joint_is_someone_else/)
+    })
+
     it('becomes visible to colleagues once filed', async () => {
       const { rows } = await db.asUser(fundraiser.id, (sql) =>
         sql.query('select id from public.call_reports where id = $1', [draftId]),

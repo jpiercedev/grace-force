@@ -47,7 +47,7 @@ export default async function CallReportPage({
   const detail = await getCallReport(id)
   if (!detail) notFound()
 
-  const { report, contact, attachments } = detail
+  const { report, contact, jointContact, attachments } = detail
   const writable = canWrite(profile)
   const mine = report.author_id === profile.id
   const editable = writable && (mine || isAdmin(profile))
@@ -76,6 +76,7 @@ export default async function CallReportPage({
           report={report}
           contactId={contact.id}
           contactName={contact.name}
+          jointContactName={jointContact?.name ?? null}
           team={team}
           proposals={proposals}
           currentUserId={profile.id}
@@ -126,6 +127,28 @@ export default async function CallReportPage({
                 {report.met_at_time ? ` at ${report.met_at_time.slice(0, 5)}` : ''}
                 {report.location ? ` · ${report.location}` : ''}
               </p>
+              {contact ? (
+                <p className="mt-1 text-[15px] text-slate-700">
+                  With{' '}
+                  <Link
+                    href={`/contacts/${contact.id}`}
+                    className="font-medium text-brand-800 hover:underline"
+                  >
+                    {contact.name}
+                  </Link>
+                  {jointContact ? (
+                    <>
+                      {' and '}
+                      <Link
+                        href={`/contacts/${jointContact.id}`}
+                        className="font-medium text-brand-800 hover:underline"
+                      >
+                        {jointContact.name}
+                      </Link>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
             </div>
             <div className="flex items-center gap-2">
               {report.status === 'draft' ? <Badge tone="amber">Draft</Badge> : null}

@@ -25,6 +25,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 function readForm(formData: FormData) {
   return callReportSchema.safeParse({
     contact_id: text(formData, 'contact_id'),
+    joint_contact_id: text(formData, 'joint_contact_id'),
     proposal_id: text(formData, 'proposal_id'),
     met_on: text(formData, 'met_on'),
     met_at_time: text(formData, 'met_at_time'),
@@ -55,6 +56,13 @@ async function save(
 
   const values = parsed.data
 
+  if (values.joint_contact_id && values.joint_contact_id === values.contact_id) {
+    return {
+      error: 'The second person must be someone else.',
+      fieldErrors: { joint_contact_id: 'Choose a different person' },
+    }
+  }
+
   // A filed report with nothing written in it is not a record of anything.
   if (status === 'filed' && !values.summary && !values.discussion_points) {
     return {
@@ -71,6 +79,7 @@ async function save(
   // 500 on an otherwise valid form.
   const payload = {
     contact_id: values.contact_id,
+    joint_contact_id: values.joint_contact_id,
     proposal_id: values.proposal_id,
     status,
     met_on: values.met_on,
@@ -154,6 +163,8 @@ async function save(
 
   revalidatePath('/reports')
   revalidatePath(`/contacts/${values.contact_id}`)
+  // The report lands on both timelines, so both caches are stale.
+  if (values.joint_contact_id) revalidatePath(`/contacts/${values.joint_contact_id}`)
   if (reportId) revalidatePath(`/reports/${reportId}`)
 
   if (!id && reportId) redirect(`/reports/${reportId}`)

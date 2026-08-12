@@ -119,9 +119,33 @@ type labels as its own filter row.
    reserved for a genuine panel. Badges are limited to status that changes
    behaviour. Repeated labels removed.
 
-## 4. Verification standard
+## 4. Where each requirement ended up
+
+| Requirement | Where it lives now |
+| --- | --- |
+| Donor fields, incl. occupation and summary | `/contacts/[id]` header + Overview tab; `job_title` is labelled "Occupation or job title", `notes` is the relationship summary |
+| Related constituents, both directions | Relationships tab; one directed row, labels from `@/lib/relationships` |
+| Communication history, all nine kinds | Log interaction dialog → `activities`, with `outcome` |
+| Communication preferences | Header contact buttons (where staff actually call) + Overview panel |
+| Events and attendance | `/events`, and the donor's Events tab |
+| Planned gifts and proposals | `/proposals`, and the donor's Proposals tab; financial fields behind a disclosure, varying by type |
+| Philanthropic interests | Overview tab, each with the sentence that explains it |
+| Giving capability | Giving tab, stated quietly, gated on `can_view_giving()` |
+| Call reports | `/reports`; five sections, drafts, both donors, attachments |
+| Attachments | Files tab, the report, and the proposal — one index per donor |
+
+## 5. Verification standard
 
 Each requirement is exercised by a test at the level it lives at: schema and
-RLS in `tests/db`, validation and label mapping in `tests/unit`, rendering and
-disclosure behaviour in `tests/ui`. `npm run verify` covers typecheck, lint,
-all three suites and a production build.
+RLS in `tests/db/development.test.ts` (34 tests), validation and label mapping
+in `tests/unit/relationships.test.ts`, rendering and disclosure behaviour in
+`tests/ui/log-interaction.test.tsx`. `npm run verify` covers typecheck, lint,
+all three suites and a production build; `npm run e2e:public` covers route
+protection and responsiveness in a real browser.
+
+Every screen was additionally captured at 1440 / 834 / 390 against a local
+stack reproducing the Supabase contract, and checked for console errors,
+horizontal overflow and error text. The one path that could not be verified
+end to end in this container is a real file upload, because the harness has no
+storage backend — the interface renders an honest "unavailable" for an
+unreachable object, which is what those screenshots show.

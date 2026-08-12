@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { FormError, SubmitButton } from '@/components/domain/contact-form-controls'
 import { MEETING_KINDS, MEETING_KIND_LABELS } from '@/components/domain/development-badges'
+import { PersonPicker } from '@/components/domain/person-picker'
 import { Button, LinkButton } from '@/components/ui/button'
 import { Field, Input, Select, Textarea } from '@/components/ui/form'
 import type { TeamMember } from '@/lib/queries/contacts'
@@ -33,6 +34,7 @@ export function CallReportForm({
   report,
   contactId,
   contactName,
+  jointContactName,
   team,
   proposals,
   currentUserId,
@@ -44,6 +46,8 @@ export function CallReportForm({
   report?: CallReportRow
   contactId: string
   contactName: string
+  /** Already-linked second donor, if any. */
+  jointContactName?: string | null
   team: TeamMember[]
   proposals: ReadonlyArray<{ id: string; title: string; status: ProposalStatus }>
   currentUserId: string
@@ -63,6 +67,7 @@ export function CallReportForm({
 
   const colleagues = team.filter((member) => member.is_active && member.role !== 'viewer')
   const selectedStaff = new Set(report?.staff_attendee_ids ?? [])
+  const [changeJoint, setChangeJoint] = useState(false)
 
   return (
     <>
@@ -159,9 +164,34 @@ export function CallReportForm({
             </fieldset>
           ) : null}
 
+          {/* A spouse who is themselves on the record is not an "external"
+              attendee — they are the other half of the conversation, and the
+              report belongs on their timeline too. */}
+          {changeJoint ? (
+            <PersonPicker
+              name="joint_contact_id"
+              label="Was anyone else we know there?"
+              excludeId={contactId}
+              hint="Their spouse, for instance. The report appears on their record too."
+              error={errors.joint_contact_id}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-sm text-slate-600">
+                Also with: <span className="font-medium text-slate-900">{jointContactName ?? 'nobody else on our records'}</span>
+              </p>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setChangeJoint(true)}>
+                {jointContactName ? 'Change' : 'Add someone'}
+              </Button>
+              {report?.joint_contact_id ? (
+                <input type="hidden" name="joint_contact_id" value={report.joint_contact_id} />
+              ) : null}
+            </div>
+          )}
+
           <Field
-            label="Who else was there?"
-            hint="Anyone from outside — their spouse, an adviser."
+            label="Anyone from outside?"
+            hint="People who are not on our records — an adviser, an attorney."
             error={errors.external_attendees}
           >
             {(props) => (

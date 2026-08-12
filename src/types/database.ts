@@ -446,6 +446,8 @@ export type ProposalRow = {
 export type CallReportRow = {
   id: string
   contact_id: string
+  /** The second person the meeting was with, when it was a couple. */
+  joint_contact_id: string | null
   proposal_id: string | null
   status: CallReportStatus
   met_on: string

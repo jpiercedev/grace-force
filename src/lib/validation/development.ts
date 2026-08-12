@@ -170,6 +170,7 @@ export const attendeeSchema = z.object({
  */
 export const callReportSchema = z.object({
   contact_id: uuidField('Missing donor'),
+  joint_contact_id: optionalUuid('Choose a person from the list'),
   proposal_id: optionalUuid('Choose a proposal from the list'),
   met_on: requiredDate('Choose the meeting date'),
   met_at_time: optionalText(8).refine((value) => value === null || TIME.test(value), {
