@@ -168,6 +168,7 @@ survive re-running it.
 | `…000500_call_reports` | donor meeting reports, filing trigger |
 | `…000600_attachments` | attachment metadata and the storage bucket |
 | `…000700_activity_outcome` | `activities.outcome` |
+| `…000800_call_report_joint_donor` | second donor on a call report |
 
 They must be applied in filename order; later files reference earlier tables.
 
@@ -178,7 +179,7 @@ one implicit transaction.
 
 ## Relationship development
 
-Seven migrations (`20260806000100`–`20260806000700`) add the objects a
+Eight migrations (`20260806000100`–`20260806000800`) add the objects a
 development office needs and the original schema had no home for. Three
 decisions in them are worth stating, because the DDL alone does not explain
 them.
@@ -227,9 +228,9 @@ not post a second entry.
 
 ### Two smaller trade-offs, recorded on purpose
 
-- `proposals.joint_contact_id` covers a couple giving together. More than two
-  parties belongs in the notes rather than in a join table with its own
-  policies and its own UI.
+- `proposals.joint_contact_id` and `call_reports.joint_contact_id` cover a
+  couple giving, or being met, together. More than two parties belongs in the
+  notes rather than in a join table with its own policies and its own UI.
 - `call_reports.staff_attendee_ids` is a `uuid[]` with no foreign key —
   Postgres cannot declare one on an array element. The field is edited as one
   control and read as one line; ids that no longer resolve are simply not

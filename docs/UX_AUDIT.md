@@ -45,7 +45,7 @@ Every requirement in the brief, mapped against the application as it stood.
 | **Attachments** | no storage, no file records, nothing to attach a proposal document to |
 
 Everything in "missing" and "partial" is implemented by this change. The
-schema work is seven migrations (`20260806000100`–`20260806000700`), each with
+schema work is eight migrations (`20260806000100`–`20260806000800`), each with
 RLS, indexes and tests; see `docs/DATA_MODEL.md`.
 
 ## 2. Where the application felt overwhelming
@@ -109,8 +109,9 @@ type labels as its own filter row.
    Save. Five controls, no CRM vocabulary, one screen.
 5. **Progressive disclosure everywhere else.** Proposal financial fields sit
    behind a "Financial details" disclosure. The new-person form asks for six
-   things and hides the rest behind "Add more detail". Capability is shown
-   quietly, never as a headline figure.
+   things and folds the rest into Relationship summary, Address, Work, Other
+   details and Please do not contact. Capability is shown quietly, never as a
+   headline figure.
 6. **Preferences where staff communicate.** Contact methods render as buttons
    (Call / Text / Email) with the donor's preference marked and any
    do-not-contact rule shown as a plain sentence next to them, not as a badge

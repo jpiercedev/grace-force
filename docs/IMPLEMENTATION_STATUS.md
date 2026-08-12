@@ -10,8 +10,8 @@
 | Field | Value |
 | --- | --- |
 | Current phase | Simplification redesign complete on `claude/crm-redesign-simplicity-0zqxek`; awaiting review/merge |
-| Overall status | Feature-complete. Seven new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
-| Tests | 534 Vitest (28 files) + 28 browser `@public` passing |
+| Overall status | Feature-complete. Eight new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
+| Tests | 536 Vitest (28 files) + 28 browser `@public` passing |
 | Build | `next build` succeeds — 45 routes |
 | Deployment | `grace-force` on Vercel, production target, git-connected |
 
@@ -21,7 +21,7 @@ The brief: Salesforce capability, dramatically less cognitive load. The audit
 is in `docs/UX_AUDIT.md` — read it before changing any of this, because most
 of the structure below is a direct answer to something recorded there.
 
-**Schema.** Seven migrations (`20260806000100`–`20260806000700`) add what the
+**Schema.** Eight migrations (`20260806000100`–`20260806000800`) add what the
 gap analysis found missing: related constituents, philanthropic interests,
 giving capability, events and attendance, proposals and planned gifts, call
 reports, and attachments. Plus communication preferences and an interaction
