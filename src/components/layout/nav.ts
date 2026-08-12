@@ -31,77 +31,76 @@ interface NavItemDefinition {
   visible?: (profile: ProfileRow) => boolean
 }
 
-interface NavSectionDefinition {
-  label: string
-  items: NavItemDefinition[]
-}
-
-/** What actually crosses to the client. Strings only — no behaviour. */
+/** Strings only — no behaviour. What actually crosses to the client. */
 export interface NavItem {
   href: string
   label: string
   icon: string
 }
 
-export interface NavSection {
-  label: string
-  items: NavItem[]
+export interface Navigation {
+  /** Always visible. The everyday work of a development office. */
+  primary: NavItem[]
+  /** Behind a "More" disclosure: real destinations, just not daily ones. */
+  more: NavItem[]
+  /** The single administration entry, pinned to the foot of the rail. */
+  settings: NavItem | null
 }
 
 /**
- * Navigation is filtered by capability so the interface never advertises an
- * action that Row Level Security would then refuse. Hiding is a courtesy;
- * the database is what actually enforces it.
+ * Six primary destinations, and no more.
+ *
+ * The previous rail carried twelve items in four labelled groups, which put
+ * Import and Export — twice-a-year tools — at the same weight as the people
+ * this product exists to look after. Everything still reachable, nothing
+ * removed; the question each item had to answer was "does a development
+ * officer go here most weeks?".
+ *
+ * Search left the rail entirely: it is a field in the header now, present on
+ * every page, which is where people look for it.
  */
-const NAV_SECTION_DEFINITIONS: NavSectionDefinition[] = [
-  {
-    label: 'Work',
-    items: [
-      { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
-      { href: '/search', label: 'Search', icon: 'Search' },
-      { href: '/contacts', label: 'Contacts', icon: 'Users' },
-      { href: '/follow-ups', label: 'Follow-ups', icon: 'CheckSquare' },
-      { href: '/pipelines', label: 'Pipelines', icon: 'KanbanSquare' },
-      { href: '/leads', label: 'Leads', icon: 'Inbox', visible: canWrite },
-    ],
-  },
-  {
-    label: 'Insight',
-    items: [
-      { href: '/giving', label: 'Giving', icon: 'HandCoins', visible: canViewGiving },
-      { href: '/mailchimp', label: 'Email', icon: 'Mail' },
-    ],
-  },
-  {
-    label: 'Data',
-    items: [
-      { href: '/import', label: 'Import', icon: 'Upload', visible: canWrite },
-      { href: '/export', label: 'Export', icon: 'Download', visible: canWrite },
-    ],
-  },
-  {
-    label: 'Admin',
-    items: [
-      { href: '/settings/team', label: 'Team', icon: 'UserCog', visible: isAdmin },
-      { href: '/settings/integrations', label: 'Integrations', icon: 'Plug', visible: isAdmin },
-    ],
-  },
+const PRIMARY: NavItemDefinition[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
+  { href: '/contacts', label: 'People', icon: 'Users' },
+  { href: '/follow-ups', label: 'Follow-ups', icon: 'CheckSquare' },
+  { href: '/proposals', label: 'Proposals', icon: 'FileSignature', visible: canViewGiving },
+  { href: '/events', label: 'Events', icon: 'CalendarDays' },
+  { href: '/reports', label: 'Reports', icon: 'FileText' },
 ]
 
+const MORE: NavItemDefinition[] = [
+  { href: '/giving', label: 'Giving', icon: 'HandCoins', visible: canViewGiving },
+  { href: '/pipelines', label: 'Pipelines', icon: 'KanbanSquare' },
+  { href: '/leads', label: 'New leads', icon: 'Inbox', visible: canWrite },
+  { href: '/mailchimp', label: 'Email', icon: 'Mail' },
+  { href: '/import', label: 'Import', icon: 'Upload', visible: canWrite },
+  { href: '/export', label: 'Export', icon: 'Download', visible: canWrite },
+]
+
+const SETTINGS: NavItemDefinition = {
+  href: '/settings/team',
+  label: 'Settings',
+  icon: 'Settings',
+  visible: isAdmin,
+}
+
 /**
- * Resolves the definitions for one profile into client-safe data.
- *
- * The explicit field-by-field construction is deliberate. `filter` alone
- * returns the *same* objects — predicate still attached — which is precisely
- * how the function reached the client bundle before. Rebuilding each item
- * means nothing can ride along, and the `NavItem` return type makes that a
+ * Rebuilding each item field by field is deliberate. `filter` alone returns the
+ * *same* objects — predicate still attached — which is precisely how a function
+ * reached the client bundle before. The `NavItem` return type makes a leak a
  * compile error rather than a runtime one.
  */
-export function visibleSections(profile: ProfileRow): NavSection[] {
-  return NAV_SECTION_DEFINITIONS.map((section) => ({
-    label: section.label,
-    items: section.items
-      .filter((item) => !item.visible || item.visible(profile))
-      .map(({ href, label, icon }): NavItem => ({ href, label, icon })),
-  })).filter((section) => section.items.length > 0)
+function resolve(items: NavItemDefinition[], profile: ProfileRow): NavItem[] {
+  return items
+    .filter((item) => !item.visible || item.visible(profile))
+    .map(({ href, label, icon }): NavItem => ({ href, label, icon }))
+}
+
+export function visibleNavigation(profile: ProfileRow): Navigation {
+  const settings = SETTINGS.visible?.(profile) ?? true
+  return {
+    primary: resolve(PRIMARY, profile),
+    more: resolve(MORE, profile),
+    settings: settings ? { href: SETTINGS.href, label: SETTINGS.label, icon: SETTINGS.icon } : null,
+  }
 }

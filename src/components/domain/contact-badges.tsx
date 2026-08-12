@@ -99,6 +99,12 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   text_message: 'Text message',
   visit: 'Visit',
   prayer_request: 'Prayer request',
+  outreach_attempt: 'Attempted contact',
+  call_report: 'Call report',
+  proposal_created: 'Proposal opened',
+  proposal_stage_changed: 'Proposal moved',
+  proposal_closed: 'Proposal closed',
+  event_attended: 'Attended an event',
   follow_up_created: 'Follow-up created',
   follow_up_completed: 'Follow-up completed',
   engagement_started: 'Engagement started',
@@ -128,6 +134,7 @@ export const MANUAL_ACTIVITY_TYPES = [
   'meeting',
   'text_message',
   'visit',
+  'outreach_attempt',
   'prayer_request',
 ] as const satisfies readonly ActivityType[]
 

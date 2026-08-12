@@ -25,10 +25,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {
-    // Server Actions receive contact/donor data; keep the payload ceiling tight
-    // but large enough for CSV import previews.
+    // Server Actions receive contact/donor data and, since attachments landed,
+    // the files themselves: proposal documents, estate papers and scans all
+    // route through `uploadAttachment`. 24mb leaves headroom above the 20mb
+    // per-file ceiling that action enforces, so an oversized file is refused
+    // with a sentence rather than a framework error.
     serverActions: {
-      bodySizeLimit: '4mb',
+      bodySizeLimit: '24mb',
     },
   },
   async headers() {

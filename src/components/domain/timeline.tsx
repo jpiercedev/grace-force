@@ -1,7 +1,10 @@
 import {
   Ban,
+  CalendarDays,
   CheckCircle2,
   CheckSquare,
+  FileSignature,
+  FileText,
   HandCoins,
   HandHeart,
   Handshake,
@@ -14,6 +17,7 @@ import {
   MessageSquare,
   MousePointerClick,
   Phone,
+  PhoneMissed,
   Pin,
   Send,
   Settings,
@@ -66,6 +70,12 @@ const TIMELINE_STYLES: Record<ActivityType, TimelineStyle> = {
   text_message: { icon: MessageSquare, className: 'bg-brand-50 text-brand-700' },
   visit: { icon: MapPin, className: 'bg-accent-50 text-accent-700' },
   prayer_request: { icon: HandHeart, className: 'bg-accent-50 text-accent-700' },
+  outreach_attempt: { icon: PhoneMissed, className: 'bg-slate-100 text-slate-600' },
+  call_report: { icon: FileText, className: 'bg-accent-50 text-accent-700' },
+  proposal_created: { icon: FileSignature, className: 'bg-brand-50 text-brand-700' },
+  proposal_stage_changed: { icon: FileSignature, className: 'bg-slate-100 text-slate-600' },
+  proposal_closed: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-700' },
+  event_attended: { icon: CalendarDays, className: 'bg-accent-50 text-accent-700' },
   follow_up_created: { icon: CheckSquare, className: 'bg-amber-50 text-amber-700' },
   follow_up_completed: { icon: CheckCircle2, className: 'bg-emerald-50 text-emerald-700' },
   engagement_started: { icon: Handshake, className: 'bg-emerald-50 text-emerald-700' },
@@ -217,6 +227,15 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
             )}
           >
             {activity.body}
+          </p>
+        ) : null}
+
+        {/* The outcome is the line someone scans when catching up, so it gets
+            its own weight rather than being folded into the meta line. */}
+        {activity.outcome ? (
+          <p className="mt-1.5 text-sm font-medium text-slate-800">
+            <span className="text-slate-500">Outcome: </span>
+            {activity.outcome}
           </p>
         ) : null}
 

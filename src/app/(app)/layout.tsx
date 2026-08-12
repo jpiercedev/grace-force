@@ -1,6 +1,6 @@
 import { signOut } from '@/app/(auth)/actions'
 import { AppShell } from '@/components/layout/app-shell'
-import { visibleSections } from '@/components/layout/nav'
+import { visibleNavigation } from '@/components/layout/nav'
 import { requireProfile } from '@/lib/auth'
 
 /**
@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       profile={profile}
-      sections={visibleSections(profile)}
+      navigation={visibleNavigation(profile)}
       signOutAction={handleSignOut}
     >
       {children}

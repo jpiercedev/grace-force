@@ -14,9 +14,18 @@ import {
   optionalUuid,
   requiredDate,
   requiredText,
-  toFieldErrors,
   type ContactActionState,
 } from '@/lib/validation/contact'
+import {
+  invalid,
+  isUniqueViolation,
+  localDateTimeToIso,
+  text,
+  timezoneOffset,
+  today,
+  uuidField,
+  writeFailed,
+} from '@/lib/validation/form-data'
 
 const CONTACT_FORM_FIELDS = [
   'first_name',
@@ -45,61 +54,6 @@ const CONTACT_FORM_FIELDS = [
   'tags',
   'notes',
 ] as const
-
-const DATETIME_LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
-
-function text(formData: FormData, key: string): string | null {
-  const value = formData.get(key)
-  return typeof value === 'string' ? value : null
-}
-
-function uuidField(message: string) {
-  return z
-    .string({ required_error: message, invalid_type_error: message })
-    .trim()
-    .uuid(message)
-}
-
-function invalid(error: z.ZodError): ContactActionState {
-  return { error: 'Check the highlighted fields and try again.', fieldErrors: toFieldErrors(error) }
-}
-
-/**
- * Turns a driver error into something a person can act on. The codes matter:
- * 23505 is the one-live-engagement-per-type index, and 42501 is Row Level
- * Security refusing the write — both are expected outcomes, not crashes.
- */
-function writeFailed(error: { code?: string; message: string }, fallback: string): string {
-  if (error.code === '42501') return 'You do not have permission to make that change.'
-  if (error.code === '23514') return 'That combination of values is not allowed.'
-  return fallback
-}
-
-function isUniqueViolation(error: { code?: string }): boolean {
-  return error.code === '23505'
-}
-
-/**
- * `datetime-local` submits wall-clock time with no zone. Reading it as UTC and
- * re-adding the browser's own offset recovers the instant the person meant,
- * instead of silently reinterpreting it in whatever zone the server runs in.
- */
-function localDateTimeToIso(value: string, offsetMinutes: number): string | null {
-  if (!DATETIME_LOCAL.test(value)) return null
-  const withSeconds = value.length === 16 ? `${value}:00` : value
-  const asUtc = Date.parse(`${withSeconds}Z`)
-  if (Number.isNaN(asUtc)) return null
-  return new Date(asUtc + offsetMinutes * 60_000).toISOString()
-}
-
-function timezoneOffset(formData: FormData): number {
-  const parsed = Number.parseInt(text(formData, 'tz_offset') ?? '', 10)
-  return Number.isFinite(parsed) && Math.abs(parsed) <= 900 ? parsed : 0
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 // --- Contacts ---------------------------------------------------------------
 

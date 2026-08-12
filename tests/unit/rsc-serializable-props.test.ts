@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as navModule from '@/components/layout/nav'
-import { visibleSections } from '@/components/layout/nav'
+import { visibleNavigation } from '@/components/layout/nav'
 import type { ProfileRow, UserRole } from '@/types/database'
 
 /**
@@ -13,7 +13,7 @@ import type { ProfileRow, UserRole } from '@/types/database'
  *   explicitly expose it by marking it with "use server".
  *
  * That is exactly what happened: nav items carried a `visible` predicate, and
- * `visibleSections` filtered with `Array.prototype.filter`, which returns the
+ * the resolver filtered with `Array.prototype.filter`, which returns the
  * *same* objects — predicate attached — straight into `<AppShell>`.
  *
  * Nothing in the type system catches a stray function on a plain object, and
@@ -88,31 +88,31 @@ describe('findFunctionPaths', () => {
 describe('navigation crossing to the client', () => {
   for (const [label, row] of PROFILES) {
     it(`carries no function values for a ${label}`, () => {
-      const sections = visibleSections(row)
-      const functions = findFunctionPaths(sections)
+      const navigation = visibleNavigation(row)
+      const functions = findFunctionPaths(navigation)
 
       expect(
         functions,
-        `visibleSections() returned function-valued props at: ${functions.join(', ')}. ` +
+        `visibleNavigation() returned function-valued props at: ${functions.join(', ')}. ` +
           'These reach <AppShell>, a Client Component, and will throw in production. ' +
           'Evaluate the predicate on the server and emit plain data instead.',
       ).toEqual([])
     })
 
     it(`survives a serialisation round-trip for a ${label}`, () => {
-      const sections = visibleSections(row)
+      const navigation = visibleNavigation(row)
       // JSON is stricter than React's serialiser, but anything that survives it
       // is certainly safe to hand across the boundary.
-      expect(JSON.parse(JSON.stringify(sections))).toEqual(sections)
+      expect(JSON.parse(JSON.stringify(navigation))).toEqual(navigation)
     })
   }
 
   it('emits exactly the wire fields, so nothing can ride along unnoticed', () => {
-    for (const section of visibleSections(profile({ role: 'admin', can_view_giving: true }))) {
-      expect(Object.keys(section).sort()).toEqual(['items', 'label'])
-      for (const item of section.items) {
-        expect(Object.keys(item).sort()).toEqual(['href', 'icon', 'label'])
-      }
+    const navigation = visibleNavigation(profile({ role: 'admin', can_view_giving: true }))
+    expect(Object.keys(navigation).sort()).toEqual(['more', 'primary', 'settings'])
+    for (const item of [...navigation.primary, ...navigation.more, navigation.settings]) {
+      expect(item).not.toBeNull()
+      expect(Object.keys(item!).sort()).toEqual(['href', 'icon', 'label'])
     }
   })
 
@@ -120,8 +120,9 @@ describe('navigation crossing to the client', () => {
     // If the definitions were exported, a server component could pass them
     // straight through and reintroduce the bug.
     const exported = Object.keys(navModule)
-    expect(exported).not.toContain('NAV_SECTIONS')
-    expect(exported).not.toContain('NAV_SECTION_DEFINITIONS')
+    expect(exported).not.toContain('PRIMARY')
+    expect(exported).not.toContain('MORE')
+    expect(exported).not.toContain('SETTINGS')
 
     for (const name of exported) {
       const value = navModule[name as keyof typeof navModule]
@@ -134,18 +135,17 @@ describe('navigation crossing to the client', () => {
 
 describe('navigation still filters correctly after the refactor', () => {
   function hrefs(row: ProfileRow): string[] {
-    return visibleSections(row).flatMap((section) => section.items.map((item) => item.href))
+    const navigation = visibleNavigation(row)
+    return [
+      ...navigation.primary.map((item) => item.href),
+      ...navigation.more.map((item) => item.href),
+      ...(navigation.settings ? [navigation.settings.href] : []),
+    ]
   }
 
-  it('shows admin-only destinations to admins', () => {
-    const visible = hrefs(profile({ role: 'admin', can_view_giving: true }))
-    expect(visible).toEqual(expect.arrayContaining(['/settings/team', '/settings/integrations']))
-  })
-
-  it('hides admin destinations from staff', () => {
-    const visible = hrefs(profile({ role: 'staff' }))
-    expect(visible).not.toContain('/settings/team')
-    expect(visible).not.toContain('/settings/integrations')
+  it('shows the settings entry to admins only', () => {
+    expect(hrefs(profile({ role: 'admin', can_view_giving: true }))).toContain('/settings/team')
+    expect(hrefs(profile({ role: 'staff' }))).not.toContain('/settings/team')
   })
 
   it('hides write destinations from viewers', () => {
@@ -154,24 +154,32 @@ describe('navigation still filters correctly after the refactor', () => {
     expect(visible).not.toContain('/import')
     expect(visible).not.toContain('/export')
     // Read-only destinations remain.
-    expect(visible).toEqual(expect.arrayContaining(['/dashboard', '/contacts', '/search']))
+    expect(visible).toEqual(expect.arrayContaining(['/dashboard', '/contacts', '/events']))
   })
 
-  it('gates giving on the flag rather than the role', () => {
-    expect(hrefs(profile({ role: 'staff', can_view_giving: true }))).toContain('/giving')
-    expect(hrefs(profile({ role: 'staff', can_view_giving: false }))).not.toContain('/giving')
+  it('gates giving and proposals on the flag rather than the role', () => {
+    const withGiving = hrefs(profile({ role: 'staff', can_view_giving: true }))
+    const without = hrefs(profile({ role: 'staff', can_view_giving: false }))
+    expect(withGiving).toEqual(expect.arrayContaining(['/giving', '/proposals']))
+    expect(without).not.toContain('/giving')
+    expect(without).not.toContain('/proposals')
   })
 
-  it('drops a section entirely once all of its items are hidden', () => {
-    const sections = visibleSections(profile({ role: 'viewer' }))
-    // 'Data' holds only Import and Export, both write-gated.
-    expect(sections.map((s) => s.label)).not.toContain('Data')
-    expect(sections.map((s) => s.label)).not.toContain('Admin')
+  it('keeps the primary rail to six destinations at most', () => {
+    // The whole point of the redesign: the rail is a short list of everyday
+    // places, not an index of the database.
+    for (const [, row] of PROFILES) {
+      expect(visibleNavigation(row).primary.length).toBeLessThanOrEqual(6)
+    }
+  })
+
+  it('never puts search in the rail — it is a field in the header', () => {
+    expect(hrefs(profile({ role: 'admin', can_view_giving: true }))).not.toContain('/search')
   })
 
   it('shows nothing capability-gated to an inactive profile', () => {
     const visible = hrefs(profile({ role: 'admin', is_active: false, can_view_giving: true }))
-    for (const gated of ['/leads', '/giving', '/import', '/export', '/settings/team']) {
+    for (const gated of ['/leads', '/giving', '/proposals', '/import', '/export', '/settings/team']) {
       expect(visible).not.toContain(gated)
     }
   })

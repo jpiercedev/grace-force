@@ -1,28 +1,31 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
+  CalendarDays,
   CheckSquare,
+  ChevronDown,
   Download,
+  FileSignature,
+  FileText,
   HandCoins,
   Inbox,
   KanbanSquare,
   LayoutDashboard,
   Mail,
   Menu,
-  Plug,
   Search,
+  Settings,
   Upload,
-  UserCog,
   Users,
   X,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar } from '@/components/ui/display'
-import type { NavSection } from './nav'
+import type { NavItem, Navigation } from './nav'
 import type { ProfileRow } from '@/types/database'
 import { ROLE_LABELS } from '@/lib/permissions'
 
@@ -32,17 +35,18 @@ import { ROLE_LABELS } from '@/lib/permissions'
  */
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
-  Search,
   Users,
   CheckSquare,
+  FileSignature,
+  CalendarDays,
+  FileText,
+  HandCoins,
   KanbanSquare,
   Inbox,
-  HandCoins,
   Mail,
   Upload,
   Download,
-  UserCog,
-  Plug,
+  Settings,
 }
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -72,15 +76,6 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
       >
         Grace Force
       </span>
-      <span
-        className={cn(
-          'text-[10px] font-semibold uppercase tracking-[0.14em]',
-          // AA floor even for this whisper of a label.
-          onDark ? 'text-white/70' : 'text-slate-500',
-        )}
-      >
-        CRM
-      </span>
     </span>
   )
 }
@@ -90,67 +85,157 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 /**
- * Navigation on the ink rail. The active item carries three quiet signals —
- * a soft wash, full-strength text, and a short evergreen bar — so "where am
- * I" survives any one of them being missed.
+ * The active item carries three quiet signals — a soft wash, full-strength
+ * text, and a short evergreen bar — so "where am I" survives any one of them
+ * being missed.
  */
-function NavLinks({ sections, onNavigate }: { sections: NavSection[]; onNavigate?: () => void }) {
+function NavLink({
+  item,
+  active,
+  onNavigate,
+}: {
+  item: NavItem
+  active: boolean
+  onNavigate?: () => void
+}) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        // Taller rows below lg: the drawer is a touch surface.
+        'relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 lg:py-2',
+        active ? 'bg-white/[0.08] text-white' : 'text-white/65 hover:bg-white/[0.05] hover:text-white',
+      )}
+    >
+      {active ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand-400"
+        />
+      ) : null}
+      <Icon
+        name={item.icon}
+        className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-brand-300' : 'text-white/45')}
+      />
+      {item.label}
+    </Link>
+  )
+}
+
+/**
+ * Six everyday destinations, then everything else behind one disclosure.
+ *
+ * "More" opens by default when the current page lives inside it, so a person
+ * on the Giving screen still sees where they are — the collapse is about the
+ * resting state of the rail, not about hiding the page you are on.
+ */
+function NavLinks({ navigation, onNavigate }: { navigation: Navigation; onNavigate?: () => void }) {
   const pathname = usePathname()
+  const insideMore = navigation.more.some((item) => isActivePath(pathname, item.href))
+  const [moreOpen, setMoreOpen] = useState(insideMore)
+
+  // Navigating into the group from elsewhere should reveal it rather than
+  // leaving the active item hidden behind a closed toggle.
+  useEffect(() => {
+    if (insideMore) setMoreOpen(true)
+  }, [insideMore])
 
   return (
-    <nav aria-label="Main" className="flex-1 space-y-7 overflow-y-auto px-3 py-5">
-      {sections.map((section) => (
-        <div key={section.label}>
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
-            {section.label}
-          </p>
-          <ul className="space-y-0.5">
-            {section.items.map((item) => {
-              const active = isActivePath(pathname, item.href)
-              return (
+    <div className="flex-1 overflow-y-auto px-3 py-4">
+      <nav aria-label="Main">
+        <ul className="space-y-0.5">
+          {navigation.primary.map((item) => (
+            <li key={item.href}>
+              <NavLink
+                item={item}
+                active={isActivePath(pathname, item.href)}
+                onNavigate={onNavigate}
+              />
+            </li>
+          ))}
+        </ul>
+
+        {navigation.more.length > 0 ? (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setMoreOpen((open) => !open)}
+              aria-expanded={moreOpen}
+              aria-controls="nav-more"
+              className="flex w-full items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50 transition-colors hover:text-white/80"
+            >
+              More
+              <ChevronDown
+                aria-hidden="true"
+                className={cn(
+                  'h-3.5 w-3.5 transition-transform duration-150',
+                  moreOpen && 'rotate-180',
+                )}
+              />
+            </button>
+            <ul id="nav-more" className="space-y-0.5" hidden={!moreOpen}>
+              {navigation.more.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onNavigate}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      // Taller rows below lg: the drawer is a touch surface.
-                      'relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150 lg:py-2',
-                      active
-                        ? 'bg-white/[0.08] text-white'
-                        : 'text-white/65 hover:bg-white/[0.05] hover:text-white',
-                    )}
-                  >
-                    {active ? (
-                      <span
-                        aria-hidden="true"
-                        className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand-400"
-                      />
-                    ) : null}
-                    <Icon
-                      name={item.icon}
-                      className={cn('h-4 w-4 shrink-0', active ? 'text-brand-300' : 'text-white/40')}
-                    />
-                    {item.label}
-                  </Link>
+                  <NavLink
+                    item={item}
+                    active={isActivePath(pathname, item.href)}
+                    onNavigate={onNavigate}
+                  />
                 </li>
-              )
-            })}
-          </ul>
-        </div>
-      ))}
-    </nav>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </nav>
+    </div>
+  )
+}
+
+/**
+ * Search is a field, not a destination.
+ *
+ * It submits with GET to /search, so it works before hydration and a result
+ * page can be linked or bookmarked. `key` on the input resets the visible
+ * value when the query changes, which stops a stale term sitting in the box
+ * after navigating away.
+ */
+function SearchField({ className }: { className?: string }) {
+  const params = useSearchParams()
+  const current = params.get('q') ?? ''
+
+  return (
+    <form action="/search" role="search" className={cn('relative', className)}>
+      <label htmlFor="global-search" className="sr-only">
+        Search people
+      </label>
+      <Search
+        aria-hidden="true"
+        className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+      />
+      <input
+        id="global-search"
+        key={current}
+        type="search"
+        name="q"
+        defaultValue={current}
+        placeholder="Search people…"
+        autoComplete="off"
+        className="h-10 w-full rounded-lg bg-white px-3 py-2 pl-9 text-base text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500 sm:text-sm"
+      />
+    </form>
   )
 }
 
 export function AppShell({
   profile,
-  sections,
+  navigation,
   signOutAction,
   children,
 }: {
   profile: ProfileRow
-  sections: NavSection[]
+  navigation: Navigation
   signOutAction: () => Promise<void>
   children: React.ReactNode
 }) {
@@ -182,7 +267,7 @@ export function AppShell({
       }
       if (event.key !== 'Tab' || !drawerRef.current) return
       const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        'a[href], button:not([disabled]), input, [tabindex]:not([tabindex="-1"])',
       )
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
@@ -215,12 +300,13 @@ export function AppShell({
           evergreen-ink rail that gives the app its silhouette and makes the
           parchment canvas feel light. Sticky so navigation and Sign out stay
           reachable on long pages. */}
-      <aside className="hidden w-64 shrink-0 flex-col bg-ink lg:sticky lg:top-0 lg:flex lg:h-dvh">
+      <aside className="hidden w-60 shrink-0 flex-col bg-ink lg:sticky lg:top-0 lg:flex lg:h-dvh">
         <div className="flex h-16 shrink-0 items-center border-b border-ink-line px-5">
           <Brand onDark />
         </div>
-        <NavLinks sections={sections} />
-        <UserFooter
+        <NavLinks navigation={navigation} />
+        <NavFooter
+          settings={navigation.settings}
           displayName={displayName}
           email={profile.email}
           role={ROLE_LABELS[profile.role]}
@@ -260,8 +346,9 @@ export function AppShell({
                 <X className="h-6 w-6" />
               </button>
             </div>
-            <NavLinks sections={sections} onNavigate={() => setMobileOpen(false)} />
-            <UserFooter
+            <NavLinks navigation={navigation} onNavigate={() => setMobileOpen(false)} />
+            <NavFooter
+              settings={navigation.settings}
               displayName={displayName}
               email={profile.email}
               role={ROLE_LABELS[profile.role]}
@@ -274,20 +361,31 @@ export function AppShell({
       {/* inert while the drawer is open: aria-modal alone does not stop Tab
           from wandering into content hidden behind the backdrop. */}
       <div className="flex min-w-0 flex-1 flex-col" inert={mobileOpen || undefined}>
-        {/* Sticky topbar: the hamburger is the only way into navigation on
-            phones, and pages here run thousands of pixels tall. */}
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur-sm lg:hidden">
+        {/* Sticky header. On phones the hamburger is the only way into
+            navigation and pages run thousands of pixels tall; on desktop the
+            bar exists to carry search, which every screen should be one
+            keystroke away from. */}
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-slate-200 bg-slate-50/95 px-3 backdrop-blur-sm sm:px-6 lg:h-16 lg:px-10">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2.5 text-slate-600 transition-colors hover:bg-slate-100"
+            className="-ml-1 rounded-lg p-2.5 text-slate-600 transition-colors hover:bg-slate-200/70 lg:hidden"
             aria-label="Open navigation"
             aria-expanded={mobileOpen}
           >
             <Menu className="h-6 w-6" />
           </button>
-          <Brand />
+          <div className="lg:hidden">
+            <Brand />
+          </div>
+          <SearchField className="ml-auto hidden w-full max-w-sm lg:block" />
         </header>
+
+        {/* Search moves under the bar on phones, where it cannot share a row
+            with the wordmark without both being unusable. */}
+        <div className="border-b border-slate-200 bg-slate-50 px-4 py-2.5 sm:px-6 lg:hidden">
+          <SearchField />
+        </div>
 
         <main id="main-content" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
@@ -297,19 +395,28 @@ export function AppShell({
   )
 }
 
-function UserFooter({
+function NavFooter({
+  settings,
   displayName,
   email,
   role,
   signOutAction,
 }: {
+  settings: NavItem | null
   displayName: string
   email: string
   role: string
   signOutAction: () => Promise<void>
 }) {
+  const pathname = usePathname()
+
   return (
     <div className="shrink-0 border-t border-ink-line px-3 py-3">
+      {settings ? (
+        <div className="mb-2">
+          <NavLink item={settings} active={isActivePath(pathname, '/settings')} />
+        </div>
+      ) : null}
       <div className="flex items-center gap-2.5 px-2">
         <Avatar name={displayName} />
         <div className="min-w-0 flex-1">

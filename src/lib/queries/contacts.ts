@@ -104,6 +104,8 @@ export interface TimelineActivity {
   source: ActivitySource
   subject: string | null
   body: string | null
+  /** How the interaction went. Null for machine-written entries. */
+  outcome: string | null
   occurred_at: string
   is_pinned: boolean
   actor: TeamMember | null
@@ -168,7 +170,7 @@ const CONTACT_LIST_COLUMNS = `
 `
 
 const ACTIVITY_COLUMNS = `
-  id, type, direction, source, subject, body, occurred_at, is_pinned, actor_id, actor_label
+  id, type, direction, source, subject, body, outcome, occurred_at, is_pinned, actor_id, actor_label
 `
 
 function fail(what: string, error: { message: string }): never {
@@ -494,6 +496,7 @@ export async function getContactTimeline(
       source: row.source,
       subject: row.subject,
       body: row.body,
+      outcome: row.outcome,
       occurred_at: row.occurred_at,
       is_pinned: row.is_pinned,
       actor: row.actor_id ? (members.get(row.actor_id) ?? null) : null,
