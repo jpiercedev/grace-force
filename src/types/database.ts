@@ -53,6 +53,12 @@ export type ActivityType =
   | 'text_message'
   | 'visit'
   | 'prayer_request'
+  | 'outreach_attempt'
+  | 'call_report'
+  | 'proposal_created'
+  | 'proposal_stage_changed'
+  | 'proposal_closed'
+  | 'event_attended'
   | 'follow_up_created'
   | 'follow_up_completed'
   | 'engagement_started'
@@ -103,6 +109,66 @@ export type MailchimpMemberStatus =
 
 export type MailchimpAction = 'sent' | 'open' | 'click' | 'bounce' | 'unsub' | 'abuse'
 
+// --- Relationship development ------------------------------------------------
+
+/**
+ * A link reads "<from> is the <kind> of <to>". One row therefore answers both
+ * directions — see `docs/DATA_MODEL.md` and the label maps in
+ * `@/lib/relationships`.
+ */
+export type RelationshipKind =
+  | 'spouse'
+  | 'partner'
+  | 'parent'
+  | 'child'
+  | 'sibling'
+  | 'family_member'
+  | 'friend'
+  | 'colleague'
+  | 'business_associate'
+  | 'professional_advisor'
+  | 'employer'
+  | 'referrer'
+  | 'introducer'
+  | 'other'
+
+export type ContactMethod = 'email' | 'phone' | 'text' | 'mail'
+
+export type CapabilityLevel = 'unrated' | 'modest' | 'moderate' | 'significant' | 'major'
+
+export type CapabilityConfidence = 'low' | 'medium' | 'high'
+
+export type EventKind =
+  | 'gathering'
+  | 'service'
+  | 'banquet'
+  | 'tour'
+  | 'meeting'
+  | 'conference'
+  | 'volunteer'
+  | 'other'
+
+export type EventAttendance = 'invited' | 'attended' | 'declined' | 'no_show'
+
+export type ProposalKind =
+  | 'trust'
+  | 'charitable_gift_annuity'
+  | 'outright_gift'
+  | 'estate_gift'
+  | 'other_planned_gift'
+
+export type ProposalStatus =
+  | 'exploring'
+  | 'drafted'
+  | 'presented'
+  | 'committed'
+  | 'funded'
+  | 'declined'
+
+export type MeetingKind = 'in_person' | 'video' | 'phone' | 'event' | 'other'
+
+export type CallReportStatus = 'draft' | 'filed'
+
 // --- Row shapes -------------------------------------------------------------
 
 export type ProfileRow = {
@@ -150,6 +216,15 @@ export type ContactRow = {
   owner_id: string | null
   do_not_contact: boolean
   do_not_email: boolean
+  do_not_call: boolean
+  do_not_text: boolean
+  do_not_mail: boolean
+  preferred_contact_method: ContactMethod | null
+  /** Free text, not a pointer at `phone`/`mobile_phone`. */
+  preferred_phone: string | null
+  preferred_email: string | null
+  best_time_to_contact: string | null
+  contact_preference_notes: string | null
   birthday: string | null
   tags: string[]
   notes: string | null
@@ -255,17 +330,154 @@ export type ActivityRow = {
   contact_id: string
   engagement_id: string | null
   pipeline_card_id: string | null
+  event_id: string | null
+  proposal_id: string | null
+  call_report_id: string | null
   type: ActivityType
   direction: ActivityDirection
   source: ActivitySource
   subject: string | null
   body: string | null
+  outcome: string | null
   occurred_at: string
   actor_id: string | null
   actor_label: string | null
   metadata: Json
   dedupe_key: string | null
   is_pinned: boolean
+  created_at: string
+}
+
+// --- Relationship development rows -------------------------------------------
+
+export type InterestAreaRow = {
+  id: string
+  slug: string
+  label: string
+  description: string | null
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type ContactInterestRow = {
+  id: string
+  contact_id: string
+  interest_area_id: string
+  note: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type ContactRelationshipRow = {
+  id: string
+  from_contact_id: string
+  to_contact_id: string
+  kind: RelationshipKind
+  note: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ContactCapabilityRow = {
+  contact_id: string
+  level: CapabilityLevel
+  range_low_cents: number | null
+  range_high_cents: number | null
+  confidence: CapabilityConfidence | null
+  source: string | null
+  reviewed_on: string | null
+  notes: string | null
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type EventRow = {
+  id: string
+  name: string
+  kind: EventKind
+  event_date: string
+  start_time: string | null
+  location: string | null
+  description: string | null
+  owner_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type EventAttendeeRow = {
+  id: string
+  event_id: string
+  contact_id: string
+  status: EventAttendance
+  note: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ProposalRow = {
+  id: string
+  contact_id: string
+  joint_contact_id: string | null
+  title: string
+  kind: ProposalKind
+  status: ProposalStatus
+  purpose: string | null
+  notes: string | null
+  opened_on: string
+  expected_close_on: string | null
+  closed_at: string | null
+  owner_id: string | null
+  currency: string
+  charitable_amount_cents: number | null
+  fair_market_value_cents: number | null
+  estimated_deduction_cents: number | null
+  expected_benefit_cents: number | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CallReportRow = {
+  id: string
+  contact_id: string
+  proposal_id: string | null
+  status: CallReportStatus
+  met_on: string
+  met_at_time: string | null
+  meeting_kind: MeetingKind
+  location: string | null
+  author_id: string | null
+  staff_attendee_ids: string[]
+  external_attendees: string | null
+  summary: string | null
+  discussion_points: string | null
+  interests_expressed: string | null
+  concerns: string | null
+  commitments: string | null
+  next_steps: string | null
+  follow_up_on: string | null
+  follow_up_id: string | null
+  filed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AttachmentRow = {
+  id: string
+  contact_id: string
+  call_report_id: string | null
+  proposal_id: string | null
+  storage_path: string
+  file_name: string
+  mime_type: string | null
+  size_bytes: number | null
+  uploaded_by: string | null
   created_at: string
 }
 
@@ -557,6 +769,15 @@ export type Database = {
       import_batches: Table<ImportBatchRow>
       import_rows: Table<ImportRowRow>
       rate_limit_hits: Table<{ bucket: string; window_start: string; hits: number }>
+      interest_areas: Table<InterestAreaRow>
+      contact_interests: Table<ContactInterestRow>
+      contact_relationships: Table<ContactRelationshipRow>
+      contact_capability: Table<ContactCapabilityRow>
+      events: Table<EventRow>
+      event_attendees: Table<EventAttendeeRow>
+      proposals: Table<ProposalRow>
+      call_reports: Table<CallReportRow>
+      attachments: Table<AttachmentRow>
     }
     Views: {
       contact_giving_summary: {
@@ -599,6 +820,16 @@ export type Database = {
       sync_status: SyncStatus
       notification_status: NotificationStatus
       import_status: ImportStatus
+      relationship_kind: RelationshipKind
+      contact_method: ContactMethod
+      capability_level: CapabilityLevel
+      capability_confidence: CapabilityConfidence
+      event_kind: EventKind
+      event_attendance: EventAttendance
+      proposal_kind: ProposalKind
+      proposal_status: ProposalStatus
+      meeting_kind: MeetingKind
+      call_report_status: CallReportStatus
     }
     CompositeTypes: Record<never, never>
   }

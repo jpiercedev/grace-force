@@ -53,6 +53,15 @@ describe('database types match the schema', () => {
       import_batches: 0,
       import_rows: 0,
       rate_limit_hits: 0,
+      interest_areas: 0,
+      contact_interests: 0,
+      contact_relationships: 0,
+      contact_capability: 0,
+      events: 0,
+      event_attendees: 0,
+      proposals: 0,
+      call_reports: 0,
+      attachments: 0,
     } satisfies Record<keyof Database['public']['Tables'], number>) as string[]).sort()
 
     expect(actual).toEqual(declared)
@@ -122,6 +131,29 @@ describe('database types match the schema', () => {
       'lapsed',
       'ended',
     ])
+    expect(byName.get('proposal_status')).toEqual([
+      'exploring',
+      'drafted',
+      'presented',
+      'committed',
+      'funded',
+      'declined',
+    ])
+    expect(byName.get('call_report_status')).toEqual(['draft', 'filed'])
+    expect(byName.get('event_attendance')).toEqual([
+      'invited',
+      'attended',
+      'declined',
+      'no_show',
+    ])
+    expect(byName.get('capability_level')).toEqual([
+      'unrated',
+      'modest',
+      'moderate',
+      'significant',
+      'major',
+    ])
+    expect(byName.get('contact_method')).toEqual(['email', 'phone', 'text', 'mail'])
   })
 
   it('exposes no generated columns as writable in the Insert types', async () => {
