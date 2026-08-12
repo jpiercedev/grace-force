@@ -145,17 +145,9 @@ export function ContactDetailsPanel({ contact }: { contact: ContactRow }) {
             <time dateTime={contact.updated_at}>{formatDate(contact.updated_at)}</time>
           </Row>
         </dl>
-
-        {contact.notes ? (
-          <div className="mt-3 border-t border-slate-100 pt-3">
-            <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-              Notes
-            </h3>
-            <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700">
-              {contact.notes}
-            </p>
-          </div>
-        ) : null}
+        {/* `notes` is rendered as the relationship summary at the head of the
+            Overview tab. Repeating it here printed the same paragraph twice on
+            one screen — the exact redundancy the redesign set out to remove. */}
       </CardBody>
     </Card>
   )

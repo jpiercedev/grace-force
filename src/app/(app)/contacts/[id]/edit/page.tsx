@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/display'
 import { requireWriteAccess } from '@/lib/auth'
 import { contactName, getContact, listTeamMembers } from '@/lib/queries/contacts'
 
-export const metadata = { title: 'Edit contact' }
+export const metadata = { title: 'Edit person' }
 
 export default async function EditContactPage({
   params,
@@ -20,7 +20,6 @@ export default async function EditContactPage({
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        eyebrow="Contacts"
         title={`Edit ${contactName(contact)}`}
         description="Changes apply to the record as soon as they are saved."
       />

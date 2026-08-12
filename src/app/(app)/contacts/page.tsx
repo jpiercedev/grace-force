@@ -12,7 +12,7 @@ import {
   parseContactListFilters,
 } from '@/lib/queries/contacts'
 
-export const metadata = { title: 'Contacts' }
+export const metadata = { title: 'People' }
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -37,17 +37,17 @@ export default async function ContactsPage({
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Contacts"
+        title="People"
         description="Everyone Grace Force is in relationship with."
         action={
           writable ? (
-            <LinkButton href="/contacts/new">New contact</LinkButton>
+            <LinkButton href="/contacts/new" size="lg">Add person</LinkButton>
           ) : null
         }
       />
 
       {params.archived ? (
-        <Callout tone="success">That contact has been archived.</Callout>
+        <Callout tone="success">That person has been archived.</Callout>
       ) : null}
 
       <ContactFilters filters={filters} team={team} engagementTypes={engagementTypes} />
@@ -69,7 +69,7 @@ export default async function ContactsPage({
               title="No contacts yet"
               description="Add the first person Grace Force is in relationship with, or bring a list in from a CSV."
               action={
-                writable ? <LinkButton href="/contacts/new">Add a contact</LinkButton> : null
+                writable ? <LinkButton href="/contacts/new">Add a person</LinkButton> : null
               }
             />
           )}

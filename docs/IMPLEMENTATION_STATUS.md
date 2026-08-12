@@ -3,18 +3,75 @@
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-12
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | Visual-polish pass complete on `claude/crm-visual-design-polish-eevkm0`; awaiting review/merge |
-| Current branch | `claude/crm-visual-design-polish-eevkm0` (from `claude/crm-bridge-implementation-zj6y21`) |
-| Overall status | Feature-complete and deployed; three production faults found and fixed (see below); full UI polish pass applied |
-| Tests | 475 Vitest + 28 browser passing; 8 browser skipped (blocked by sandbox egress, see below) |
-| Build | `next build` succeeds — 36 routes |
-| Deployment | `grace-force` on Vercel (`prj_X6jiKLWkjr7y5pc3TxHpw3NsMkkf`), production target, git-connected |
+| Current phase | Simplification redesign complete on `claude/crm-redesign-simplicity-0zqxek`; awaiting review/merge |
+| Overall status | Feature-complete. Seven new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
+| Tests | 534 Vitest (28 files) + 28 browser `@public` passing |
+| Build | `next build` succeeds — 45 routes |
+| Deployment | `grace-force` on Vercel, production target, git-connected |
+
+## The simplification redesign (2026-08-12)
+
+The brief: Salesforce capability, dramatically less cognitive load. The audit
+is in `docs/UX_AUDIT.md` — read it before changing any of this, because most
+of the structure below is a direct answer to something recorded there.
+
+**Schema.** Seven migrations (`20260806000100`–`20260806000700`) add what the
+gap analysis found missing: related constituents, philanthropic interests,
+giving capability, events and attendance, proposals and planned gifts, call
+reports, and attachments. Plus communication preferences and an interaction
+outcome on existing tables. Every table has RLS, indexes and tests; capability
+and proposals follow `can_view_giving()`. See `docs/DATA_MODEL.md` for the
+three decisions worth knowing.
+
+**Navigation.** Twelve always-visible destinations in four labelled groups
+became six primary, a collapsed "More" group, and one Settings entry. Search
+left the rail and became a header field. No route moved.
+
+**The donor record.** Three layers instead of nine stacked cards: a header
+(who / owner / how to reach them / one primary action), a six-column glance
+strip, and one tab at a time — Activity, Overview, Giving, Proposals, Events,
+Relationships, Files. Tabs are `?tab=` links, so each is a real URL.
+
+**Logging an interaction** is a dialog with nine plain-language choices, one
+required field, and the follow-up built in. The `(type, direction)` pair the
+timeline stores is derived from the choice.
+
+**Call reports** are written in the order a person recalls a meeting, nothing
+required but the date, drafts private until filed. **Proposals** lead with the
+summary and keep the planned-giving figures behind a disclosure whose fields
+depend on the proposal type. **Events** stay small: what is coming up, what
+happened, who was there.
+
+**Forms.** Adding a person asks six things; the other nineteen fields sit
+behind disclosures that open themselves when they already hold data.
+
+**Dashboard.** No KPI tiles at all. A sentence, then the queue.
+
+## Visual QA
+
+Every screen was captured at 1440 / 834 / 390 against a local stack (PGlite
+with all migrations, a GoTrue shim and a PostgREST-compatible layer), since
+this container cannot reach `*.supabase.co`. No console errors, no horizontal
+overflow, no error text on any route at any width. The harness is a scratchpad
+throwaway and is not in the repo.
+
+## Next task
+
+Run the `@authed` suite against the deployed origin from a network with normal
+egress, and exercise one real file upload — attachments are the one path this
+container could not verify end to end, because the harness has no storage
+backend. The Files tab renders an honest "unavailable" for an unreachable
+object, which is what the screenshots show.
+
+```bash
+E2E_BASE_URL=https://grace-force.vercel.app E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
+```
 
 ## Premium visual redesign (2026-08-06, after the polish pass)
 

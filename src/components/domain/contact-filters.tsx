@@ -25,7 +25,11 @@ const SORT_LABELS = {
  * component only because `Field` takes a render prop.
  *
  * Search is the room's primary control — one generous input up top — and the
- * narrowing filters sit a register quieter behind a hairline below it.
+ * six narrowing filters stay folded away until someone asks for them. Six
+ * select boxes rendered above every list is exactly the "too many visible
+ * fields" the redesign set out to remove; they open on their own when a
+ * filter is already applied, so a shared filtered URL never hides why it is
+ * showing fewer people than expected.
  */
 export function ContactFilters({
   filters,
@@ -58,11 +62,15 @@ export function ContactFilters({
     (type) => type.is_active || type.id === filters.engagementTypeId,
   )
 
-  // On a phone the seven expanded controls fill the whole first screen before
-  // a single contact shows, so everything but Search starts collapsed there —
-  // unless one of the hidden filters is active, which must stay visible to
-  // explain why the list looks thinned out. From `sm` up all controls show.
-  const hasCollapsibleFilter = Boolean(
+  // Six expanded selects above the list is the "too many visible fields" the
+  // redesign set out to remove, so everything but Search starts folded away —
+  // unless one of the hidden filters is already applied, which must stay
+  // visible to explain why the list looks thinned out.
+  //
+  // Computed here rather than imported from the query module: that module is
+  // `server-only`, and importing its helper would drag it into the client
+  // bundle.
+  const narrowed = Boolean(
     filters.ownerId ||
       filters.engagementTypeId ||
       filters.lifecycleStage ||
@@ -70,7 +78,7 @@ export function ContactFilters({
       filters.tag ||
       filters.sort !== 'recent',
   )
-  const [filtersOpen, setFiltersOpen] = useState(hasCollapsibleFilter)
+  const [filtersOpen, setFiltersOpen] = useState(narrowed)
 
   return (
     <form
@@ -105,7 +113,7 @@ export function ContactFilters({
             type="button"
             variant="secondary"
             size="lg"
-            className="flex-1 sm:hidden"
+            className="flex-1 sm:flex-none"
             aria-expanded={filtersOpen}
             aria-controls="contact-filters-more"
             onClick={() => setFiltersOpen((open) => !open)}
@@ -120,11 +128,8 @@ export function ContactFilters({
 
       <div
         id="contact-filters-more"
-        className={
-          filtersOpen
-            ? 'mt-4 border-t border-slate-200/70 pt-4'
-            : 'hidden sm:mt-4 sm:block sm:border-t sm:border-slate-200/70 sm:pt-4'
-        }
+        hidden={!filtersOpen}
+        className="mt-4 border-t border-slate-200/70 pt-4"
       >
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">

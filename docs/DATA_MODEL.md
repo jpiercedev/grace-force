@@ -161,5 +161,89 @@ survive re-running it.
 | `…001200_imports` | import batches and rows |
 | `…001300_reference_data` | engagement types, pipelines, stages |
 | `…001400_grants` | role grants |
+| `20260806000100_relationship_enums` | enums for the development domain, plus the `activity_type` additions |
+| `…000200_contact_profile` | communication preferences, interests, related constituents, capability |
+| `…000300_events` | events, attendance, attendance trigger |
+| `…000400_proposals` | proposals and planned gifts, stage triggers |
+| `…000500_call_reports` | donor meeting reports, filing trigger |
+| `…000600_attachments` | attachment metadata and the storage bucket |
+| `…000700_activity_outcome` | `activities.outcome` |
 
 They must be applied in filename order; later files reference earlier tables.
+
+The enum file is separate from everything that uses it for a specific reason:
+`alter type … add value` may run inside a transaction, but the new label cannot
+be *used* until that transaction commits, and each migration file is applied as
+one implicit transaction.
+
+## Relationship development
+
+Seven migrations (`20260806000100`–`20260806000700`) add the objects a
+development office needs and the original schema had no home for. Three
+decisions in them are worth stating, because the DDL alone does not explain
+them.
+
+### A relationship is one directed row, not a mirrored pair
+
+`contact_relationships` stores a link once:
+
+```
+<from_contact> is the <kind> of <to_contact>
+```
+
+Standing on the `to` side, the other person *is* the kind ("Spouse",
+"Referred by"); standing on the `from` side, they are its inverse ("Spouse",
+"Referred"). `@/lib/relationships` holds the two label maps and a unit test
+asserts they are exact inverses.
+
+The alternative — writing both directions as two rows — allows the two halves
+of a single fact to disagree with each other, and doubles every edit and
+delete. Symmetric kinds (spouse, sibling, friend) simply name themselves in
+both maps, so they need no special case anywhere.
+
+### Capability and proposals follow the giving permission, not the contact permission
+
+Postgres RLS is row-level. A `capability_level` column on `contacts` would be
+legible to every profile that can read the person — which is every active
+user. So estimated capability lives in its own table, `contact_capability`,
+whose policies call `public.can_view_giving()`, exactly as `gifts` does.
+`proposals` carries gift amounts and is gated the same way.
+
+That is why the Proposals destination is hidden from staff without the giving
+flag, and why the donor record's Giving and Proposals tabs are absent rather
+than empty for them.
+
+### The new objects post to the timeline by trigger
+
+`events` (attendance), `proposals` (created, stage changed, closed) and
+`call_reports` (filed) each write their own `activities` rows, joining the
+engagement, pipeline, follow-up and gift triggers that were already there. The
+corollary is unchanged and now applies to five more code paths: **application
+code must not also insert these activities**, or every event double-posts.
+
+Attendance and filings carry a deterministic `dedupe_key`, so flipping a
+record away from `attended` and back, or editing an already-filed report, does
+not post a second entry.
+
+### Two smaller trade-offs, recorded on purpose
+
+- `proposals.joint_contact_id` covers a couple giving together. More than two
+  parties belongs in the notes rather than in a join table with its own
+  policies and its own UI.
+- `call_reports.staff_attendee_ids` is a `uuid[]` with no foreign key —
+  Postgres cannot declare one on an array element. The field is edited as one
+  control and read as one line; ids that no longer resolve are simply not
+  rendered, which is what `on delete set null` would have given anyway.
+
+### Attachments
+
+`attachments` holds metadata; the bytes live in the private `attachments`
+storage bucket. `contact_id` is always set even when a file hangs off a call
+report or a proposal — that denormalisation is what makes "every document on
+this donor" one query. Downloads go through a 60-second signed URL minted per
+request, so a link copied out of the page stops working quickly rather than
+becoming a permanent unauthenticated handle on an estate document.
+
+The bucket and its storage policies are created inside a guard that checks
+`to_regclass('storage.buckets')`, so the migration still applies to a bare
+Postgres — which is what the PGlite test harness is.

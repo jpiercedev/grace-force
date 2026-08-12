@@ -111,3 +111,43 @@ Everything in the polish pass stays binding: AA contrast floor for meaning,
 44px touch targets, single visible focus ring (evergreen), modal drawer with
 scroll lock + focus trap, semantic lists/tables, labels on every control.
 Dark sidebar text sits at parchment-on-ink (≈12:1).
+
+## Structure: progressive disclosure
+
+The visual language above stayed; what changed in the simplification pass is
+how much of it appears at once. `docs/UX_AUDIT.md` records the audit; these are
+the rules that came out of it.
+
+**One primary action per screen.** Dashboard → work the queue. People → Add
+person. Donor → Log interaction. Everything else is secondary, or lives in the
+overflow menu (`ui/menu.tsx`). Five buttons at equal weight means no button.
+
+**Tabs are links, not state.** The donor record splits seven areas across
+`?tab=` links, so each is server-rendered, shareable, refreshable and correct
+under the back button. `ui/tabs.tsx`. A tab shows a count only when it has one
+— an empty area is not news.
+
+**Disclosure carries a summary.** `ui/disclosure.tsx` shows what is inside
+while it is closed, so opening it is an informed choice, and opens itself when
+it already holds data. Collapsed fields still post: `hidden` does not exclude a
+control from form submission, which is what lets the contact form keep five
+sections folded without clearing them on save.
+
+**Sections, not cards.** `SectionHeading` — a small-caps eyebrow on the canvas
+— replaces the card header for anything that is not a genuine panel. Lists sit
+on the canvas with hairline rules between rows. The card is reserved for a
+surface that really is a container.
+
+**Ask the question, not the field name.** "What happened?" not "Activity
+type". "Where are we with them?" not "Lifecycle stage". "How did we meet them?"
+not "Source". The database keeps its vocabulary; the interface does not borrow
+it.
+
+**Modals are for workflows, not navigation.** `ui/dialog.tsx` owns focus
+capture and return, Escape, the scroll lock and the Tab trap, so no call site
+can forget one. Its form wraps body *and* footer: the submit button lives in
+the pinned footer while fields scroll, and `useFormStatus` only reports pending
+for a button inside its own form.
+
+**Sensitive data is quiet.** Giving capability gets a level, a range in small
+type, and when it was last reviewed. No large figure, no colour, no chart.

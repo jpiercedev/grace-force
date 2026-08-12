@@ -9,6 +9,7 @@ TypeScript strict · Tailwind 3 · Supabase.
 - `docs/DATA_MODEL.md` — schema and the reasoning behind it
 - `docs/SECURITY.md` — roles, RLS, threat notes
 - `docs/IMPLEMENTATION_STATUS.md` — current build state and next task
+- `docs/UX_AUDIT.md` — why the interface is shaped the way it is
 
 ## Things that will bite you
 
@@ -19,9 +20,19 @@ intake, integration sync and the notification outbox may use
 elsewhere.
 
 **Database triggers already write timeline activities** for engagement changes,
-pipeline card create/move/close, follow-up create/complete, gift inserts and
-contact reassignment. Writing them from application code as well double-posts
-every event.
+pipeline card create/move/close, follow-up create/complete, gift inserts,
+contact reassignment, event attendance, proposal create/stage/close and call
+report filing. Writing them from application code as well double-posts every
+event.
+
+**Related constituents are one directed row.** `contact_relationships` reads
+"<from> is the <kind> of <to>"; the two sides render the kind and its inverse
+from `@/lib/relationships`. Never write a mirrored second row.
+
+**Capability and proposals follow `can_view_giving()`, not the contact
+permission.** That is why `contact_capability` is its own table — RLS is
+row-level, so a column on `contacts` would be readable by anyone who can read
+the person.
 
 **Generated columns must never be written**: `contacts.full_name`,
 `email_normalized`, `phone_normalized`, `search_vector`, and the equivalents on
@@ -32,7 +43,13 @@ validation message unless you handle it:
 - `engagements` — `status='ended'` requires `ended_on`; any other status forbids it
 - `follow_ups` — `status='completed'` requires `completed_at`
 - `pipeline_cards` — `status='open'` requires `closed_at IS NULL`, otherwise it must be set
+- `proposals` — `funded`/`declined` require `closed_at`; every other status forbids it
+- `call_reports` — `status='filed'` requires `filed_at`; a draft forbids it
 - `notifications` — `recipients` may be empty only when `status='skipped'`
+
+**A submit button's `name`/`value` does not survive a real-browser
+server-action POST.** Use a per-button `formAction`, or a hidden field in a
+form of its own. Never a multi-button form dispatching on `intent`.
 
 **Money is integer cents** everywhere. Never floats.
 

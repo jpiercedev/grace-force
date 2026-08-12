@@ -31,13 +31,13 @@ export function ContactPagination({
 
   return (
     <nav
-      aria-label="Contact list pages"
+      aria-label="People list pages"
       className="flex flex-wrap items-center justify-between gap-3 px-1"
     >
       <p className="text-sm tabular-nums text-slate-500" aria-live="polite">
         {total === 0
-          ? 'No contacts'
-          : `Showing ${firstOnPage}–${firstOnPage + shown - 1} of ${pluralize(total, 'contact')}`}
+          ? 'Nobody here'
+          : `Showing ${firstOnPage}–${firstOnPage + shown - 1} of ${pluralize(total, 'person', 'people')}`}
       </p>
       {pageCount > 1 ? (
         <div className="flex items-center gap-2">

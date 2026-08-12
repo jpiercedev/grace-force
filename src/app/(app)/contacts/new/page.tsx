@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/ui/display'
 import { requireWriteAccess } from '@/lib/auth'
 import { listTeamMembers } from '@/lib/queries/contacts'
 
-export const metadata = { title: 'New contact' }
+export const metadata = { title: 'Add a person' }
 
 export default async function NewContactPage() {
   const profile = await requireWriteAccess()
@@ -13,9 +13,8 @@ export default async function NewContactPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        eyebrow="Contacts"
-        title="New contact"
-        description="A first or last name, or an organisation, is all that is required."
+        title="Add a person"
+        description="A name is all that is required. Everything else can be added as you learn it."
       />
       <ContactForm
         action={createContact}
@@ -23,7 +22,7 @@ export default async function NewContactPage() {
         // Whoever adds someone is normally the one who will follow up.
         defaultOwnerId={profile.id}
         cancelHref="/contacts"
-        submitLabel="Create contact"
+        submitLabel="Add person"
       />
     </div>
   )
