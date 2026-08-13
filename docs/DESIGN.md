@@ -4,150 +4,181 @@
 > Tokens live in `tailwind.config.ts` and `src/app/globals.css`; primitives in
 > `src/components/ui`. This document is why they are the way they are.
 
-## The idea: a warm ledger
+## The idea: a bright, practical CRM
 
-Grace Force is about people — donors, prayer partners, congregations,
-conversations that span years. The interface should feel like a well-kept
-relational ledger: warm paper, confident ink, one deep accent, and a serif
-voice reserved for the moments that are about people rather than software.
+Grace Force is a working tool for a development office. The benchmark is
+HubSpot's usability — approachable despite real capability — tailored to donor
+development and deliberately simpler than Salesforce. The interface should be
+professional, warm, bright, familiar and operational: someone who has used any
+mainstream CRM should know how to use this one without being told, and it
+should still feel custom to this ministry.
 
-It should feel professional, warm, calm, and quietly premium. It should never
-feel like an admin template, a developer tool, or accounting software.
+What it must never feel like: an admin template, a developer tool, a marketing
+site, or a dashboard product. Three earlier tells to guard against — oversized
+typography, editorial serif styling, and dark chrome — are all retired.
 
-Three commitments follow from that:
+Four commitments follow:
 
-1. **Warm neutrals, not gray.** The canvas is warm parchment, the text is warm
-   ink. Cold gray is the fastest way back to "internal tool."
-2. **A serif voice for people and titles.** Page titles, contact names, and
-   key figures speak in a serif (Charter/Georgia stack — no font download,
-   no new dependency). Everything operational stays in the sans. The contrast
-   between the two voices IS the brand.
-3. **Fewer boxes, stronger zones.** Structure comes from whitespace, hairline
-   rules, and tinted zones — not from wrapping every section in an identical
-   white card.
+1. **One practical sans.** Source Sans 3 everywhere — a humanist face designed
+   for interfaces, excellent at 13–14px. Typography disappears into the
+   experience; hierarchy comes from weight and muted color, never from
+   decoration. No small-caps eyebrows, no display serif, no dramatic tracking.
+2. **Bright, bordered surfaces.** Warm-white canvas (`slate-50`), white
+   surfaces defined by solid 1px hairlines, a whisper of shadow. Structure
+   comes from section headers, dividers and spacing — a card is for a genuine
+   self-contained object, not for every group of content.
+3. **One confident action color.** Spruce green carries primary actions,
+   links, record names and selected states. Semantic colors are reserved for
+   status. Everything else stays neutral, and the neutrals stay near-white.
+4. **Useful density.** A working CRM shows more rows, more timeline, more
+   context per screen — compact paddings, 13px operational text, tables that
+   behave like database views — while keeping readable line-height, AA
+   contrast and comfortable targets.
 
 ## Color
 
 Defined in `tailwind.config.ts`. The neutral scale keeps the historical token
 name `slate` (renaming ~56 files of class usage would churn the entire diff)
-but its values are the warm stone scale — treat `slate-*` as "neutral".
+but its values are a near-neutral ramp with a faint warm cast — treat
+`slate-*` as "neutral".
 
 | Role | Token | Value | Notes |
 | --- | --- | --- | --- |
-| Canvas | `slate-50` on body | `#f7f5f2` | warm parchment, not gray |
+| Canvas | `slate-50` on body | `#f8f7f5` | warm white, not gray |
 | Surface | `white` | `#ffffff` | one card level only |
-| Surface tint | `slate-100` | `#f0eeea` | zones inside surfaces, hovers |
-| Hairline | `slate-200` | `#e5e2dc` | rules and row separators |
-| Muted text floor | `slate-500` | `#736c64` | ≥4.5:1 on white — never lighter for meaning |
-| Ink | `slate-900` | `#211d19` | primary text |
-| Sidebar ink | `ink` | `#1b2420` | near-black evergreen; the identity surface |
-| Brand | `brand-600` | `#2b6a4d` | deep evergreen; primary actions, links, focus |
-| Brand deep | `brand-700/800` | | hover/active |
-| Accent | `accent-500` | `#bf6f3f` | warm clay; highlights, pins, "today" — sparingly |
-| Success | `emerald-*` | | tuned tints, always with text |
-| Warning | `amber-*` | | |
-| Danger | `red-*` | `#b42318` family | warm red |
+| Surface tint | `slate-100` | `#f1efec` | hovers, table heads — sparingly |
+| Hairline | `slate-200` | `#e5e3df` | borders, rules, row separators |
+| Control border | `slate-300` | `#d4d1cc` | inputs at rest |
+| Muted text floor | `slate-500` | `#6b6862` | 5.55:1 on white — never lighter for meaning |
+| Ink | `slate-900` | `#1f1d1a` | primary text |
+| Brand | `brand-600` | `#0e7a52` | spruce; primary fills (white text 5.35:1) |
+| Brand text | `brand-700` | `#0b6647` | links, record names, selected tabs (6.99:1) |
+| Brand tint | `brand-50/100` | | selected nav, preferred pills |
+| Accent | `accent-*` | amber-clay | "today", pins, avatar wheel — rare |
+| Success / Warning / Danger | `emerald` / `amber` / `red` | | always paired with text |
 
-Blue is gone. Anything that was `brand` blue is evergreen now; `sky` for
-informational tones is replaced by neutral ink on tint.
+Record names and primary links render in `brand-700` — the familiar CRM
+convention that says "this opens a record".
 
 ## Typography
 
-- **Serif display** (`font-display`): `Charter, 'Iowan Old Style', Georgia,
-  Cambria, serif`. Used for: the wordmark, page titles, contact names on
-  their own page, empty-state titles, and large figures (giving totals,
-  dashboard counts). Weight 600–700, tight tracking (`tracking-tight`).
-- **Sans** (`font-sans`): system stack. All UI, labels, tables, forms.
-- **Labels/eyebrows**: 11–12px, semibold, `tracking-wider`, uppercase,
-  `slate-500`. Used for section eyebrows, table headers, data labels.
-- **Body**: 14px operational, 15–16px for reading surfaces (notes, empty
-  states, public forms).
-- Numbers that are compared in columns: `tabular-nums`.
-
-Hierarchy comes from voice (serif vs sans), weight, and tracking — never from
-size alone.
+- **One family**: Source Sans 3 (variable, latin subset), self-hosted in
+  `src/app/fonts/` via `next/font/local` — no build-time network, no runtime
+  dependency, SIL OFL license alongside the files.
+- **Weights**: page title bold (`text-xl`/`text-2xl`); section title semibold
+  (`text-sm`–`text-base`); primary data medium; labels medium 12–13px;
+  supporting text regular; metadata regular muted.
+- **Sizes**: 14px default; 13px operational (tables, rails, meta); 12px labels
+  and table headers, sentence case, ordinary tracking. Reading surfaces
+  (notes, empty states, public forms) may use 15–16px.
+- Numbers compared in columns: `tabular-nums`.
+- Inputs stay 16px below the `sm` breakpoint so iOS does not zoom on focus.
 
 ## Surfaces, borders, shadows, radius
 
-- One elevation of card: `bg-white rounded-xl shadow-card` (soft, warm,
-  layered shadow — defined as `shadow-card` token; hairline optional).
-  Interactive cards may raise to `shadow-raised` on hover.
-- Zones inside a card use `slate-100` tints or hairline `divide-y`, never
-  nested cards.
-- Sections that are lists (timeline, queues) sit directly on the canvas with
-  rules between entries — no box per entry.
-- Radius: `rounded-xl` (12px) for surfaces, `rounded-lg` (8px) for controls,
-  full for pills/avatars. Nothing else.
-- The sidebar is `ink` (near-black evergreen) with parchment text — the one
-  place the product is dark, which makes the canvas feel lighter and gives
-  the app its silhouette.
+- Cards: `bg-white rounded-lg border border-slate-200 shadow-card` — the
+  border does the work; `shadow-card` is a 1px hint, not elevation. Floating
+  layers (menus, dialogs, the preview panel) use `shadow-raised`.
+- Radius: `rounded-lg` (8px) surfaces, `rounded-md` (6px) controls, full for
+  pills and avatars. Nothing larger.
+- Hovers are color shifts (`hover:bg-slate-50`, `hover:border-slate-300`) —
+  no translate lifts, no glow.
+- Lists that are streams (timeline, queues) sit on the canvas with hairline
+  rules; table heads get the `slate-50` tint.
+
+## Application shell
+
+- **Left nav**: white, compact (`w-56`), always fully visible — six primary
+  destinations (Dashboard, People, Follow-ups, Planned gifts, Events, Call
+  reports), a labelled "More" group (Giving, Pipelines, New leads, Marketing,
+  Import, Export), Settings and the account pinned at the foot. Selected =
+  `brand-50` wash + `brand-800` semibold. 32px rows, 16px icons.
+- **Header**: white, slim (48px), carries global search. On phones the nav
+  becomes a modal drawer (scroll lock, focus trap, Escape).
+- Content: `slate-50` canvas, `max-w-screen-2xl`.
+
+## Records
+
+- **Index pages** are database views: compact sortable tables, record-link
+  names in `brand-700`, badges for stage, quiet preview affordance per row.
+  Below `md` they become stacked summaries — never a squeezed table.
+- **Preview panel** (`?preview=<id>`): a server-rendered, non-modal slide-over
+  for inspecting a person without leaving the list — identity, quick actions,
+  next follow-up, last interaction, interests, active planned gift, related
+  people, recent activity. Speed is its whole job; the full record is one
+  click away.
+- **The donor record** is three zones: identity rail (About card — actionable
+  channel rows with the preference pinned and blocked channels explained,
+  then owner/stage/work/address, rare properties behind "View all details"),
+  center workspace (Overview · Activity · Planned gifts · Giving · Events as
+  `?tab=` links), association rail (Related people · Planned gifts · Events ·
+  Files as collapsible counted sections with their own add actions).
 
 ## Components
 
-- **Buttons**: primary = evergreen fill; secondary = tonal (`slate-100` fill,
-  no border); ghost = text only; danger = warm red fill. No outlined
-  secondaries, no blue anywhere. Sizes 36/40/48px.
-- **Chips (Badge)**: soft tint + colored dot + text. The dot carries status
-  redundantly with the text so color is never the only signal.
-- **Avatars**: deterministic warm hue from the name (six-hue wheel), initials
-  in white. People get faces everywhere they appear.
-- **StatFigure**: label eyebrow + serif figure, inline on the surface — the
-  five-identical-tiles pattern is retired.
-- **EmptyState**: icon in a tinted circle, serif title, one sentence of
-  useful copy, one action. Copy explains value, never says "no data".
-- **Inputs**: white on parchment with hairline ring; evergreen focus ring;
-  16px on touch.
+- **Buttons**: primary = spruce fill; secondary = white outlined (the familiar
+  CRM pattern); outline = brand-outlined for a screen's "open" affordance;
+  ghost = text; danger = red fill. Sizes 32/36/40px — `sm` only inline with
+  dense content. One primary action per screen.
+- **Badges**: 4px-radius tags, soft tint + colored dot + sentence-case text —
+  the dot restates the tone so color is never the only signal.
+- **Avatars**: deterministic hue from the name (six muted tones, AA white
+  initials). 24px in tables, 32px default.
+- **Forms**: `Field` wires label/hint/error ARIA; labels 13px medium;
+  controls white with `slate-300` ring, brand focus ring; two-column groups
+  where fields pair; optional fields behind disclosures that open themselves
+  when they hold data. Lightweight edits happen in dialogs/drawers, not
+  full pages.
+- **Timeline**: quick actions (Note · Call · Email · Meeting · Follow-up)
+  above a day-grouped stream. Human entries lead with semibold subjects;
+  system entries are a register smaller and grayer. Long notes clamp to two
+  lines with a native show-more. Icons sit on one continuous rail.
+- **EmptyState**: small icon, plain semibold title, one useful sentence, one
+  action. Copy explains value, never says "no data".
 
 ## Motion
 
-150–200ms, `ease-out`, translate ≤4px. Hover elevation on interactive cards,
-drawer slide-in, disclosure fade-slide, button color transitions. Nothing
-loops, nothing bounces, nothing blocks. All motion is disabled by the
-existing `prefers-reduced-motion` rule.
+150–200ms `ease-out` color transitions; drawer/preview slide-ins; disclosure
+fades. No hover lifts, no loops, no bounces. Everything respects
+`prefers-reduced-motion`.
 
 ## Accessibility riders
 
-Everything in the polish pass stays binding: AA contrast floor for meaning,
-44px touch targets, single visible focus ring (evergreen), modal drawer with
-scroll lock + focus trap, semantic lists/tables, labels on every control.
-Dark sidebar text sits at parchment-on-ink (≈12:1).
+Binding, not aspirational: AA contrast floor for anything that carries
+meaning (the values in the color table are verified); visible brand focus
+ring everywhere; full keyboard operability (dialogs trap focus and return it,
+Escape closes anything that opens, the preview panel takes focus on open);
+labels on every control; tables scroll in their own container; layouts work
+from 360px; color is never the only signal.
 
 ## Structure: progressive disclosure
 
-The visual language above stayed; what changed in the simplification pass is
-how much of it appears at once. `docs/UX_AUDIT.md` records the audit; these are
-the rules that came out of it.
+The rules from the simplification pass stay binding:
 
 **One primary action per screen.** Dashboard → work the queue. People → Add
-person. Donor → Log interaction. Everything else is secondary, or lives in the
-overflow menu (`ui/menu.tsx`). Five buttons at equal weight means no button.
+person. Donor → Log interaction. Everything else is secondary or lives in the
+overflow menu (`ui/menu.tsx`).
 
-**Tabs are links, not state.** The donor record splits seven areas across
-`?tab=` links, so each is server-rendered, shareable, refreshable and correct
-under the back button. `ui/tabs.tsx`. A tab shows a count only when it has one
-— an empty area is not news.
+**Tabs are links, not state** (`ui/tabs.tsx`) — server-rendered, shareable,
+back-button-correct. A tab shows a count only when it has one.
 
-**Disclosure carries a summary.** `ui/disclosure.tsx` shows what is inside
-while it is closed, so opening it is an informed choice, and opens itself when
-it already holds data. Collapsed fields still post: `hidden` does not exclude a
-control from form submission, which is what lets the contact form keep five
-sections folded without clearing them on save.
+**Disclosure carries a summary** (`ui/disclosure.tsx`) and opens itself when
+it already holds data. Collapsed fields still post.
 
-**Sections, not cards.** `SectionHeading` — a small-caps eyebrow on the canvas
-— replaces the card header for anything that is not a genuine panel. Lists sit
-on the canvas with hairline rules between rows. The card is reserved for a
-surface that really is a container.
+**Sections, not cards.** `SectionHeading` — a plain semibold line — replaces
+the card header for anything that is not a genuine panel.
 
 **Ask the question, not the field name.** "What happened?" not "Activity
-type". "Where are we with them?" not "Lifecycle stage". "How did we meet them?"
-not "Source". The database keeps its vocabulary; the interface does not borrow
-it.
+type". The database keeps its vocabulary; the interface does not borrow it.
 
 **Modals are for workflows, not navigation.** `ui/dialog.tsx` owns focus
-capture and return, Escape, the scroll lock and the Tab trap, so no call site
-can forget one. Its form wraps body *and* footer: the submit button lives in
-the pinned footer while fields scroll, and `useFormStatus` only reports pending
-for a button inside its own form.
+capture and return, Escape, scroll lock and the Tab trap.
 
 **Sensitive data is quiet.** Giving capability gets a level, a range in small
 type, and when it was last reviewed. No large figure, no colour, no chart.
+
+## The design test
+
+Before shipping a screen, ask: *Would a HubSpot user immediately understand
+how to use this?* — *Does this feel significantly simpler than Salesforce?* —
+*Does this still feel custom rather than copied?* All three must be yes.

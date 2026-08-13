@@ -3,17 +3,80 @@
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-13
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | Simplification redesign complete on `claude/crm-redesign-simplicity-0zqxek`; awaiting review/merge |
-| Overall status | Feature-complete. Eight new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
-| Tests | 570 Vitest (30 files) + 28 browser `@public` passing |
+| Current phase | HubSpot-style visual redesign complete on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`, the verified simplification state); awaiting review/merge |
+| Overall status | Feature-complete. Same 24 migrations and 45 routes as `4ecde3d` — this pass changed presentation only: no schema, env, route or permission changes |
+| Tests | 570 Vitest (30 files) + 28 browser `@public` passing; 8 `@authed` skipped (egress) |
 | Build | `next build` succeeds — 45 routes |
-| Deployment | `grace-force` on Vercel, production target, git-connected |
+| Deployment | `grace-force` on Vercel, production target, git-connected. **Production still runs the 20-table schema; see `docs/ROLLOUT.md` for the ordered plan** |
+
+## The HubSpot-style redesign (2026-08-13)
+
+The simplification pass was accepted structurally but rejected visually: too
+template-like, wrong font, dark and editorial. This pass replaces the visual
+system while keeping every behavior. The benchmark moved to HubSpot-class CRM
+usability — bright, familiar, operational — defined in `docs/DESIGN.md`
+(rewritten).
+
+**Typography.** The Charter/Georgia serif display voice is gone. Source Sans 3
+(variable, latin subset) is self-hosted in `src/app/fonts/` via
+`next/font/local` — no build-time network fetch, no runtime dependency, OFL
+license alongside. All small-caps/tracked eyebrows became sentence-case
+labels; titles are bold sans at operational sizes.
+
+**Palette and surfaces.** Warm-white canvas, white surfaces with solid 1px
+hairlines and a whisper of shadow, near-neutral ink, one confident spruce
+action green (contrast verified: 5.35:1 white-on-brand-600, 6.99:1 links,
+5.55:1 muted floor). 8px surface radius, 6px controls. Hover lifts became
+color shifts. The dark evergreen-ink rail and the auth split panel are
+retired.
+
+**Shell.** Compact light sidebar (`w-56`), all destinations visible at once:
+six primary (Dashboard, People, Follow-ups, Planned gifts, Events, Call
+reports), a labelled More group (Giving, Pipelines, New leads, Marketing,
+Import, Export), Settings + account at the foot. White 48px header with
+global search.
+
+**People index + preview.** The list is a database view: compact rows,
+brand-colored record links, sortable Name / Last activity headers
+(`?sort=`), slimmer filter bar, and a per-row preview affordance. 
+`?preview=<id>` opens a server-rendered, non-modal side panel (identity,
+quick actions, next follow-up, last interaction, interests, active planned
+gift, related people, recent activity) with Escape/close handling —
+inspection without leaving the list.
+
+**Donor record: three zones.** Left identity rail (About card: actionable
+channel rows with the preference pinned and blocked channels explained in
+words; owner/stage/work/address; rare properties behind a native "View all
+details"; the preferences panel beneath). Center workspace tabs — Overview
+(default), Activity, Planned gifts, Giving, Events. Right association rail —
+Related people, Planned gifts, Events, Files as collapsible counted sections
+with their own add actions (`ui/rail.tsx`; the panels gained `compact`
+modes). Old `?tab=relationships` / `?tab=files` links land on Overview. At
+lg the rail sits under the workspace; three columns from xl.
+
+**Activity.** A quick bar — Note · Call · Email · Meeting · Follow-up — opens
+the logging dialog pre-set to the right choice (`initialKind`). The timeline
+tightened: sentence-case day headings, canvas-matched bead rings, long notes
+clamp to two lines behind a native show-more, system entries stay a register
+quieter. Timeline filters keep the active tab across GET submits via hidden
+fields (a GET submit replaces the action's query string).
+
+**Verification.** 570 Vitest + 28 `@public` Playwright green; typecheck,
+lint and `next build` clean. Visually QA'd via screenshots: public pages
+against the real built app; the donor record (both tabs) and People index
+via a static-render harness (mocked query layer, real components + built
+CSS) at 1440–1600px. axe issues: none observed on public pages; the authed
+axe pass should be repeated against a live backend when available.
+
+No schema, routes, queries, actions, permissions or env changed. The
+production rollout (the 8 pending migrations + this build) is
+`docs/ROLLOUT.md`.
 
 ## The simplification redesign (2026-08-12)
 
@@ -161,8 +224,11 @@ PDF is ideal).
 
 ## Next task
 
-The manual attachment pass above, against the deployed project. Then the
-`@authed` browser suite from a network with normal egress:
+Review of the redesign, then — with explicit approval — the production
+rollout in `docs/ROLLOUT.md`: apply the eight `20260806…` migrations, verify,
+deploy this build, run the smoke/authed/attachment passes. The manual
+attachment script below and the `@authed` browser suite both run after that
+deploy, from a network with normal egress:
 
 ```bash
 E2E_BASE_URL=https://grace-force.vercel.app E2E_EMAIL=… E2E_PASSWORD=… npm run e2e

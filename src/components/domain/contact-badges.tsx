@@ -26,8 +26,8 @@ export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
   archived: 'Archived',
 }
 
-// Blue is gone (docs/DESIGN.md): the journey reads slate → evergreen →
-// emerald, with amber marking the stage that needs attention.
+// The journey reads slate → brand green → emerald, with amber marking
+// the stage that needs attention (docs/DESIGN.md).
 const LIFECYCLE_STAGE_TONES: Record<LifecycleStage, BadgeTone> = {
   prospect: 'slate',
   engaged: 'brand',
