@@ -33,12 +33,10 @@ function Item({
 }) {
   const body = (
     <>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-        {label}
-      </dt>
+      <dt className="text-xs text-slate-500">{label}</dt>
       <dd
         className={cn(
-          'mt-1 text-sm leading-snug',
+          'mt-0.5 text-sm leading-snug',
           tone === 'urgent' && 'font-semibold text-red-700',
           tone === 'muted' && 'text-slate-500',
           tone === 'default' && 'font-medium text-slate-900',
@@ -51,8 +49,8 @@ function Item({
 
   if (href) {
     return (
-      <Link href={href} className="group block rounded-lg py-0.5 transition-colors">
-        <div className="group-hover:[&_dd]:text-brand-800">{body}</div>
+      <Link href={href} className="group block rounded-md py-0.5 transition-colors">
+        <div className="group-hover:[&_dd]:text-brand-700">{body}</div>
       </Link>
     )
   }
@@ -85,7 +83,7 @@ export function DonorGlance({
   const summary = giving?.summary ?? null
 
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-white px-5 py-4 shadow-card sm:grid-cols-3 lg:grid-cols-6">
+    <dl className="grid grid-cols-2 gap-x-5 gap-y-3.5 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card sm:grid-cols-3">
       <Item
         label="Next"
         tone={next ? (nextOverdue ? 'urgent' : 'default') : 'muted'}

@@ -36,68 +36,92 @@ export function DonorEvents({
   events,
   canEdit,
   action,
+  compact = false,
+  limit,
+  viewAllHref,
 }: {
   contactId: string
   entries: ContactEventEntry[]
   events: Array<Pick<EventRow, 'id' | 'name' | 'event_date'>>
   canEdit: boolean
   action: (state: ContactActionState, formData: FormData) => Promise<ContactActionState>
+  /** Rail presentation: no heading (the rail section carries it), tight rows. */
+  compact?: boolean
+  /** Show only the first N entries, with a "View all" link when more exist. */
+  limit?: number
+  viewAllHref?: string
 }) {
   const add = useDialog()
   const [state, formAction] = useActionState<ContactActionState, FormData>(action, {})
   useCloseOnSuccess(state, add.close)
 
-  return (
-    <section className="space-y-4">
-      <SectionHeading
-        title="Events"
-        description="Gatherings they were invited to or came to."
-        action={
-          canEdit && events.length > 0 ? (
-            <Button ref={add.triggerRef} type="button" variant="secondary" onClick={add.openDialog}>
-              Record attendance
-            </Button>
-          ) : null
-        }
-      />
+  const shown = limit ? entries.slice(0, limit) : entries
 
-      {entries.length === 0 ? (
-        <EmptyState
-          title="No events recorded"
-          description={
-            events.length > 0
-              ? 'Once they come to something, record it here — knowing who was in the room is half of the next conversation.'
-              : 'Create an event first, then record who came.'
-          }
+  return (
+    <section className={compact ? 'space-y-2' : 'space-y-4'}>
+      {compact ? null : (
+        <SectionHeading
+          title="Events"
+          description="Gatherings they were invited to or came to."
           action={
-            events.length === 0 ? (
-              <Link
-                href="/events/new"
-                className="text-sm font-medium text-brand-700 hover:underline"
-              >
-                Add an event
-              </Link>
+            canEdit && events.length > 0 ? (
+              <Button ref={add.triggerRef} type="button" variant="secondary" onClick={add.openDialog}>
+                Record attendance
+              </Button>
             ) : null
           }
         />
+      )}
+
+      {entries.length === 0 ? (
+        compact ? (
+          <p className="text-[13px] leading-relaxed text-slate-500">
+            {events.length > 0
+              ? 'No events recorded for this person yet.'
+              : 'No events exist yet — create one first.'}
+          </p>
+        ) : (
+          <EmptyState
+            title="No events recorded"
+            description={
+              events.length > 0
+                ? 'Once they come to something, record it here — knowing who was in the room is half of the next conversation.'
+                : 'Create an event first, then record who came.'
+            }
+            action={
+              events.length === 0 ? (
+                <Link
+                  href="/events/new"
+                  className="text-sm font-medium text-brand-700 hover:underline"
+                >
+                  Add an event
+                </Link>
+              ) : null
+            }
+          />
+        )
       ) : (
-        <ul className="divide-y divide-slate-200 border-t border-slate-200">
-          {entries.map((entry) => (
-            <li key={entry.id} className="py-3.5">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <ul className={compact ? 'space-y-2' : 'divide-y divide-slate-200 border-t border-slate-200'}>
+          {shown.map((entry) => (
+            <li key={entry.id} className={compact ? '' : 'py-3.5'}>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                 <Link
                   href={`/events/${entry.event.id}`}
-                  className="text-[15px] font-medium text-slate-900 hover:text-brand-800 hover:underline"
+                  className={
+                    compact
+                      ? 'min-w-0 truncate text-[13px] font-medium text-brand-700 hover:underline'
+                      : 'text-[15px] font-medium text-slate-900 hover:text-brand-700 hover:underline'
+                  }
                 >
                   {entry.event.name}
                 </Link>
                 <AttendanceBadge status={entry.status} />
               </div>
-              <p className="mt-0.5 text-sm text-slate-600">
+              <p className={compact ? 'mt-0.5 text-xs text-slate-500' : 'mt-0.5 text-sm text-slate-600'}>
                 {formatDate(entry.event.event_date)}
                 {entry.event.location ? ` · ${entry.event.location}` : ''}
               </p>
-              {entry.note ? (
+              {entry.note && !compact ? (
                 <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
                   {entry.note}
                 </p>
@@ -106,6 +130,28 @@ export function DonorEvents({
           ))}
         </ul>
       )}
+
+      {compact ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {canEdit && events.length > 0 ? (
+            <Button
+              ref={add.triggerRef}
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="-ml-2 text-brand-700"
+              onClick={add.openDialog}
+            >
+              + Record attendance
+            </Button>
+          ) : null}
+          {viewAllHref && limit && entries.length > limit ? (
+            <Link href={viewAllHref} className="text-xs font-medium text-brand-700 hover:underline">
+              View all {entries.length}
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
 
       <Dialog
         controller={add}

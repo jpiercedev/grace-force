@@ -14,16 +14,26 @@ import type { ActivityType } from '@/types/database'
  * A GET form, like the contact list filters: the URL stays the source of truth
  * so a filtered timeline survives a reload and can be linked to.
  *
- * Only the type control is submitted, which drops any `show` parameter — the
- * right behaviour, since a narrowed timeline should start from the top again.
+ * Only the type control (plus any pinned `hidden` params, like the tab) is
+ * submitted, which drops any `show` parameter — the right behaviour, since a
+ * narrowed timeline should start from the top again. A GET submit replaces
+ * the action's own query string entirely, so anything that must survive has
+ * to ride along as a hidden field.
  */
 export function TimelineFilters({
   basePath,
   type,
+  hidden = {},
 }: {
   basePath: string
   type: ActivityType | null
+  /** Query params to keep across a submit (e.g. { tab: 'activity' }). */
+  hidden?: Record<string, string>
 }) {
+  const hiddenEntries = Object.entries(hidden)
+  const clearQuery = new URLSearchParams(hidden).toString()
+  const clearHref = clearQuery ? `${basePath}?${clearQuery}` : basePath
+
   return (
     <form
       method="get"
@@ -31,6 +41,9 @@ export function TimelineFilters({
       className="flex flex-wrap items-end gap-2"
       aria-label="Filter the timeline"
     >
+      {hiddenEntries.map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
       {/* max-w-xs: a short enum list does not earn the full card width. */}
       <Field label="Activity type" className="w-full max-w-xs">
         {(props) => (
@@ -57,7 +70,7 @@ export function TimelineFilters({
         Filter
       </Button>
       {type ? (
-        <Link href={basePath} className={buttonClasses('ghost', 'sm')}>
+        <Link href={clearHref} className={buttonClasses('ghost', 'sm')}>
           Clear
         </Link>
       ) : null}

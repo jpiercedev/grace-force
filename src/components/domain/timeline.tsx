@@ -157,14 +157,14 @@ export function Timeline({
   return (
     <ol>
       {days.map((day) => (
-        <li key={day.key} className="px-5 pt-5 last:pb-5 sm:px-6">
-          <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <li key={day.key} className="pt-4 first:pt-1">
+          <h3 className="flex items-center gap-3 text-xs font-semibold text-slate-500">
             <time dateTime={day.date}>{dayLabel(day.date, now)}</time>
             <span aria-hidden="true" className="h-px flex-1 bg-slate-200" />
           </h3>
           {/* One continuous rail per day; the icons sit on it, so the eye can
               run down the story without re-reading the layout each entry. */}
-          <ol className="ml-3.5 mt-4 border-l border-slate-200 pb-1">
+          <ol className="ml-3 mt-3 border-l border-slate-200 pb-1">
             {day.activities.map((activity) => (
               <TimelineEntry key={activity.id} activity={activity} now={now} />
             ))}
@@ -172,6 +172,38 @@ export function Timeline({
         </li>
       ))}
     </ol>
+  )
+}
+
+/**
+ * Past this length a note starts pushing the next entry off screen, so it
+ * clamps to a preview with a native disclosure to read the rest. The whole
+ * body stays in the DOM — find-in-page still works.
+ */
+const CLAMP_BODY_AT = 280
+
+function ActivityBody({ body, human }: { body: string; human: boolean }) {
+  const textClass = human
+    ? 'whitespace-pre-wrap break-words text-sm leading-relaxed text-slate-700'
+    : 'whitespace-pre-wrap break-words text-[13px] text-slate-600'
+
+  if (body.length <= CLAMP_BODY_AT && !/\n[\s\S]*\n[\s\S]*\n/.test(body)) {
+    return <p className={cn(human ? 'mt-1' : 'mt-0.5', textClass)}>{body}</p>
+  }
+
+  return (
+    <details className={cn('group', human ? 'mt-1' : 'mt-0.5')}>
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <span className={cn(textClass, 'line-clamp-2 group-open:hidden')}>{body}</span>
+        <span className="mt-0.5 inline-block text-xs font-medium text-brand-700 hover:underline group-open:hidden">
+          Show more
+        </span>
+        <span className="mt-0.5 hidden text-xs font-medium text-brand-700 hover:underline group-open:inline-block">
+          Show less
+        </span>
+      </summary>
+      <p className={textClass}>{body}</p>
+    </details>
   )
 }
 
@@ -185,26 +217,26 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
   const human = HUMAN_TYPES.includes(activity.type)
 
   return (
-    <li className={cn('relative pl-7 sm:pl-8', human ? 'pb-6 last:pb-2' : 'pb-5 last:pb-2')}>
-      {/* ring-white punches a gap in the rail so the circle reads as a bead
-          on the line rather than a sticker over it. */}
+    <li className={cn('relative pl-6 sm:pl-7', human ? 'pb-4 last:pb-1' : 'pb-3.5 last:pb-1')}>
+      {/* The ring matches the canvas and punches a gap in the rail so the
+          circle reads as a bead on the line rather than a sticker over it. */}
       <span
         className={cn(
-          'absolute flex items-center justify-center rounded-full ring-4 ring-white',
-          human ? '-left-3.5 top-0 h-7 w-7' : '-left-3 top-0 h-6 w-6',
+          'absolute flex items-center justify-center rounded-full ring-4 ring-slate-50',
+          human ? '-left-3 top-0 h-6 w-6' : '-left-[11px] top-0.5 h-5 w-5',
           style.className,
         )}
       >
-        <Icon className={human ? 'h-4 w-4' : 'h-3.5 w-3.5'} aria-hidden="true" />
+        <Icon className={human ? 'h-3.5 w-3.5' : 'h-3 w-3'} aria-hidden="true" />
       </span>
 
-      <div className={cn('min-w-0', human ? 'pt-0.5' : 'pt-px')}>
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <p
             className={
               human
                 ? 'text-sm font-semibold text-slate-900'
-                : 'text-[13px] font-medium text-slate-700'
+                : 'text-[13px] font-medium text-slate-600'
             }
           >
             {heading}
@@ -217,23 +249,12 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
           ) : null}
         </div>
 
-        {activity.body ? (
-          <p
-            className={cn(
-              'whitespace-pre-wrap break-words',
-              human
-                ? 'mt-1 text-sm leading-relaxed text-slate-700'
-                : 'mt-0.5 text-[13px] text-slate-600',
-            )}
-          >
-            {activity.body}
-          </p>
-        ) : null}
+        {activity.body ? <ActivityBody body={activity.body} human={human} /> : null}
 
         {/* The outcome is the line someone scans when catching up, so it gets
             its own weight rather than being folded into the meta line. */}
         {activity.outcome ? (
-          <p className="mt-1.5 text-sm font-medium text-slate-800">
+          <p className="mt-1 text-[13px] font-medium text-slate-800">
             <span className="text-slate-500">Outcome: </span>
             {activity.outcome}
           </p>
@@ -242,7 +263,7 @@ function TimelineEntry({ activity, now }: { activity: TimelineActivity; now: Dat
         {/* Colour alone never carries the type, so it is repeated in this
             line — except when the heading already is the type label, which
             would print the same words twice in a row. */}
-        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+        <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
           {subject ? (
             <>
               <span>{typeLabel}</span>

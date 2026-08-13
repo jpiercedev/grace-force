@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  CalendarClock,
   Circle,
   Coffee,
   Mail,
@@ -20,7 +21,7 @@ import {
   TimezoneOffsetField,
   useCloseOnSuccess,
 } from '@/components/domain/contact-form-controls'
-import { Button } from '@/components/ui/button'
+import { Button, buttonClasses } from '@/components/ui/button'
 import { Dialog, useDialog } from '@/components/ui/dialog'
 import { Disclosure } from '@/components/ui/disclosure'
 import { Field, Input, Select, Textarea } from '@/components/ui/form'
@@ -40,6 +41,18 @@ const ICONS: Record<string, LucideIcon> = {
   StickyNote,
   Circle,
 }
+
+/**
+ * The activity strip above the timeline: one small button per common thing to
+ * record, each opening the same dialog already set to the right choice. A
+ * follow-up is a different object with its own form, so that one is a link.
+ */
+const QUICK_ACTIONS: ReadonlyArray<{ label: string; kind: string; icon: string }> = [
+  { label: 'Note', kind: 'note', icon: 'StickyNote' },
+  { label: 'Call', kind: 'call_out', icon: 'PhoneOutgoing' },
+  { label: 'Email', kind: 'email', icon: 'Mail' },
+  { label: 'Meeting', kind: 'meeting', icon: 'Users' },
+]
 
 /**
  * "Open donor → Log interaction → what happened → a note → save."
@@ -64,6 +77,8 @@ export function LogInteractionDialog({
   variant = 'primary',
   size = 'md',
   label = 'Log interaction',
+  initialKind,
+  icon,
 }: {
   contactId: string
   contactName: string
@@ -72,10 +87,14 @@ export function LogInteractionDialog({
   variant?: 'primary' | 'secondary'
   size?: 'sm' | 'md' | 'lg'
   label?: string
+  /** Pre-select a kind (e.g. a "Call" quick action opens onto the call tile). */
+  initialKind?: string
+  /** Icon name (from this file's map) shown before the trigger label. */
+  icon?: string
 }) {
   const dialog = useDialog()
   const [state, formAction] = useActionState<ContactActionState, FormData>(action, {})
-  const [kindValue, setKindValue] = useState(INTERACTION_KINDS[0]!.value)
+  const [kindValue, setKindValue] = useState(initialKind ?? INTERACTION_KINDS[0]!.value)
   const [followUp, setFollowUp] = useState(false)
   useCloseOnSuccess(state, dialog.close)
 
@@ -83,13 +102,14 @@ export function LogInteractionDialog({
   // "call" gets logged as a "meeting".
   useEffect(() => {
     if (dialog.open) {
-      setKindValue(INTERACTION_KINDS[0]!.value)
+      setKindValue(initialKind ?? INTERACTION_KINDS[0]!.value)
       setFollowUp(false)
     }
-  }, [dialog.open])
+  }, [dialog.open, initialKind])
 
   const kind = findInteractionKind(kindValue)
   const errors = state.fieldErrors ?? {}
+  const TriggerIcon = icon ? ICONS[icon] : undefined
 
   return (
     <>
@@ -100,6 +120,12 @@ export function LogInteractionDialog({
         size={size}
         onClick={dialog.openDialog}
       >
+        {TriggerIcon ? (
+          <TriggerIcon
+            aria-hidden="true"
+            className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'}
+          />
+        ) : null}
         {label}
       </Button>
 
@@ -309,5 +335,46 @@ export function LogInteractionDialog({
         </div>
       </Dialog>
     </>
+  )
+}
+
+/**
+ * Note · Call · Email · Meeting · Follow-up, in one row above the activity
+ * stream. Each button opens the full logging dialog with the choice already
+ * made — logging a call should feel like a small action, not a form to fill
+ * out. The follow-up is its own object with its own page, so it is a link.
+ */
+export function QuickActivityBar({
+  contactId,
+  contactName,
+  proposals,
+  action,
+}: {
+  contactId: string
+  contactName: string
+  proposals: ReadonlyArray<{ id: string; title: string; status: ProposalStatus }>
+  action: (state: ContactActionState, formData: FormData) => Promise<ContactActionState>
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {QUICK_ACTIONS.map((quick) => (
+        <LogInteractionDialog
+          key={quick.kind}
+          contactId={contactId}
+          contactName={contactName}
+          proposals={proposals}
+          action={action}
+          variant="secondary"
+          size="sm"
+          label={quick.label}
+          icon={quick.icon}
+          initialKind={quick.kind}
+        />
+      ))}
+      <a href={`/follow-ups/new?contact=${contactId}`} className={buttonClasses('secondary', 'sm')}>
+        <CalendarClock aria-hidden="true" className="h-3.5 w-3.5" />
+        Follow-up
+      </a>
+    </div>
   )
 }

@@ -21,16 +21,17 @@ import {
 } from '@/app/(app)/contacts/donor-actions'
 import { saveAttendee } from '@/app/(app)/events/actions'
 import { ACTIVITY_TYPE_LABELS, parseActivityType } from '@/components/domain/contact-badges'
-import { ContactDetailsPanel, ContactEmailPanel, ContactGivingPanel } from '@/components/domain/contact-panels'
-import { AttachmentsPanel } from '@/components/domain/attachments-panel'
+import { ContactEmailPanel, ContactGivingPanel } from '@/components/domain/contact-panels'
 import { MEETING_KIND_LABELS } from '@/components/domain/development-badges'
+import { DonorAbout } from '@/components/domain/donor/donor-about'
+import { DonorAssociations } from '@/components/domain/donor/donor-associations'
 import { DonorEvents } from '@/components/domain/donor/donor-events'
 import { DonorGlance } from '@/components/domain/donor/donor-glance'
 import { DonorHeader } from '@/components/domain/donor/donor-header'
 import { DonorInterests } from '@/components/domain/donor/donor-interests'
 import { DonorCapability, DonorPreferences } from '@/components/domain/donor/donor-preferences'
-import { DonorRelationships } from '@/components/domain/donor/donor-relationships'
 import { EngagementPanel } from '@/components/domain/engagement-panel'
+import { QuickActivityBar } from '@/components/domain/log-interaction'
 import { ProposalList } from '@/components/domain/proposal-list'
 import { Timeline } from '@/components/domain/timeline'
 import { TimelineFilters } from '@/components/domain/timeline-filters'
@@ -65,35 +66,25 @@ import {
 import { formatDate, pluralize } from '@/lib/utils'
 
 /**
- * The donor record — the heart of the application.
+ * The donor record — the heart of the application, in three zones:
  *
- * It used to be nine equal-weight cards stacked down one page, with two forms
- * permanently open before anyone asked for them. It is now three layers:
+ * 1. **Left rail** — who this is and how to reach them, persistent while the
+ *    workspace changes. Rarely-needed properties fold behind "View all
+ *    details".
+ * 2. **Center workspace** — where the relationship is worked: Overview,
+ *    Activity, Planned gifts, Giving, Events, one tab at a time.
+ * 3. **Right rail** — the records associated with this person (related
+ *    people, planned gifts, events, files), each a collapsible section with
+ *    its own add action.
  *
- * 1. **Header** — who, how to reach them the way they want, who owns the
- *    relationship, and one primary action.
- * 2. **Glance** — six answers: what is owed, when we last spoke, what is in
- *    flight, what they have given, what they might be capable of, what they
- *    care about.
- * 3. **One tab at a time** — Activity by default, then Overview, Giving,
- *    Proposals, Events, Relationships, Files.
- *
- * The tabs are links (`?tab=`), not client state, so every area is a real URL:
- * shareable, refreshable, back-button-correct, and rendered on the server.
+ * The tabs are links (`?tab=`), not client state, so every area is a real
+ * URL: shareable, refreshable, back-button-correct, rendered on the server.
  */
 
 type RouteParams = Promise<{ id: string }>
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
-const TAB_KEYS = [
-  'activity',
-  'overview',
-  'giving',
-  'proposals',
-  'events',
-  'relationships',
-  'files',
-] as const
+const TAB_KEYS = ['overview', 'activity', 'proposals', 'giving', 'events'] as const
 type TabKey = (typeof TAB_KEYS)[number]
 
 export async function generateMetadata({ params }: { params: RouteParams }): Promise<Metadata> {
@@ -107,8 +98,10 @@ function first(value: string | string[] | undefined): string | null {
   return raw?.trim() || null
 }
 
+/** Old links may still carry ?tab=relationships or ?tab=files — those areas
+ *  live in the association rail now, so they land on the overview. */
 function parseTab(value: string | null, allowed: readonly TabKey[]): TabKey {
-  return value && (allowed as readonly string[]).includes(value) ? (value as TabKey) : 'activity'
+  return value && (allowed as readonly string[]).includes(value) ? (value as TabKey) : 'overview'
 }
 
 /** How many timeline entries to render. Grows by a page each "Load more". */
@@ -189,26 +182,25 @@ export default async function ContactDetailPage({
   const tab = parseTab(first(query.tab), allowed)
 
   const tabs: TabDefinition[] = [
-    { key: 'activity', label: 'Activity', count: timeline.total },
     { key: 'overview', label: 'Overview' },
+    { key: 'activity', label: 'Activity', count: timeline.total },
     ...(showGiving
       ? ([
+          { key: 'proposals', label: 'Planned gifts', count: proposals.length },
           { key: 'giving', label: 'Giving' },
-          { key: 'proposals', label: 'Proposals', count: proposals.length },
         ] as TabDefinition[])
       : []),
     { key: 'events', label: 'Events', count: events.length },
-    { key: 'relationships', label: 'Relationships', count: related.length },
-    { key: 'files', label: 'Files', count: files.length },
   ]
 
   function tabHref(key: string): string {
     // Only the tab survives the move; a type filter or a "load more" depth
     // belongs to the Activity tab and would be meaningless elsewhere.
-    return key === 'activity' ? basePath : `${basePath}?tab=${key}`
+    return key === 'overview' ? basePath : `${basePath}?tab=${key}`
   }
 
   const moreParams = new URLSearchParams()
+  moreParams.set('tab', 'activity')
   if (type) moreParams.set('type', type)
   moreParams.set('show', String(Math.min(shown + TIMELINE_PAGE_SIZE, TIMELINE_MAX_LOADED)))
   const canLoadMore = timeline.hasMore && shown < TIMELINE_MAX_LOADED
@@ -225,8 +217,10 @@ export default async function ContactDetailPage({
     status: proposal.status,
   }))
 
+  const filesWithUrls = await withDownloadUrls(files)
+
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-screen-2xl space-y-4">
       <DonorHeader
         contact={contact}
         name={contactName(contact)}
@@ -242,233 +236,262 @@ export default async function ContactDetailPage({
         }}
       />
 
-      <DonorGlance
-        contactId={contact.id}
-        followUps={followUps}
-        lastInteraction={lastInteraction}
-        proposal={openProposal}
-        giving={giving}
-        capability={capability}
-        interests={interests}
-        nowIso={nowIso}
-      />
+      <div className="grid items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[16.5rem_minmax(0,1fr)_18.5rem]">
+        {/* Zone 1 — identity, persistent. */}
+        <aside aria-label="About" className="space-y-3">
+          <DonorAbout contact={contact} owner={owner} canEdit={writable} />
+          <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-3 shadow-card">
+            <DonorPreferences contact={contact} canEdit={writable} action={saveContactPreferences} />
+          </div>
+        </aside>
 
-      <Tabs tabs={tabs} active={tab} hrefFor={tabHref} label="Donor record sections" />
+        {/* Zone 2 — the relationship workspace. */}
+        <div className="min-w-0">
+          <Tabs tabs={tabs} active={tab} hrefFor={tabHref} label="Donor record sections" />
 
-      {tab === 'activity' ? (
-        <div className="space-y-8">
-          {reports.length > 0 ? (
-            <section className="space-y-3">
-              <SectionHeading
-                title="Call reports"
-                action={
-                  <Link
-                    href={`/reports/new?contact=${contact.id}`}
-                    className="text-sm font-medium text-brand-700 hover:underline"
-                  >
-                    New report
-                  </Link>
-                }
-              />
-              <ul className="divide-y divide-slate-200 border-t border-slate-200">
-                {reports.map((report) => (
-                  <li key={report.id}>
-                    <Link
-                      href={`/reports/${report.id}`}
-                      className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3 transition-colors hover:bg-slate-50"
-                    >
-                      <span className="min-w-0 flex-1 basis-64">
-                        <span className="block text-[15px] font-medium text-slate-900">
-                          {MEETING_KIND_LABELS[report.meetingKind]} ·{' '}
-                          {formatDate(report.metOn)}
-                          {report.status === 'draft' ? (
-                            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
-                              Draft
-                            </span>
-                          ) : null}
-                        </span>
-                        {report.summary ? (
-                          <span className="mt-0.5 block truncate text-sm text-slate-600">
-                            {report.summary}
-                          </span>
-                        ) : null}
-                      </span>
-                      {report.attachmentCount > 0 ? (
-                        <span className="shrink-0 text-sm text-slate-500">
-                          {pluralize(report.attachmentCount, 'file')}
-                        </span>
+          <div className="pt-4">
+            {tab === 'overview' ? (
+              <div className="space-y-6">
+                <DonorGlance
+                  contactId={contact.id}
+                  followUps={followUps}
+                  lastInteraction={lastInteraction}
+                  proposal={openProposal}
+                  giving={giving}
+                  capability={capability}
+                  interests={interests}
+                  nowIso={nowIso}
+                />
+
+                <section className="space-y-2">
+                  <SectionHeading title="Relationship summary" />
+                  {contact.notes ? (
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                      {contact.notes}
+                    </p>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      Nothing written yet. A few sentences about how we know them and where the
+                      relationship stands is the single most useful thing on this record.
+                      {writable ? (
+                        <>
+                          {' '}
+                          <Link
+                            href={`${basePath}/edit`}
+                            className="font-medium text-brand-700 hover:underline"
+                          >
+                            Add a summary
+                          </Link>
+                          .
+                        </>
                       ) : null}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+                    </p>
+                  )}
+                </section>
 
-          <section className="space-y-3">
-            <SectionHeading
-              title="Everything that happened"
-              description={
-                type
-                  ? `${ACTIVITY_TYPE_LABELS[type]} · ${pluralize(timeline.total, 'entry', 'entries')}`
-                  : pluralize(timeline.total, 'entry', 'entries')
-              }
-            />
-            <TimelineFilters basePath={basePath} type={type} />
-            <Timeline days={days} nowIso={nowIso} filtered={type !== null} />
-            {canLoadMore ? (
-              <Link
-                href={`${basePath}?${moreParams.toString()}`}
-                className={buttonClasses('secondary', 'sm')}
-              >
-                Load more
-              </Link>
+                <DonorInterests
+                  contactId={contact.id}
+                  interests={interests}
+                  areas={interestAreas}
+                  canEdit={writable}
+                  addAction={addInterest}
+                  removeAction={removeInterest}
+                />
+
+                <EngagementPanel
+                  contactId={contact.id}
+                  engagements={engagements}
+                  engagementTypes={engagementTypes}
+                  team={team}
+                  canEdit={writable}
+                  today={today}
+                  actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
+                />
+              </div>
             ) : null}
-          </section>
-        </div>
-      ) : null}
 
-      {tab === 'overview' ? (
-        <div className="grid items-start gap-8 lg:grid-cols-2">
-          <div className="space-y-8">
-            <section className="space-y-3">
-              <SectionHeading title="Relationship summary" />
-              {contact.notes ? (
-                <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-700">
-                  {contact.notes}
-                </p>
-              ) : (
-                <p className="text-sm leading-relaxed text-slate-600">
-                  Nothing written yet. A few sentences about how we know them and where the
-                  relationship stands is the single most useful thing on this record.
-                  {writable ? (
-                    <>
-                      {' '}
-                      <Link
-                        href={`${basePath}/edit`}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
-                        Add a summary
-                      </Link>
-                      .
-                    </>
+            {tab === 'activity' ? (
+              <div className="space-y-5">
+                {writable ? (
+                  <QuickActivityBar
+                    contactId={contact.id}
+                    contactName={contactName(contact)}
+                    proposals={proposalOptions}
+                    action={logInteraction}
+                  />
+                ) : null}
+
+                {reports.length > 0 ? (
+                  <section className="space-y-2">
+                    <SectionHeading
+                      title="Call reports"
+                      action={
+                        writable ? (
+                          <Link
+                            href={`/reports/new?contact=${contact.id}`}
+                            className="text-[13px] font-medium text-brand-700 hover:underline"
+                          >
+                            New report
+                          </Link>
+                        ) : null
+                      }
+                    />
+                    <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white shadow-card">
+                      {reports.map((report) => (
+                        <li key={report.id}>
+                          <Link
+                            href={`/reports/${report.id}`}
+                            className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 px-3.5 py-2 transition-colors hover:bg-slate-50"
+                          >
+                            <span className="min-w-0 flex-1 basis-64">
+                              <span className="block text-sm font-medium text-slate-900">
+                                {MEETING_KIND_LABELS[report.meetingKind]} ·{' '}
+                                {formatDate(report.metOn)}
+                                {report.status === 'draft' ? (
+                                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-semibold text-amber-900">
+                                    Draft
+                                  </span>
+                                ) : null}
+                              </span>
+                              {report.summary ? (
+                                <span className="mt-0.5 block truncate text-[13px] text-slate-600">
+                                  {report.summary}
+                                </span>
+                              ) : null}
+                            </span>
+                            {report.attachmentCount > 0 ? (
+                              <span className="shrink-0 text-[13px] text-slate-500">
+                                {pluralize(report.attachmentCount, 'file')}
+                              </span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <section className="space-y-2">
+                  <SectionHeading
+                    title="Activity"
+                    description={
+                      type
+                        ? `${ACTIVITY_TYPE_LABELS[type]} · ${pluralize(timeline.total, 'entry', 'entries')}`
+                        : pluralize(timeline.total, 'entry', 'entries')
+                    }
+                  />
+                  <TimelineFilters basePath={basePath} hidden={{ tab: 'activity' }} type={type} />
+                  <Timeline days={days} nowIso={nowIso} filtered={type !== null} />
+                  {canLoadMore ? (
+                    <Link
+                      href={`${basePath}?${moreParams.toString()}`}
+                      className={buttonClasses('secondary', 'sm')}
+                    >
+                      Load more
+                    </Link>
                   ) : null}
-                </p>
-              )}
-            </section>
+                </section>
+              </div>
+            ) : null}
 
-            <DonorInterests
-              contactId={contact.id}
-              interests={interests}
-              areas={interestAreas}
-              canEdit={writable}
-              addAction={addInterest}
-              removeAction={removeInterest}
-            />
+            {tab === 'proposals' && showGiving ? (
+              <section className="space-y-3">
+                <SectionHeading
+                  title="Planned gifts and proposals"
+                  description="Trusts, gift annuities, estate provisions and outright gifts under discussion."
+                  action={
+                    writable ? (
+                      <LinkButton
+                        href={`/proposals/new?contact=${contact.id}`}
+                        variant="secondary"
+                        size="sm"
+                      >
+                        Add
+                      </LinkButton>
+                    ) : null
+                  }
+                />
+                <ProposalList
+                  proposals={proposals}
+                  nowIso={nowIso}
+                  emptyTitle="No planned gifts yet"
+                  emptyDescription="When a gift conversation turns into something specific — a trust, an annuity, a bequest — start it here and the whole picture stays in one place."
+                  emptyAction={
+                    writable ? (
+                      <LinkButton href={`/proposals/new?contact=${contact.id}`}>
+                        Start a planned gift
+                      </LinkButton>
+                    ) : null
+                  }
+                />
+              </section>
+            ) : null}
 
-            <DonorPreferences
-              contact={contact}
-              canEdit={writable}
-              action={saveContactPreferences}
-            />
-          </div>
+            {tab === 'giving' && giving ? (
+              <div className="grid items-start gap-4 xl:grid-cols-2">
+                <ContactGivingPanel giving={giving} />
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3.5 py-3 shadow-card">
+                    <DonorCapability
+                      contactId={contact.id}
+                      capability={capability}
+                      canEdit={writable}
+                      action={saveCapability}
+                    />
+                  </div>
+                  <ContactEmailPanel engagement={email} />
+                </div>
+              </div>
+            ) : null}
 
-          <div className="space-y-8">
-            <ContactDetailsPanel contact={contact} />
-            <EngagementPanel
-              contactId={contact.id}
-              engagements={engagements}
-              engagementTypes={engagementTypes}
-              team={team}
-              canEdit={writable}
-              today={today}
-              actions={{ add: addEngagement, update: updateEngagement, end: endEngagement }}
-            />
-            <ContactEmailPanel engagement={email} />
+            {tab === 'events' ? (
+              <DonorEvents
+                contactId={contact.id}
+                entries={events}
+                events={eventOptions}
+                canEdit={writable}
+                action={saveAttendee}
+              />
+            ) : null}
+
+            {/* A giving-gated tab reached by a shared link, by someone without
+                the capability: say so rather than showing an empty page. */}
+            {(tab === 'giving' && !giving) || (tab === 'proposals' && !showGiving) ? (
+              <EmptyState
+                title="Not available to your account"
+                description="Giving records and planned gifts are limited to administrators and staff granted access to them."
+              />
+            ) : null}
           </div>
         </div>
-      ) : null}
 
-      {tab === 'giving' && giving ? (
-        <div className="grid items-start gap-8 lg:grid-cols-2">
-          <ContactGivingPanel giving={giving} />
-          <DonorCapability
+        {/* Zone 3 — associations. Below the workspace until xl, beside it after. */}
+        <aside
+          aria-label="Associations"
+          className="lg:col-start-2 lg:row-start-2 xl:col-start-3 xl:row-span-2 xl:row-start-1"
+        >
+          <DonorAssociations
             contactId={contact.id}
-            capability={capability}
-            canEdit={writable}
-            action={saveCapability}
-          />
-        </div>
-      ) : null}
-
-      {tab === 'proposals' && showGiving ? (
-        <section className="space-y-4">
-          <SectionHeading
-            title="Proposals and planned gifts"
-            description="Trusts, gift annuities, estate provisions and outright gifts under discussion."
-            action={
-              writable ? (
-                <LinkButton href={`/proposals/new?contact=${contact.id}`} variant="secondary">
-                  Add proposal
-                </LinkButton>
-              ) : null
-            }
-          />
-          <ProposalList
+            contactName={contactName(contact)}
+            related={related}
             proposals={proposals}
-            nowIso={nowIso}
-            emptyTitle="No proposals yet"
-            emptyDescription="When a gift conversation turns into something specific — a trust, an annuity, a bequest — start it here and the whole picture stays in one place."
-            emptyAction={
-              writable ? (
-                <LinkButton href={`/proposals/new?contact=${contact.id}`}>Start a proposal</LinkButton>
-              ) : null
-            }
+            showGiving={showGiving}
+            events={events}
+            eventOptions={eventOptions}
+            files={filesWithUrls}
+            canEdit={writable}
+            currentUserId={profile.id}
+            isAdmin={admin}
+            actions={{
+              addRelationship,
+              removeRelationship,
+              saveAttendee,
+              uploadAttachment,
+              removeAttachment,
+            }}
           />
-        </section>
-      ) : null}
-
-      {tab === 'events' ? (
-        <DonorEvents
-          contactId={contact.id}
-          entries={events}
-          events={eventOptions}
-          canEdit={writable}
-          action={saveAttendee}
-        />
-      ) : null}
-
-      {tab === 'relationships' ? (
-        <DonorRelationships
-          contactId={contact.id}
-          contactName={contactName(contact)}
-          people={related}
-          canEdit={writable}
-          addAction={addRelationship}
-          removeAction={removeRelationship}
-        />
-      ) : null}
-
-      {tab === 'files' ? (
-        <AttachmentsPanel
-          contactId={contact.id}
-          attachments={await withDownloadUrls(files)}
-          canEdit={writable}
-          currentUserId={profile.id}
-          isAdmin={admin}
-          uploadAction={uploadAttachment}
-          removeAction={removeAttachment}
-        />
-      ) : null}
-
-      {/* A giving-gated tab reached by a shared link, by someone without the
-          capability: say so rather than showing an empty page. */}
-      {(tab === 'giving' && !giving) || (tab === 'proposals' && !showGiving) ? (
-        <EmptyState
-          title="Not available to your account"
-          description="Giving records and proposals are limited to administrators and staff granted access to them."
-        />
-      ) : null}
+        </aside>
+      </div>
     </div>
   )
 }

@@ -36,6 +36,7 @@ export function DonorRelationships({
   canEdit,
   addAction,
   removeAction,
+  compact = false,
 }: {
   contactId: string
   contactName: string
@@ -43,6 +44,8 @@ export function DonorRelationships({
   canEdit: boolean
   addAction: (state: ContactActionState, formData: FormData) => Promise<ContactActionState>
   removeAction: (state: ContactActionState, formData: FormData) => Promise<ContactActionState>
+  /** Rail presentation: no heading (the rail section carries it), tight rows. */
+  compact?: boolean
 }) {
   const add = useDialog()
   const [addState, addFormAction] = useActionState<ContactActionState, FormData>(addAction, {})
@@ -56,39 +59,52 @@ export function DonorRelationships({
   const groups = Array.from(new Set(RELATIONSHIP_CHOICES.map((choice) => choice.group)))
 
   return (
-    <section className="space-y-4">
-      <SectionHeading
-        title="Relationships"
-        description="Family, friends, advisers and the people who introduced them."
-        action={
-          canEdit ? (
-            <Button ref={add.triggerRef} type="button" variant="secondary" onClick={add.openDialog}>
-              Add relationship
-            </Button>
-          ) : null
-        }
-      />
+    <section className={compact ? 'space-y-2' : 'space-y-4'}>
+      {compact ? null : (
+        <SectionHeading
+          title="Relationships"
+          description="Family, friends, advisers and the people who introduced them."
+          action={
+            canEdit ? (
+              <Button ref={add.triggerRef} type="button" variant="secondary" onClick={add.openDialog}>
+                Add relationship
+              </Button>
+            ) : null
+          }
+        />
+      )}
 
       <FormError state={removeState} />
 
       {people.length === 0 ? (
-        <EmptyState
-          title="No one linked yet"
-          description="Recording a spouse, a family member or whoever introduced you keeps the whole picture in one place."
-        />
+        compact ? (
+          <p className="text-[13px] leading-relaxed text-slate-500">
+            No one linked yet — a spouse, family member or adviser keeps the whole picture in one
+            place.
+          </p>
+        ) : (
+          <EmptyState
+            title="No one linked yet"
+            description="Recording a spouse, a family member or whoever introduced you keeps the whole picture in one place."
+          />
+        )
       ) : (
-        <ul className="divide-y divide-slate-200 border-t border-slate-200">
+        <ul className={compact ? 'space-y-1.5' : 'divide-y divide-slate-200 border-t border-slate-200'}>
           {people.map((person) => (
-            <li key={person.id} className="flex items-center gap-3 py-3">
-              <Avatar name={person.contact.name} size="md" />
+            <li key={person.id} className={compact ? 'flex items-center gap-2' : 'flex items-center gap-3 py-3'}>
+              <Avatar name={person.contact.name} size={compact ? 'sm' : 'md'} />
               <div className="min-w-0 flex-1">
                 <Link
                   href={`/contacts/${person.contact.id}`}
-                  className="block truncate text-[15px] font-medium text-slate-900 hover:text-brand-800 hover:underline"
+                  className={
+                    compact
+                      ? 'block truncate text-[13px] font-medium text-brand-700 hover:underline'
+                      : 'block truncate text-[15px] font-medium text-slate-900 hover:text-brand-700 hover:underline'
+                  }
                 >
                   {person.contact.name}
                 </Link>
-                <p className="truncate text-sm text-slate-600">
+                <p className={compact ? 'truncate text-xs text-slate-500' : 'truncate text-sm text-slate-600'}>
                   {person.label}
                   {person.note ? ` · ${person.note}` : ''}
                 </p>
@@ -106,6 +122,19 @@ export function DonorRelationships({
           ))}
         </ul>
       )}
+
+      {compact && canEdit ? (
+        <Button
+          ref={add.triggerRef}
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="-ml-2 text-brand-700"
+          onClick={add.openDialog}
+        >
+          + Add relationship
+        </Button>
+      ) : null}
 
       <Dialog
         controller={add}
