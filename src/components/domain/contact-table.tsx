@@ -1,101 +1,122 @@
 import Link from 'next/link'
+import { ArrowDown, ArrowUp, PanelRight } from 'lucide-react'
 import {
   ContactStatusBadge,
   EngagementTypeBadge,
   LifecycleStageBadge,
 } from '@/components/domain/contact-badges'
 import { Avatar } from '@/components/ui/display'
-import type { ContactListItem } from '@/lib/queries/contacts'
+import {
+  contactListSearchParams,
+  type ContactListFilters,
+  type ContactListItem,
+  type ContactSort,
+} from '@/lib/queries/contacts'
 import { cn, formatRelative } from '@/lib/utils'
 
 /**
+ * The People index: a working database view. Compact rows, a face and a
+ * record link per row, sortable columns where sorting means something, and a
+ * preview affordance so a donor can be inspected without leaving the list.
+ *
  * One dataset, two presentations: a table where there is room for columns and
  * a stacked list below `md`, because a six-column table on a 360px screen is
  * either unreadable or a horizontal scroll through the whole page.
- *
- * Rows lead with a face: the avatar and the semibold ink name anchor each row,
- * with the operational facts (channels, owner, recency) kept a register quieter.
  */
-export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
+
+function withParam(filters: ContactListFilters, page: number, key: string, value: string): string {
+  const params = contactListSearchParams(filters)
+  if (page > 1) params.set('page', String(page))
+  params.set(key, value)
+  const query = params.toString()
+  return query ? `/contacts?${query}` : '/contacts'
+}
+
+export function previewHref(filters: ContactListFilters, page: number, contactId: string): string {
+  return withParam(filters, page, 'preview', contactId)
+}
+
+export function ContactTable({
+  contacts,
+  filters,
+  page,
+}: {
+  contacts: ContactListItem[]
+  filters: ContactListFilters
+  page: number
+}) {
   return (
     <>
-      <div className="hidden overflow-x-auto rounded-xl border border-slate-200/70 bg-white shadow-card md:block">
+      <div className="hidden overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-card md:block">
         <table className="min-w-full text-sm">
           <caption className="sr-only">Contacts</caption>
           <thead>
-            <tr className="border-b border-slate-200">
-              <Th>Name</Th>
-              <Th>Email and phone</Th>
-              {/* Organisation and Last activity are the first to go when the
+            <tr className="border-b border-slate-200 bg-slate-50">
+              <SortableTh filters={filters} sort="name" className="pl-4">
+                Name
+              </SortableTh>
+              <Th>Contact information</Th>
+              <Th>Stage</Th>
+              {/* Engagements and Last activity are the first to go when the
                   table is narrow — both stay reachable on the contact page. */}
-              <Th className="hidden lg:table-cell">Organisation</Th>
-              <Th>Engagements</Th>
+              <Th className="hidden lg:table-cell">Engagements</Th>
               <Th>Owner</Th>
-              <Th className="hidden lg:table-cell">Last activity</Th>
+              <SortableTh filters={filters} sort="recent" className="hidden lg:table-cell">
+                Last activity
+              </SortableTh>
+              <Th className="pr-3">
+                <span className="sr-only">Preview</span>
+              </Th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200/70">
+          <tbody className="divide-y divide-slate-200">
             {contacts.map((contact) => (
-              <tr
-                key={contact.id}
-                className="align-top transition-colors duration-150 hover:bg-slate-100/60"
-              >
-                <td className="px-3 py-4 pl-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar name={contact.name} size="md" className="mt-0.5" />
-                    {/* min-w keeps ordinary two-word names on one line; the
-                        genuinely long ones still wrap instead of scrolling. */}
+              <tr key={contact.id} className="group transition-colors duration-150 hover:bg-slate-50">
+                <td className="px-3 py-2 pl-4">
+                  <div className="flex items-center gap-2.5">
+                    <Avatar name={contact.name} size="sm" />
                     <div className="min-w-[10rem]">
                       <Link
                         href={`/contacts/${contact.id}`}
-                        className="font-semibold text-slate-900 hover:text-brand-700 hover:underline"
+                        className="font-semibold text-brand-700 hover:underline"
                       >
                         {contact.name}
                       </Link>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        <LifecycleStageBadge stage={contact.lifecycle_stage} />
-                        {contact.status !== 'active' ? (
-                          <ContactStatusBadge status={contact.status} />
-                        ) : null}
-                      </div>
+                      {contact.organization_name || contact.job_title ? (
+                        <div className="max-w-[26ch] truncate text-xs text-slate-500">
+                          {[contact.job_title, contact.organization_name].filter(Boolean).join(' · ')}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-4 text-slate-500">
+                <td className="px-3 py-2 text-[13px] text-slate-600">
                   <ContactChannels contact={contact} inTable />
                 </td>
-                <td className="hidden px-3 py-4 lg:table-cell">
-                  {contact.organization_name ? (
-                    // Capped so a long organisation name wraps at a readable
-                    // measure instead of stretching into a many-line sliver.
-                    <div className="max-w-[30ch]">
-                      <div className="text-slate-700">{contact.organization_name}</div>
-                      {contact.job_title ? (
-                        <div className="text-xs text-slate-500">{contact.job_title}</div>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <Dash />
-                  )}
+                <td className="px-3 py-2">
+                  <div className="flex flex-wrap gap-1">
+                    <LifecycleStageBadge stage={contact.lifecycle_stage} />
+                    {contact.status !== 'active' ? (
+                      <ContactStatusBadge status={contact.status} />
+                    ) : null}
+                  </div>
                 </td>
-                <td className="px-3 py-4">
+                <td className="hidden px-3 py-2 lg:table-cell">
                   <EngagementBadges contact={contact} />
                 </td>
-                <td className="px-3 py-4">
+                <td className="px-3 py-2 text-[13px]">
                   {contact.owner ? (
-                    <span className="flex items-center gap-2 text-slate-600">
-                      {/* At md the four visible columns are already snug; the
-                          owner keeps their face from lg up. */}
-                      <Avatar name={contact.owner.name} size="sm" className="hidden lg:inline-flex" />
-                      <span className="max-w-[9rem] truncate xl:max-w-[13rem]" title={contact.owner.name}>
-                        {contact.owner.name}
-                      </span>
+                    <span
+                      className="block max-w-[9rem] truncate text-slate-600 xl:max-w-[13rem]"
+                      title={contact.owner.name}
+                    >
+                      {contact.owner.name}
                     </span>
                   ) : (
                     <span className="text-slate-500">Unassigned</span>
                   )}
                 </td>
-                <td className="hidden whitespace-nowrap px-3 py-4 pr-4 text-slate-500 lg:table-cell">
+                <td className="hidden whitespace-nowrap px-3 py-2 text-[13px] text-slate-500 lg:table-cell">
                   {contact.last_activity_at ? (
                     <time dateTime={contact.last_activity_at}>
                       {formatRelative(contact.last_activity_at)}
@@ -104,31 +125,51 @@ export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
                     <span>No activity</span>
                   )}
                 </td>
+                <td className="w-10 px-2 py-2 pr-3 text-right">
+                  <Link
+                    href={previewHref(filters, page, contact.id)}
+                    scroll={false}
+                    aria-label={`Preview ${contact.name}`}
+                    title="Preview"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-brand-700 group-hover:text-slate-500"
+                  >
+                    <PanelRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <ul className="divide-y divide-slate-200/70 overflow-hidden rounded-xl border border-slate-200/70 bg-white shadow-card md:hidden">
+      <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-card md:hidden">
         {contacts.map((contact) => (
-          <li key={contact.id} className="p-4 transition-colors duration-150 hover:bg-slate-100/60">
-            <div className="flex items-start gap-3">
-              <Avatar name={contact.name} size="md" className="mt-0.5" />
+          <li key={contact.id} className="relative p-3 transition-colors duration-150 hover:bg-slate-50">
+            <div className="flex items-start gap-2.5">
+              <Avatar name={contact.name} size="sm" className="mt-0.5" />
               <div className="min-w-0 flex-1">
-                <Link
-                  href={`/contacts/${contact.id}`}
-                  className="text-sm font-semibold text-slate-900 hover:text-brand-700 hover:underline"
-                >
-                  {contact.name}
-                </Link>
-                {contact.organization_name ? (
-                  <p className="mt-0.5 text-sm text-slate-600">
-                    {contact.organization_name}
-                    {contact.job_title ? ` · ${contact.job_title}` : ''}
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    href={`/contacts/${contact.id}`}
+                    className="text-sm font-semibold text-brand-700 hover:underline"
+                  >
+                    {contact.name}
+                  </Link>
+                  <Link
+                    href={previewHref(filters, page, contact.id)}
+                    scroll={false}
+                    aria-label={`Preview ${contact.name}`}
+                    className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-brand-700"
+                  >
+                    <PanelRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </div>
+                {contact.organization_name || contact.job_title ? (
+                  <p className="mt-0.5 text-[13px] text-slate-600">
+                    {[contact.job_title, contact.organization_name].filter(Boolean).join(' · ')}
                   </p>
                 ) : null}
-                <div className="mt-2 flex flex-wrap gap-1">
+                <div className="mt-1.5 flex flex-wrap gap-1">
                   <LifecycleStageBadge stage={contact.lifecycle_stage} />
                   {contact.status !== 'active' ? (
                     <ContactStatusBadge status={contact.status} />
@@ -137,10 +178,10 @@ export function ContactTable({ contacts }: { contacts: ContactListItem[] }) {
                       no referent, and absent badges already say it. */}
                   {contact.engagements.length > 0 ? <EngagementBadges contact={contact} /> : null}
                 </div>
-                <div className="mt-2 text-sm text-slate-500">
+                <div className="mt-1.5 text-[13px] text-slate-500">
                   <ContactChannels contact={contact} />
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-1.5 text-xs text-slate-500">
                   {contact.owner ? contact.owner.name : 'Unassigned'}
                   {' · '}
                   {contact.last_activity_at
@@ -161,11 +202,59 @@ function Th({ children, className }: { children: React.ReactNode; className?: st
     <th
       scope="col"
       className={cn(
-        'whitespace-nowrap px-3 py-3 text-left first:pl-4 last:pr-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500',
+        'whitespace-nowrap px-3 py-2 text-left text-xs font-medium text-slate-600 first:pl-4',
         className,
       )}
     >
       {children}
+    </th>
+  )
+}
+
+/**
+ * A sortable column is a link that rewrites `?sort=` — server-rendered like
+ * every other view change here. The arrow marks the active order; there is
+ * one direction per sort because that is the direction the question is asked
+ * in ("A first", "most recent first").
+ */
+function SortableTh({
+  filters,
+  sort,
+  children,
+  className,
+}: {
+  filters: ContactListFilters
+  sort: ContactSort
+  children: React.ReactNode
+  className?: string
+}) {
+  const active = filters.sort === sort
+  const params = contactListSearchParams({ ...filters, sort })
+  if (sort === 'recent') params.delete('sort')
+  const query = params.toString()
+
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (sort === 'name' ? 'ascending' : 'descending') : undefined}
+      className={cn('whitespace-nowrap px-3 py-2 text-left text-xs font-medium', className)}
+    >
+      <Link
+        href={query ? `/contacts?${query}` : '/contacts'}
+        className={cn(
+          'inline-flex items-center gap-1 rounded hover:text-slate-900',
+          active ? 'font-semibold text-slate-900' : 'text-slate-600',
+        )}
+      >
+        {children}
+        {active ? (
+          sort === 'name' ? (
+            <ArrowUp className="h-3 w-3" aria-hidden="true" />
+          ) : (
+            <ArrowDown className="h-3 w-3" aria-hidden="true" />
+          )
+        ) : null}
+      </Link>
     </th>
   )
 }

@@ -1,10 +1,15 @@
 import { ContactFilters } from '@/components/domain/contact-filters'
 import { ContactPagination } from '@/components/domain/contact-pagination'
+import {
+  ContactPreviewPanel,
+  loadContactPreview,
+} from '@/components/domain/contact-preview'
 import { ContactTable } from '@/components/domain/contact-table'
 import { LinkButton } from '@/components/ui/button'
 import { Callout, EmptyState, PageHeader } from '@/components/ui/display'
-import { canWrite, requireProfile } from '@/lib/auth'
+import { canViewGiving, canWrite, requireProfile } from '@/lib/auth'
 import {
+  contactListSearchParams,
   hasActiveFilters,
   listContacts,
   listEngagementTypes,
@@ -16,6 +21,11 @@ export const metadata = { title: 'People' }
 
 type SearchParams = Record<string, string | string[] | undefined>
 
+function first(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value
+  return raw?.trim() || null
+}
+
 export default async function ContactsPage({
   searchParams,
 }: {
@@ -24,26 +34,31 @@ export default async function ContactsPage({
   const profile = await requireProfile()
   const params = await searchParams
   const filters = parseContactListFilters(params)
+  const previewId = first(params.preview)
 
-  const [result, team, engagementTypes] = await Promise.all([
+  const [result, team, engagementTypes, preview] = await Promise.all([
     listContacts(filters),
     listTeamMembers(),
     listEngagementTypes(),
+    // A stale or foreign id (a shared link to an archived person) resolves to
+    // null and the list simply renders without a panel.
+    previewId ? loadContactPreview(previewId, canViewGiving(profile)) : Promise.resolve(null),
   ])
 
   const filtered = hasActiveFilters(filters)
   const writable = canWrite(profile)
 
+  const closeParams = contactListSearchParams(filters)
+  if (result.page > 1) closeParams.set('page', String(result.page))
+  const closeQuery = closeParams.toString()
+  const closeHref = closeQuery ? `/contacts?${closeQuery}` : '/contacts'
+
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-4">
       <PageHeader
         title="People"
         description="Everyone Grace Force is in relationship with."
-        action={
-          writable ? (
-            <LinkButton href="/contacts/new" size="lg">Add person</LinkButton>
-          ) : null
-        }
+        action={writable ? <LinkButton href="/contacts/new">Add person</LinkButton> : null}
       />
 
       {params.archived ? (
@@ -53,7 +68,7 @@ export default async function ContactsPage({
       <ContactFilters filters={filters} team={team} engagementTypes={engagementTypes} />
 
       {result.contacts.length === 0 ? (
-        <div className="rounded-xl border border-slate-200/70 bg-white shadow-card">
+        <div className="rounded-lg border border-slate-200 bg-white shadow-card">
           {filtered ? (
             <EmptyState
               title="No contacts match these filters"
@@ -76,7 +91,7 @@ export default async function ContactsPage({
         </div>
       ) : (
         <>
-          <ContactTable contacts={result.contacts} />
+          <ContactTable contacts={result.contacts} filters={filters} page={result.page} />
           <ContactPagination
             filters={filters}
             page={result.page}
@@ -86,6 +101,17 @@ export default async function ContactsPage({
           />
         </>
       )}
+
+      {preview ? (
+        // Keyed by contact so switching previews remounts the panel and moves
+        // focus to the record that just opened.
+        <ContactPreviewPanel
+          key={preview.contact.id}
+          data={preview}
+          closeHref={closeHref}
+          canEdit={writable}
+        />
+      ) : null}
     </div>
   )
 }

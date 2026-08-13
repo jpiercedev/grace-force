@@ -87,13 +87,13 @@ export function ContactFilters({
       role="search"
       aria-label="Filter contacts"
       onSubmit={dropEmptyValues}
-      className="rounded-xl border border-slate-200/70 bg-white p-4 shadow-card sm:p-5"
+      className="rounded-lg border border-slate-200 bg-white p-3 shadow-card"
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
           />
           <label htmlFor={searchId} className="sr-only">
             Search contacts by name, email, phone or organisation
@@ -104,7 +104,7 @@ export function ContactFilters({
             type="search"
             defaultValue={filters.q ?? ''}
             placeholder="Search by name, email, phone or organisation…"
-            className="h-12 rounded-lg pl-11 pr-4 text-base sm:py-2.5 sm:text-base"
+            className="pl-9"
           />
         </div>
 
@@ -112,7 +112,7 @@ export function ContactFilters({
           <Button
             type="button"
             variant="secondary"
-            size="lg"
+            size="md"
             className="flex-1 sm:flex-none"
             aria-expanded={filtersOpen}
             aria-controls="contact-filters-more"
@@ -120,7 +120,7 @@ export function ContactFilters({
           >
             {filtersOpen ? 'Hide filters' : 'Filters'}
           </Button>
-          <Button type="submit" size="lg" className="flex-1 sm:flex-none sm:px-7">
+          <Button type="submit" size="md" className="flex-1 sm:flex-none sm:px-6">
             Search
           </Button>
         </div>
@@ -129,18 +129,16 @@ export function ContactFilters({
       <div
         id="contact-filters-more"
         hidden={!filtersOpen}
-        className="mt-4 border-t border-slate-200/70 pt-4"
+        className="mt-3 border-t border-slate-200 pt-3"
       >
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Refine
-          </p>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[13px] font-medium text-slate-500">Refine the list</p>
           <Link href="/contacts" className="text-xs font-medium text-slate-500 hover:text-brand-700 hover:underline">
             Clear all filters
           </Link>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Field label="Owner">
             {(props) => (
               <Select {...props} name="owner" defaultValue={filters.ownerId ?? ''}>
@@ -221,7 +219,7 @@ export function ContactFilters({
 
         {/* Below `sm` the Search button sits a screen above the last select,
             so the collapsed panel carries its own submit. */}
-        <div className="mt-4 sm:hidden">
+        <div className="mt-3 sm:hidden">
           <Button type="submit" size="md" className="w-full">
             Apply filters
           </Button>

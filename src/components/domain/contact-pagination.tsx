@@ -46,7 +46,7 @@ export function ContactPagination({
               Previous
             </Link>
           ) : (
-            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none text-slate-500 shadow-none ring-slate-200`}>
+            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none border-slate-200 text-slate-500 shadow-none`}>
               Previous
             </span>
           )}
@@ -58,7 +58,7 @@ export function ContactPagination({
               Next
             </Link>
           ) : (
-            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none text-slate-500 shadow-none ring-slate-200`}>
+            <span className={`${buttonClasses('secondary', 'md')} pointer-events-none border-slate-200 text-slate-500 shadow-none`}>
               Next
             </span>
           )}
