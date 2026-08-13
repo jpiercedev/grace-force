@@ -51,6 +51,14 @@ validation message unless you handle it:
 server-action POST.** Use a per-button `formAction`, or a hidden field in a
 form of its own. Never a multi-button form dispatching on `intent`.
 
+**Uploads have two body ceilings, and the smaller wins silently.**
+`serverActions.bodySizeLimit` is the obvious one;
+`experimental.middlewareClientMaxBodySize` defaults to 10MB and applies to
+every route with middleware — which here is every authenticated route. Both
+are set in `next.config.ts` and both must stay above the total in
+`@/lib/attachments`, or a large file is truncated mid-stream and fails as
+`Unexpected end of form`.
+
 **Money is integer cents** everywhere. Never floats.
 
 **`NEXT_PUBLIC_*` is inlined at build time**, including into the middleware

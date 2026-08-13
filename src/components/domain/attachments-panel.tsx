@@ -14,6 +14,12 @@ import { FormError, SubmitButton } from '@/components/domain/contact-form-contro
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/display'
 import { SectionHeading } from '@/components/ui/tabs'
+import {
+  ACCEPT_ATTRIBUTE,
+  MAX_FILE_BYTES,
+  formatBytes,
+  rejectionReason,
+} from '@/lib/attachments'
 import { cn, formatDate } from '@/lib/utils'
 import type { ContactActionState } from '@/lib/validation/contact'
 import type { AttachmentRow } from '@/types/database'
@@ -45,19 +51,6 @@ function iconFor(mime: string | null, fileName: string): LucideIcon {
   }
   if (type.startsWith('text/') || ['doc', 'docx', 'rtf', 'txt'].includes(extension)) return FileText
   return FileIcon
-}
-
-function humanSize(bytes: number | null): string | null {
-  if (bytes === null) return null
-  if (bytes < 1024) return `${bytes} B`
-  const units = ['KB', 'MB', 'GB']
-  let value = bytes / 1024
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`
 }
 
 export type AttachmentWithUrl = AttachmentRow & { url: string | null }
@@ -96,11 +89,32 @@ export function AttachmentsPanel({
     {},
   )
   const [chosen, setChosen] = useState<string[]>([])
+  const [localError, setLocalError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  /**
+   * The same rules the server enforces, run before anything is sent. A 40MB
+   * scan should be refused in the moment it is chosen, not after a minute of
+   * uploading — and a batch that would exceed the request-body ceiling has to
+   * be caught here, because past that point the failure has no usable message.
+   */
   function adopt(files: FileList | null) {
-    setChosen(files ? Array.from(files).map((file) => file.name) : [])
+    const picked = files ? Array.from(files) : []
+    if (picked.length === 0) {
+      setChosen([])
+      setLocalError(null)
+      return
+    }
+    const reason = rejectionReason(picked)
+    if (reason) {
+      setLocalError(reason)
+      setChosen([])
+      if (inputRef.current) inputRef.current.value = ''
+      return
+    }
+    setLocalError(null)
+    setChosen(picked.map((file) => file.name))
   }
 
   return (
@@ -147,16 +161,26 @@ export function AttachmentsPanel({
             <span className="text-sm font-medium text-slate-900">
               Choose files, or drop them here
             </span>
-            <span className="text-xs text-slate-500">PDFs, documents, images — up to 20MB each</span>
+            <span className="text-xs text-slate-500">
+              PDFs, documents, spreadsheets, presentations and images — up to{' '}
+              {formatBytes(MAX_FILE_BYTES)} each
+            </span>
             <input
               ref={inputRef}
               type="file"
               name="files"
               multiple
+              accept={ACCEPT_ATTRIBUTE}
               onChange={(event) => adopt(event.target.files)}
               className="sr-only"
             />
           </label>
+
+          {localError ? (
+            <p role="alert" className="text-sm font-medium text-red-700">
+              {localError}
+            </p>
+          ) : null}
 
           {chosen.length > 0 ? (
             <div className="flex flex-wrap items-center gap-3">
@@ -173,6 +197,7 @@ export function AttachmentsPanel({
                 onClick={() => {
                   if (inputRef.current) inputRef.current.value = ''
                   setChosen([])
+                  setLocalError(null)
                 }}
               >
                 Clear
@@ -191,7 +216,7 @@ export function AttachmentsPanel({
         <ul className="divide-y divide-slate-200 border-t border-slate-200">
           {attachments.map((attachment) => {
             const Icon = iconFor(attachment.mime_type, attachment.file_name)
-            const size = humanSize(attachment.size_bytes)
+            const size = attachment.size_bytes === null ? null : formatBytes(attachment.size_bytes)
             const mine = attachment.uploaded_by === currentUserId
 
             return (

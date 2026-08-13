@@ -7,6 +7,8 @@ import { getRelatedPeople, relationshipExists } from '@/lib/queries/relationship
 import { parseRelationshipKind } from '@/lib/relationships'
 import { createClient } from '@/lib/supabase/server'
 import { ATTACHMENTS_BUCKET } from '@/lib/queries/attachments'
+import { rejectionReason, storagePathFor } from '@/lib/attachments'
+import { pluralize } from '@/lib/utils'
 import type { ContactActionState } from '@/lib/validation/contact'
 import {
   capabilitySchema,
@@ -388,8 +390,6 @@ export async function saveCapability(
 
 // --- Attachments -------------------------------------------------------------
 
-const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
-
 const attachmentSchema = z.object({
   contact_id: uuidField('Missing contact'),
   call_report_id: z.string().trim().uuid().optional().nullable().or(z.literal('').transform(() => null)),
@@ -399,13 +399,19 @@ const attachmentSchema = z.object({
 /**
  * Uploads through the server action rather than a signed browser upload.
  *
- * The trade-off is deliberate: a signed-URL flow needs a browser Supabase
- * client, a ticket endpoint and a third round-trip to register the row, and it
- * can leave orphaned objects when the last step fails. Routing the bytes
- * through the action keeps it to one request whose failure mode is "nothing
- * happened". The ceiling is 20MB, which covers the estate documents and
- * scanned proposals this is for; `next.config.ts` raises the server-action
- * body limit to match.
+ * The trade-off is deliberate. A signed-URL flow needs a browser Supabase
+ * client, a ticket endpoint and a third round-trip to register the row, and
+ * its failure mode is an orphaned object in the bucket that no row points at.
+ * Routing the bytes through the action keeps it to one request whose failure
+ * mode is "nothing happened" — and the one case where bytes *can* outlive a
+ * failure (the metadata insert failing after the object landed) is cleaned up
+ * explicitly below.
+ *
+ * The limits live in `@/lib/attachments` so the browser refuses a file before
+ * spending a minute uploading it and the server refuses the same file for the
+ * same reason. The total cap is what keeps an accepted batch inside
+ * `serverActions.bodySizeLimit`; without it a set of individually-legal files
+ * would fail at the framework layer with no usable message.
  */
 export async function uploadAttachment(
   _prev: ContactActionState,
@@ -421,31 +427,25 @@ export async function uploadAttachment(
 
   const files = formData.getAll('files').filter((entry): entry is File => entry instanceof File)
   const present = files.filter((file) => file.size > 0)
-  if (present.length === 0) {
-    return { error: 'Choose a file to attach.', fieldErrors: { files: 'Choose at least one file' } }
-  }
 
-  const tooBig = present.find((file) => file.size > MAX_UPLOAD_BYTES)
-  if (tooBig) {
-    return {
-      error: `“${tooBig.name}” is larger than 20MB. Attach a smaller copy, or share a link to it in the notes.`,
-      fieldErrors: { files: 'One of these files is too large' },
-    }
+  // Authoritative: the browser runs the same check first, but a form can be
+  // posted without it.
+  const rejection = rejectionReason(present)
+  if (rejection) {
+    return { error: rejection, fieldErrors: { files: 'Check the files you chose' } }
   }
 
   const supabase = await createClient()
+  const attached: string[] = []
 
   for (const file of present) {
-    // Path is contact-scoped and randomised: the object key must not leak a
-    // donor's name, and two files called "proposal.pdf" must not collide.
-    const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-80)
-    const path = `${parsed.data.contact_id}/${crypto.randomUUID()}-${safeName}`
+    const path = storagePathFor(parsed.data.contact_id, file.name, crypto.randomUUID())
 
     const { error: uploadError } = await supabase.storage
       .from(ATTACHMENTS_BUCKET)
       .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false })
     if (uploadError) {
-      return { error: `Could not upload “${file.name}”: ${uploadError.message}` }
+      return { error: partialFailure(attached, file.name, uploadError.message) }
     }
 
     const { error: rowError } = await supabase.from('attachments').insert({
@@ -459,17 +459,35 @@ export async function uploadAttachment(
       uploaded_by: profile.id,
     })
     if (rowError) {
-      // Remove the bytes we just wrote so storage does not accumulate objects
-      // no row points at.
+      // Remove the bytes we just wrote, so storage never accumulates objects
+      // no row points at. Best effort: if this also fails there is nothing
+      // further to try from here, and the row — the thing the interface reads
+      // — is correctly absent either way.
       await supabase.storage.from(ATTACHMENTS_BUCKET).remove([path])
-      return { error: writeFailed(rowError, `Could not attach “${file.name}”.`) }
+      return {
+        error: partialFailure(attached, file.name, writeFailed(rowError, 'the record could not be saved')),
+      }
     }
+
+    attached.push(file.name)
   }
 
   revalidatePath(contactPath(parsed.data.contact_id))
   if (parsed.data.call_report_id) revalidatePath(`/reports/${parsed.data.call_report_id}`)
   if (parsed.data.proposal_id) revalidatePath(`/proposals/${parsed.data.proposal_id}`)
   return { ok: true }
+}
+
+/**
+ * Files are uploaded one at a time, so a failure halfway through a batch
+ * leaves the earlier ones genuinely attached. Saying so is the difference
+ * between someone re-attaching four files they already have and someone
+ * re-attaching the one that failed.
+ */
+function partialFailure(attached: string[], failedName: string, reason: string): string {
+  const head = `Could not attach “${failedName}”: ${reason}`
+  if (attached.length === 0) return head
+  return `${head} ${pluralize(attached.length, 'earlier file was', 'earlier files were')} attached and ${attached.length === 1 ? 'is' : 'are'} safe.`
 }
 
 const removeAttachmentSchema = z.object({

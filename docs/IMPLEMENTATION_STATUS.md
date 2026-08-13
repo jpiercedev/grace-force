@@ -11,7 +11,7 @@
 | --- | --- |
 | Current phase | Simplification redesign complete on `claude/crm-redesign-simplicity-0zqxek`; awaiting review/merge |
 | Overall status | Feature-complete. Eight new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
-| Tests | 536 Vitest (28 files) + 28 browser `@public` passing |
+| Tests | 570 Vitest (30 files) + 28 browser `@public` passing |
 | Build | `next build` succeeds — 45 routes |
 | Deployment | `grace-force` on Vercel, production target, git-connected |
 
@@ -61,13 +61,108 @@ this container cannot reach `*.supabase.co`. No console errors, no horizontal
 overflow, no error text on any route at any width. The harness is a scratchpad
 throwaway and is not in the repo.
 
+## Attachments — what is verified, and the one step that is not
+
+**A defect this found.** Driving a 19MB upload through the real form — rather
+than a mock — surfaced a bug that `serverActions.bodySizeLimit` alone does not
+fix. Next.js buffers at most **10MB** of a request body on any route that has
+middleware, and this app's middleware runs on every authenticated route. Above
+that the body was silently truncated and the upload died in form parsing with
+`Unexpected end of form`: a generic error, while the interface still promised
+20MB. Fixed by setting `experimental.middlewareClientMaxBodySize` to match, and
+guarded by a test that reads `next.config.ts` and fails if either ceiling drops
+below the total the application accepts.
+
+**End-to-end round trip: 24/24 checks pass.** Run against the local stack with
+the Storage API implemented, so every layer of the *application* is genuine —
+the browser form, the server action, the `supabase-js` storage client,
+PostgREST, and Postgres with RLS in force. It covers: upload → metadata row
+(name, byte size, mime, contact-scoped path that leaks no donor name) → object
+present in the bucket with byte-identical contents → signed URL download
+byte-identical to the source → a forged token refused → another staff member
+can read the file but gets no Remove control → delete removes the row *and* the
+object → the three refusal boundaries send no request at all → a 19MB file
+passes through both body ceilings and is stored whole. It is not Supabase, so
+it does not replace the manual pass below; it does verify everything except the
+platform itself.
+
+**Automated coverage** (`tests/unit/attachments.test.ts`, 26 tests;
+`tests/db/storage-bucket.test.ts`, 8 tests; plus the attachment cases in
+`tests/db/development.test.ts`):
+
+- the size and type rules, including a file of *exactly* the limit and one byte
+  over, and a batch that is legal file-by-file but over the total cap
+- the metadata row written, and that it points at the object actually uploaded
+- orphan cleanup — the object is removed when the metadata insert fails, with
+  the call order asserted (`upload → insert → remove`)
+- delete ordering — the row goes first, the bytes second, asserted on a shared
+  call log, so a download can never point at bytes that are already gone
+- an honest message when a multi-file batch fails halfway, naming what survived
+- Row Level Security refusing a write, surfaced as a permission sentence
+- the bucket is created private, with exactly three policies scoped to it,
+  wired to `is_active_user()` / `can_write()`, and those predicates are
+  *evaluated* (staff writes, viewer is refused, anonymous reads nothing)
+- signed URLs return `null` instead of throwing when storage is unreachable
+
+Both the cleanup and the delete-ordering assertions were confirmed to fail when
+the behaviour they guard is inverted, so they are not passing vacuously.
+
+**What is still unverified: a real byte round trip.** Two independent blockers,
+both external to the code:
+
+1. **Egress is denied by policy.** The agent proxy answers
+   `403` to `CONNECT phhkhvewcclzjkdbjmqw.supabase.co:443` (and to
+   `supabase.com:443`). Nothing in this container can reach the project over
+   HTTPS. The Supabase management tooling that *is* reachable exposes Postgres
+   only — it has no storage transfer.
+2. **The schema is not deployed yet.** The live project currently has the 20
+   original tables and no storage buckets: none of the nine new tables and no
+   `attachments` bucket exist there. Applying migrations to production is a
+   deploy step, not something this session performed.
+
+### Manual verification, once the migrations are deployed
+
+Run as a staff or admin account, with a small non-sensitive file (a one-page
+PDF is ideal).
+
+1. **Deploy the schema.** `supabase db push` (or apply
+   `20260806000100`–`20260806000800` in filename order). Confirm afterwards:
+   `select count(*) from storage.buckets where id = 'attachments';` → `1`, and
+   `select policyname from pg_policies where schemaname='storage' and tablename='objects';`
+   → `attachments_read`, `attachments_write`, `attachments_remove`.
+2. **Upload.** Open any person → **Files** → choose the PDF → **Attach file**.
+   Expect the row to appear with the correct name, size and date.
+3. **Check the metadata.** `select contact_id, storage_path, file_name, mime_type, size_bytes, uploaded_by from public.attachments order by created_at desc limit 1;`
+   — `storage_path` must start with the contact's id, `size_bytes` must match
+   the file on disk, `uploaded_by` must be the signed-in profile.
+4. **Check the object.** `select name from storage.objects where bucket_id = 'attachments';`
+   — exactly one object, its `name` equal to the row's `storage_path`.
+5. **Download.** Click the file name. It should download rather than render
+   (the signed URL sets `download`), and the link should stop working after 60
+   seconds — paste it into a private window after a minute and expect a failure.
+6. **Authorization.** Signed in as a **viewer**, the file is listed and
+   downloadable but there is no Remove control, and no drop area. Signed in as
+   a *different* staff member, Remove is likewise absent (uploader or admin
+   only). Confirm at the database: a viewer's
+   `insert into public.attachments …` is refused by RLS.
+7. **Delete and cleanup.** As the uploader, click **Remove**. Then confirm
+   *both* are gone: `select count(*) from public.attachments where id = '<id>';`
+   → `0`, and `select count(*) from storage.objects where name = '<storage_path>';`
+   → `0`.
+8. **Size boundary.** Attach a file just over 20MB. Expect an immediate
+   in-page message naming the file and its size — *before* any upload starts
+   (the network tab should show no request). Then attach two 12MB files
+   together: expect the "together" message, again with no request. Finally
+   attach a ~19MB file and confirm it succeeds end to end, which is what proves
+   the 24mb `serverActions.bodySizeLimit` is genuinely above the accepted
+   ceiling.
+9. **Type boundary.** Rename a small file to `.zip` or `.svg` and try to attach
+   it. Expect refusal in-page, with no request sent.
+
 ## Next task
 
-Run the `@authed` suite against the deployed origin from a network with normal
-egress, and exercise one real file upload — attachments are the one path this
-container could not verify end to end, because the harness has no storage
-backend. The Files tab renders an honest "unavailable" for an unreachable
-object, which is what the screenshots show.
+The manual attachment pass above, against the deployed project. Then the
+`@authed` browser suite from a network with normal egress:
 
 ```bash
 E2E_BASE_URL=https://grace-force.vercel.app E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
