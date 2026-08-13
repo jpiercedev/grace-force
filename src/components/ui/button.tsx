@@ -6,32 +6,33 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline'
 type Size = 'sm' | 'md' | 'lg'
 
 /**
- * Two honest levels and two quiet ones — see docs/DESIGN.md. Secondary is a
- * tonal fill rather than a white outlined box: outlined secondaries are the
- * single strongest "admin template" tell, and the tonal fill reads calmer
- * while giving a larger perceived target.
+ * A restrained hierarchy — see docs/DESIGN.md. One solid brand button per
+ * screen; secondaries are quiet white outlined buttons (the familiar CRM
+ * pattern), and everything below that is a ghost or a plain text link.
  */
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm',
-  secondary: 'bg-slate-100 text-slate-800 hover:bg-slate-200 active:bg-slate-300',
-  outline: 'bg-brand-50 text-brand-800 hover:bg-brand-100 active:bg-brand-200',
-  ghost: 'bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-  danger: 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900 shadow-sm',
+  primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 border border-transparent shadow-card',
+  secondary:
+    'border border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 shadow-card',
+  outline:
+    'border border-brand-300 bg-white text-brand-700 hover:border-brand-400 hover:bg-brand-50 active:bg-brand-100 shadow-card',
+  ghost: 'border border-transparent bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  danger: 'bg-red-700 text-white hover:bg-red-800 active:bg-red-900 border border-transparent shadow-card',
 }
 
 /**
- * Sized for the 60+ staff this CRM serves: even `sm` stays at 36px so no
- * everyday action drops below a comfortable touch target, and `lg` reads at
- * 16px for the primary calls to action.
+ * `md` (36px) is the everyday size; `lg` (40px) is for a screen's one primary
+ * call to action; `sm` (32px) is only for actions inline with dense content —
+ * tables, list rows, panel headers — where a 36px button would swallow the row.
  */
 const SIZES: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm gap-1.5',
-  md: 'h-10 px-4 text-sm gap-2',
-  lg: 'h-12 px-5 text-base gap-2',
+  sm: 'h-8 px-2.5 text-[13px] gap-1.5',
+  md: 'h-9 px-3.5 text-sm gap-2',
+  lg: 'h-10 px-4 text-sm gap-2',
 }
 
 const BASE =
-  'inline-flex items-center justify-center rounded-lg font-medium transition-colors duration-150 ' +
+  'inline-flex items-center justify-center rounded-md font-medium transition-colors duration-150 ' +
   // 60% rather than 50%: pending submit buttons keep their label readable
   // ("Signing in…" on a half-faded brand fill was close to invisible).
   'disabled:pointer-events-none disabled:opacity-60 whitespace-nowrap'

@@ -10,15 +10,15 @@ import { cn } from '@/lib/utils'
  * disorientation older users struggle to recover from. Desktop keeps 14px.
  */
 const CONTROL =
-  'block w-full rounded-md border-0 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm sm:py-2 sm:text-sm ' +
-  'ring-1 ring-inset ring-slate-400 placeholder:text-slate-500 ' +
-  'focus:ring-2 focus:ring-inset focus:ring-brand-500 disabled:bg-slate-50 disabled:text-slate-500'
+  'block w-full rounded-md border-0 bg-white px-3 py-2.5 text-base text-slate-900 shadow-card sm:py-1.5 sm:text-sm ' +
+  'ring-1 ring-inset ring-slate-300 placeholder:text-slate-500 ' +
+  'hover:ring-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-500 disabled:bg-slate-50 disabled:text-slate-500 disabled:hover:ring-slate-300'
 
 const CONTROL_INVALID = 'ring-red-400 focus:ring-red-500'
 
 export function Label({ className, ...props }: ComponentProps<'label'>) {
   return (
-    <label {...props} className={cn('block text-sm font-medium text-slate-700', className)} />
+    <label {...props} className={cn('block text-[13px] font-medium text-slate-700', className)} />
   )
 }
 
@@ -48,7 +48,7 @@ export function Field({ label, hint, error, required, className, children }: Fie
   const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined
 
   return (
-    <div className={cn('space-y-1.5', className)}>
+    <div className={cn('space-y-1', className)}>
       <Label htmlFor={id}>
         {label}
         {required ? (
@@ -63,12 +63,12 @@ export function Field({ label, hint, error, required, className, children }: Fie
         'aria-invalid': error ? true : undefined,
       })}
       {hint ? (
-        <p id={hintId} className="text-sm text-slate-500">
+        <p id={hintId} className="text-[13px] text-slate-500">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="text-sm font-medium text-red-600">
+        <p id={errorId} className="text-[13px] font-medium text-red-600">
           {error}
         </p>
       ) : null}
@@ -120,7 +120,7 @@ export function Checkbox({
         type="checkbox"
         aria-describedby={hintId}
         className={cn(
-          'mt-0.5 h-5 w-5 rounded border-slate-400 text-brand-600 focus:ring-brand-500',
+          'mt-0.5 h-[18px] w-[18px] rounded border-slate-300 text-brand-600 focus:ring-brand-500',
           className,
         )}
       />
@@ -129,7 +129,7 @@ export function Checkbox({
           {label}
         </label>
         {hint ? (
-          <p id={hintId} className="text-sm text-slate-500">
+          <p id={hintId} className="text-[13px] text-slate-500">
             {hint}
           </p>
         ) : null}
@@ -152,8 +152,8 @@ export function Fieldset({
 }) {
   return (
     <fieldset className={cn('space-y-4', className)}>
-      <legend className="text-base font-semibold text-slate-900">{legend}</legend>
-      {description ? <p className="-mt-2 text-sm text-slate-500">{description}</p> : null}
+      <legend className="text-sm font-semibold text-slate-900">{legend}</legend>
+      {description ? <p className="-mt-2.5 text-[13px] text-slate-500">{description}</p> : null}
       {children}
     </fieldset>
   )

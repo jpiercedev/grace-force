@@ -34,24 +34,24 @@ export function Disclosure({
   const panelId = useId()
 
   return (
-    <div className={cn('rounded-xl border border-slate-200 bg-white', className)}>
+    <div className={cn('rounded-lg border border-slate-200 bg-white', className)}>
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left transition-colors hover:bg-slate-50 sm:px-5"
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-4 py-3 text-left transition-colors hover:bg-slate-50"
       >
         <span className="min-w-0">
           <span className="block text-sm font-semibold text-slate-900">{label}</span>
           {summary && !open ? (
-            <span className="mt-0.5 block truncate text-sm text-slate-500">{summary}</span>
+            <span className="mt-0.5 block truncate text-[13px] text-slate-500">{summary}</span>
           ) : null}
         </span>
         <ChevronDown
           aria-hidden="true"
           className={cn(
-            'h-5 w-5 shrink-0 text-slate-500 transition-transform duration-150',
+            'h-4 w-4 shrink-0 text-slate-500 transition-transform duration-150',
             open && 'rotate-180',
           )}
         />
@@ -59,7 +59,7 @@ export function Disclosure({
       <div
         id={panelId}
         hidden={!open}
-        className="border-t border-slate-200 px-4 py-4 sm:px-5 animate-fade-in motion-reduce:animate-none"
+        className="border-t border-slate-200 px-4 py-3.5 animate-fade-in motion-reduce:animate-none"
       >
         {children}
       </div>

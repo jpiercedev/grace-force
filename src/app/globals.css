@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @layer base {
+  /* Fallback only — next/font sets --font-sans on <html> with the real face. */
   :root {
     --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   }

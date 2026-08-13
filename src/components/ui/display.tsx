@@ -52,7 +52,7 @@ export function Badge({
     <span
       {...props}
       className={cn(
-        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-medium',
         BADGE_TONES[tone],
         className,
       )}
@@ -69,7 +69,7 @@ export function Card({ className, ...props }: ComponentProps<'div'>) {
   return (
     <div
       {...props}
-      className={cn('rounded-xl border border-slate-200/70 bg-white shadow-card', className)}
+      className={cn('rounded-lg border border-slate-200 bg-white shadow-card', className)}
     />
   )
 }
@@ -88,13 +88,13 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-start justify-between gap-3 border-b border-slate-200/70 px-5 py-4',
+        'flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3',
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-        {description ? <p className="mt-0.5 text-sm text-slate-500">{description}</p> : null}
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        {description ? <p className="mt-0.5 text-[13px] text-slate-500">{description}</p> : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -102,15 +102,15 @@ export function CardHeader({
 }
 
 export function CardBody({ className, ...props }: ComponentProps<'div'>) {
-  return <div {...props} className={cn('px-5 py-4', className)} />
+  return <div {...props} className={cn('px-4 py-3.5', className)} />
 }
 
 // --- Page chrome ------------------------------------------------------------
 
 /**
- * Page titles speak in the serif display voice — the moment that tells you
- * where you are should feel like a chapter heading, not a bold form label.
- * The optional eyebrow is a small caps waypoint above the title.
+ * Page titles are strong but operational — a bold sans line, not a chapter
+ * heading. The optional eyebrow is a quiet waypoint above the title (plain
+ * sentence case; this interface does not shout in small caps).
  */
 export function PageHeader({
   title,
@@ -124,17 +124,13 @@ export function PageHeader({
   eyebrow?: ReactNode
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 pb-6">
+    <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 pb-5">
       <div className="min-w-0 flex-1 basis-64">
-        {eyebrow ? (
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
-            {eyebrow}
-          </p>
-        ) : null}
-        <h1 className="break-words font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+        {eyebrow ? <p className="mb-0.5 text-[13px] font-medium text-slate-500">{eyebrow}</p> : null}
+        <h1 className="break-words text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
           {title}
         </h1>
-        {description ? <p className="mt-1.5 text-[15px] text-slate-600">{description}</p> : null}
+        {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
       </div>
       {action ? <div className="flex min-w-0 flex-wrap items-center gap-2">{action}</div> : null}
     </header>
@@ -153,17 +149,17 @@ export function EmptyState({
   icon?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:py-14">
+    <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:py-12">
       {icon ? (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           {icon}
         </div>
       ) : null}
-      <p className="font-display text-lg font-semibold text-slate-900">{title}</p>
+      <p className="text-[15px] font-semibold text-slate-900">{title}</p>
       {description ? (
-        <p className="mt-1.5 max-w-md text-sm leading-relaxed text-slate-600">{description}</p>
+        <p className="mt-1 max-w-md text-sm leading-relaxed text-slate-600">{description}</p>
       ) : null}
-      {action ? <div className="mt-5">{action}</div> : null}
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   )
 }
@@ -199,7 +195,7 @@ export function Callout({
   return (
     <div
       role={role}
-      className={cn('rounded-lg border px-4 py-3 text-sm', CALLOUT_TONES[tone], className)}
+      className={cn('rounded-md border px-4 py-3 text-sm', CALLOUT_TONES[tone], className)}
     >
       {title ? <p className="font-semibold">{title}</p> : null}
       {children ? <div className={cn(title && 'mt-1')}>{children}</div> : null}
@@ -211,8 +207,8 @@ export function Callout({
 
 /**
  * People get faces. The hue is derived from the name so the same person is
- * always the same color — six warm tones from the system palette, deep
- * enough for white initials at AA contrast.
+ * always the same color — six muted tones deep enough for white initials at
+ * AA contrast.
  */
 const AVATAR_HUES = [
   'bg-brand-600',
@@ -241,8 +237,8 @@ export function Avatar({
   const sizes = {
     sm: 'h-6 w-6 text-[10px]',
     md: 'h-8 w-8 text-xs',
-    lg: 'h-12 w-12 text-sm',
-    xl: 'h-16 w-16 text-xl',
+    lg: 'h-10 w-10 text-[13px]',
+    xl: 'h-12 w-12 text-base',
   }
   return (
     <span
@@ -251,7 +247,6 @@ export function Avatar({
         'inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold text-white',
         avatarHue(name),
         sizes[size],
-        size === 'xl' && 'font-display',
         className,
       )}
     >
@@ -263,9 +258,9 @@ export function Avatar({
 // --- Stat tile --------------------------------------------------------------
 
 /**
- * A quiet figure, not an admin widget: eyebrow label, serif number, one hint
- * line. Tone colors the figure itself (and a dot beside the label) when the
- * number is a genuine alert — no more accent-bar strips.
+ * A quiet figure: plain label, strong number, one hint line. Tone colors the
+ * figure itself (and a dot beside the label) when the number is a genuine
+ * alert — no accent-bar strips, no shouting.
  */
 const STAT_FIGURES: Record<BadgeTone, string> = {
   slate: 'text-slate-900',
@@ -295,7 +290,7 @@ export function StatTile({
 }) {
   const content = (
     <>
-      <dt className="flex items-center gap-1.5 truncate text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <dt className="flex items-center gap-1.5 truncate text-[13px] font-medium text-slate-500">
         {tone !== 'slate' && tone !== 'zinc' ? (
           <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', BADGE_DOTS[tone])} />
         ) : null}
@@ -303,7 +298,7 @@ export function StatTile({
       </dt>
       <dd
         className={cn(
-          'mt-1 font-display text-[1.75rem] font-semibold leading-none tabular-nums',
+          'mt-1 text-2xl font-semibold leading-none tabular-nums',
           STAT_FIGURES[tone],
         )}
       >
@@ -314,9 +309,8 @@ export function StatTile({
   )
 
   const shell = cn(
-    'block rounded-xl border border-slate-200/70 bg-white px-5 py-4 shadow-card',
-    href &&
-      'transition-all duration-150 hover:-translate-y-px hover:shadow-raised motion-reduce:hover:translate-y-0',
+    'block rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card',
+    href && 'transition-colors duration-150 hover:border-slate-300 hover:bg-slate-50',
   )
 
   if (href) {

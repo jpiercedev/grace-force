@@ -67,16 +67,16 @@ export function ActionMenu({
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         aria-label={label}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 shadow-card transition-colors hover:bg-slate-50 hover:text-slate-900"
       >
-        <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
       </button>
 
       {open ? (
         <div
           id={panelId}
           className={cn(
-            'absolute z-30 mt-1 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-raised',
+            'absolute z-30 mt-1 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-raised',
             'animate-fade-in motion-reduce:animate-none',
             align === 'right' ? 'right-0' : 'left-0',
           )}
@@ -90,7 +90,7 @@ export function ActionMenu({
 }
 
 const ITEM =
-  'flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900'
+  'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900'
 
 export function ActionMenuLink({ href, children }: { href: string; children: ReactNode }) {
   return (

@@ -50,9 +50,9 @@ export function Tabs({
                   href={hrefFor(tab.key)}
                   aria-current={selected ? 'page' : undefined}
                   className={cn(
-                    'inline-flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-sm transition-colors',
+                    'inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-2.5 text-sm transition-colors',
                     selected
-                      ? 'border-brand-600 font-semibold text-brand-800'
+                      ? 'border-brand-600 font-semibold text-brand-700'
                       : 'border-transparent font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900',
                   )}
                 >
@@ -60,7 +60,7 @@ export function Tabs({
                   {tab.count ? (
                     <span
                       className={cn(
-                        'rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+                        'rounded px-1 py-0.5 text-[11px] font-semibold tabular-nums leading-none',
                         selected ? 'bg-brand-100 text-brand-800' : 'bg-slate-100 text-slate-600',
                       )}
                     >
@@ -80,10 +80,11 @@ export function Tabs({
 /**
  * A section heading on the canvas rather than a card header.
  *
- * Most groups of information do not need a box around them. A small caps
- * eyebrow, an optional action on the right, and whitespace do the same job
- * with far less ink — which is what stops eight sections reading as eight
- * competing panels.
+ * Most groups of information do not need a box around them. A plain semibold
+ * line, an optional action on the right, and whitespace do the same job with
+ * far less ink — which is what stops eight sections reading as eight
+ * competing panels. Sentence case, ordinary tracking: headings here inform,
+ * they do not decorate.
  */
 export function SectionHeading({
   title,
@@ -99,11 +100,9 @@ export function SectionHeading({
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-x-4 gap-y-2', className)}>
       <div className="min-w-0">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-          {title}
-        </h2>
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm leading-relaxed text-slate-600">{description}</p>
+          <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500">{description}</p>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

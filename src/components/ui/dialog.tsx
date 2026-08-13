@@ -139,17 +139,14 @@ export function Dialog({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          'relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-raised',
-          'animate-rise-in motion-reduce:animate-none sm:rounded-2xl',
+          'relative flex max-h-[92dvh] w-full flex-col rounded-t-lg bg-white shadow-raised',
+          'animate-rise-in motion-reduce:animate-none sm:rounded-lg',
           wide ? 'sm:max-w-3xl' : 'sm:max-w-lg',
         )}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-3.5 sm:px-6">
           <div className="min-w-0">
-            <h2
-              id={titleId}
-              className="font-display text-xl font-semibold tracking-tight text-slate-900"
-            >
+            <h2 id={titleId} className="text-base font-semibold text-slate-900">
               {title}
             </h2>
             {description ? (
@@ -162,7 +159,7 @@ export function Dialog({
             type="button"
             onClick={close}
             aria-label="Close"
-            className="-mr-2 -mt-1 shrink-0 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="-mr-2 -mt-1 shrink-0 rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -191,9 +188,9 @@ function Body({
 }) {
   const inner = (
     <>
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">{children}</div>
       {footer ? (
-        <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3 sm:px-6">
           {footer}
         </div>
       ) : null}
