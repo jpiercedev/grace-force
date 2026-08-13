@@ -40,7 +40,7 @@ export function SearchForm({ q }: { q: string }) {
             autoComplete="off"
             // The page's one primary control keeps 16px text on desktop too,
             // sized to read as the reason the page exists.
-            className="h-14 rounded-xl pl-11 pr-4 text-base shadow-card ring-slate-200 sm:text-base"
+            className="h-14 rounded-lg pl-11 pr-4 text-base shadow-card ring-slate-200 sm:text-base"
           />
         </div>
         <Button type="submit" size="lg" className="w-full sm:w-auto">

@@ -32,7 +32,7 @@ export default async function NewReportPage({
         <form
           action="/reports/new"
           method="get"
-          className="space-y-5 rounded-xl bg-white p-6 shadow-card"
+          className="space-y-5 rounded-lg bg-white p-6 shadow-card"
         >
           <PersonPicker name="contact" label="Which person?" required />
           <div className="flex flex-wrap gap-2">

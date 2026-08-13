@@ -59,10 +59,8 @@ const config: Config = {
         },
       },
       fontFamily: {
+        // One practical sans everywhere; the serif display voice is retired.
         sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        // The serif display voice is retired: one practical sans everywhere.
-        // The token stays mapped so any straggler `font-display` is harmless.
-        display: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         // Surfaces are defined by their 1px border; the shadow is a hint, not

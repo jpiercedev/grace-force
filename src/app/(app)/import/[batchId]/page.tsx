@@ -152,7 +152,7 @@ export default async function ImportBatchPage({
         }
       />
 
-      {/* One quiet band of serif figures — what the batch will do (or did),
+      {/* One quiet band of figures — what the batch will do (or did),
           readable at a glance rather than four identical widgets. */}
       <Card>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-5 sm:px-6 lg:grid-cols-4">
@@ -339,7 +339,7 @@ export default async function ImportBatchPage({
   )
 }
 
-/** Label eyebrow + serif figure + one hint line; tone only when it means something. */
+/** Plain label + figure + one hint line; tone only when it means something. */
 function BatchFigure({
   label,
   value,
@@ -355,7 +355,7 @@ function BatchFigure({
   const figures = { emerald: 'text-emerald-800', brand: 'text-brand-700', red: 'text-red-700' }
   return (
     <div>
-      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <dt className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
         {tone ? (
           <span aria-hidden="true" className={cn('h-1.5 w-1.5 shrink-0 rounded-full', dots[tone])} />
         ) : null}
@@ -363,7 +363,7 @@ function BatchFigure({
       </dt>
       <dd
         className={cn(
-          'mt-1.5 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums',
+          'mt-1.5 text-2xl font-semibold leading-none tabular-nums',
           tone ? figures[tone] : 'text-slate-900',
         )}
       >
@@ -387,7 +387,7 @@ function Th({
     <th
       scope="col"
       className={cn(
-        'whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500',
+        'whitespace-nowrap px-3 py-2.5 text-xs font-medium text-slate-500',
         align === 'right' ? 'text-right' : 'text-left',
         className,
       )}

@@ -61,7 +61,7 @@ export default async function MailchimpPage() {
 
       {unavailable ? <SetupExplainer reason={unavailable} admin={admin} /> : null}
 
-      {/* One quiet band of serif figures rather than a row of widgets. */}
+      {/* One quiet band of figures rather than a row of widgets. */}
       <Card>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-5 sm:px-6 xl:grid-cols-4">
           <Figure
@@ -118,7 +118,7 @@ export default async function MailchimpPage() {
   )
 }
 
-/** Label eyebrow + serif figure + one hint line; tone only when it means something. */
+/** Plain label + figure + one hint line; tone only when it means something. */
 function Figure({
   label,
   value,
@@ -132,7 +132,7 @@ function Figure({
 }) {
   return (
     <div>
-      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <dt className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
         {tone ? (
           <span
             aria-hidden="true"
@@ -146,7 +146,7 @@ function Figure({
       </dt>
       <dd
         className={cn(
-          'mt-1.5 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums',
+          'mt-1.5 text-2xl font-semibold leading-none tabular-nums',
           tone === 'amber' ? 'text-amber-700' : 'text-slate-900',
         )}
       >
@@ -507,7 +507,7 @@ function Th({
     <th
       scope="col"
       className={cn(
-        'whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500',
+        'whitespace-nowrap px-3 py-2.5 text-xs font-medium text-slate-500',
         align === 'right' ? 'text-right' : 'text-left',
         className,
       )}

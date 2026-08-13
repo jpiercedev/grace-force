@@ -132,7 +132,7 @@ export default async function AddToPipelinePage({
           ) : null}
 
           {matches.length > 0 ? (
-            <ul className="divide-y divide-slate-200/70 overflow-hidden rounded-lg border border-slate-200/70">
+            <ul className="divide-y divide-slate-200/70 overflow-hidden rounded-lg border border-slate-200">
               {matches.map((match) => {
                 const name = contactDisplayName(match)
                 return (

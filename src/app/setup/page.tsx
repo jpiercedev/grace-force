@@ -40,10 +40,10 @@ export default function SetupPage() {
       <BrandBand tagline="First-run setup" width="max-w-2xl" />
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-10 sm:px-8">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <p className="text-xs font-medium text-slate-500">
           Almost there
         </p>
-        <h1 className="mt-1.5 font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+        <h1 className="mt-1.5 text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
           Grace Force CRM needs configuring
         </h1>
         <p className="mt-2 text-[15px] text-slate-600">
@@ -62,7 +62,7 @@ export default function SetupPage() {
             <li key={index} className="flex gap-3.5">
               <span
                 aria-hidden="true"
-                className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 font-display text-[13px] font-semibold text-brand-800"
+                className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[13px] font-semibold text-brand-800"
               >
                 {index + 1}
               </span>

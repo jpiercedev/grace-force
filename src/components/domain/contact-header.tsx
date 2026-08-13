@@ -21,7 +21,7 @@ import type { ContactActionState } from '@/lib/validation/contact'
 import type { ContactRow } from '@/types/database'
 
 /**
- * The identity band: one composed zone that says who this is — face, serif
+ * The identity band: one composed zone that says who this is — face, bold
  * name, standing, how to reach them, who owns the relationship — with the
  * four things staff most often want to do next on its shoulder.
  *
@@ -72,10 +72,10 @@ export function ContactHeader({
             <div className="flex min-w-0 items-start gap-4 sm:gap-5">
               <Avatar name={name} size="xl" className="mt-1" />
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-medium text-slate-500">
                   Contact
                 </p>
-                <h1 className="mt-0.5 break-words font-display text-2xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-3xl">
+                <h1 className="mt-0.5 break-words text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
                   {name}
                 </h1>
                 {subtitle ? <p className="mt-1 text-[15px] text-slate-600">{subtitle}</p> : null}
@@ -145,12 +145,12 @@ export function ContactHeader({
 
         {/* The stewardship strip: who holds this relationship, and the two
             administrative moves that change the record itself. */}
-        <div className="space-y-3 rounded-b-xl border-t border-slate-200/70 bg-slate-100/50 px-5 py-3 sm:px-6">
+        <div className="space-y-3 rounded-b-xl border-t border-slate-200 bg-slate-100/50 px-5 py-3 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               {owner ? <Avatar name={owner.name} size="sm" /> : null}
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                <p className="text-xs font-medium text-slate-500">
                   Owner
                 </p>
                 <p className="truncate text-sm font-medium text-slate-800">

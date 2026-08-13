@@ -183,7 +183,7 @@ export function DonorPreferences({
             </Field>
           </div>
 
-          <fieldset className="space-y-3 rounded-xl bg-slate-50 p-4">
+          <fieldset className="space-y-3 rounded-lg bg-slate-50 p-4">
             <legend className="text-sm font-semibold text-slate-900">Please do not…</legend>
             <Checkbox
               name="do_not_contact"

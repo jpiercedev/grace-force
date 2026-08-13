@@ -110,7 +110,7 @@ export function LinkPanel({
         ) : (
           <form action={formAction}>
             <input type="hidden" name="member_id" value={member.id} />
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200/70">
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
               {candidates.map((candidate) => (
                 <li
                   key={candidate.id}

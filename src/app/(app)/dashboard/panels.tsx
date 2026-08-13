@@ -78,7 +78,7 @@ export function FollowUpPanel({
   href: string
   linkLabel: string
   nowIso: string
-  /** The "Needs attention" treatment: serif heading, avatar rows, primary action. */
+  /** The "Needs attention" treatment: stronger header, avatar rows, primary action. */
   hero?: boolean
 }) {
   const now = new Date(nowIso)
@@ -86,10 +86,9 @@ export function FollowUpPanel({
   if (hero) {
     return (
       <Card>
-        {/* The one serif card heading on the page — this panel is why you came in. */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/70 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900">
+            <h2 className="text-base font-semibold text-slate-900">
               {title}
             </h2>
             <p className="mt-0.5 text-sm text-slate-500">{description}</p>
@@ -204,10 +203,7 @@ export function ActivityPanel({
   return (
     <section aria-labelledby="recent-activity-heading">
       <div className="border-b border-slate-200 pb-2.5">
-        <h2
-          id="recent-activity-heading"
-          className="text-xs font-semibold uppercase tracking-wider text-slate-500"
-        >
+        <h2 id="recent-activity-heading" className="text-sm font-semibold text-slate-900">
           Recent activity
         </h2>
       </div>

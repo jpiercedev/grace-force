@@ -49,7 +49,7 @@ export default async function NoAccessPage({
       <BrandBand tagline="Account status" width="max-w-lg" />
 
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-6 py-10 sm:px-8">
-        <h1 className="font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+        <h1 className="text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
           {TITLES[state]}
         </h1>
 

@@ -111,7 +111,7 @@ export default async function DashboardPage({
   const nowIso = now.toISOString()
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-6">
       <PageHeader
         eyebrow={EYEBROW_DATE.format(now)}
         title={`Good to see you, ${firstName}`}
@@ -149,7 +149,7 @@ export default async function DashboardPage({
       {writable && (stats.newLeadsThisWeek ?? 0) > 0 ? (
         <Link
           href="/leads"
-          className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-5 py-4 shadow-card transition-shadow hover:shadow-raised"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card transition-colors hover:border-slate-300 hover:bg-slate-50"
         >
           <span>
             <span className="block text-[15px] font-medium text-slate-900">
@@ -163,8 +163,8 @@ export default async function DashboardPage({
         </Link>
       ) : null}
 
-      <div className="grid items-start gap-x-10 gap-y-8 lg:grid-cols-2">
-        <div className="min-w-0 space-y-8">
+      <div className="grid items-start gap-x-8 gap-y-6 lg:grid-cols-2">
+        <div className="min-w-0 space-y-6">
           <FollowUpPanel
             title="Due this week"
             description="The next seven days."
@@ -196,7 +196,7 @@ export default async function DashboardPage({
           ) : null}
         </div>
 
-        <div className="min-w-0 space-y-8">
+        <div className="min-w-0 space-y-6">
           {events.length > 0 ? (
             <section className="space-y-3">
               <SectionHeading

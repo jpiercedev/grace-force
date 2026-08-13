@@ -67,15 +67,15 @@ export default async function GivingPage({
     <div className="mx-auto max-w-7xl space-y-5">
       <PageHeader title="Giving" description="Generosity in context, across the whole ministry." />
 
-      {/* One quiet band of serif figures, led by the range being reported —
+      {/* One quiet band of figures, led by the range being reported —
           stewardship, not an accounting widget row. */}
       <Card>
         <div className="flex flex-col gap-6 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:gap-10">
           <dl className="lg:w-72 lg:shrink-0">
-            <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <dt className="text-xs font-medium text-slate-500">
               Received in this range
             </dt>
-            <dd className="mt-1.5 font-display text-[2.5rem] font-semibold leading-none tracking-tight tabular-nums text-brand-700">
+            <dd className="mt-1.5 text-3xl font-semibold leading-none tabular-nums text-brand-700">
               {formatCurrency(overview.range.totalCents)}
             </dd>
             <dd className="mt-2 text-xs leading-snug text-slate-500">
@@ -175,8 +175,8 @@ function SupportingFigure({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
-      <dd className="mt-1.5 font-display text-[1.55rem] font-semibold leading-none tracking-tight tabular-nums text-slate-900">
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
+      <dd className="mt-1.5 text-xl font-semibold leading-none tabular-nums text-slate-900">
         {value}
       </dd>
       <dd className="mt-1.5 text-xs leading-snug text-slate-500">{hint}</dd>
@@ -387,7 +387,7 @@ function Th({
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${
+      className={`whitespace-nowrap px-3 py-2.5 text-xs font-medium text-slate-500 ${
         align === 'right' ? 'text-right' : 'text-left'
       } ${className ?? ''}`}
     >

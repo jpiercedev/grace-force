@@ -38,7 +38,7 @@ function SubmitButton() {
 /** Editorial section eyebrow — the form reads in labelled passages, not one long column. */
 function SectionLegend({ children }: { children: string }) {
   return (
-    <legend className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <legend className="text-xs font-medium text-slate-500">
       {children}
     </legend>
   )
@@ -78,10 +78,10 @@ export function FollowUpForm({
       <div className="flex items-center gap-3 rounded-lg bg-slate-100/70 px-4 py-3">
         <Avatar name={displayName} size="md" />
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <p className="text-xs font-medium text-slate-500">
             Follow-up for
           </p>
-          <p className="truncate font-display text-lg font-semibold tracking-tight text-slate-900">
+          <p className="truncate text-sm font-semibold text-slate-900">
             {displayName}
           </p>
         </div>
@@ -115,7 +115,7 @@ export function FollowUpForm({
         </Field>
       </fieldset>
 
-      <div className="border-t border-slate-200/70 pt-5">
+      <div className="border-t border-slate-200 pt-5">
         <fieldset className="space-y-4">
           <SectionLegend>Schedule</SectionLegend>
 
@@ -163,7 +163,7 @@ export function FollowUpForm({
         </fieldset>
       </div>
 
-      <div className="border-t border-slate-200/70 pt-5">
+      <div className="border-t border-slate-200 pt-5">
         <fieldset className="space-y-4">
           <SectionLegend>Ownership</SectionLegend>
 
@@ -184,7 +184,7 @@ export function FollowUpForm({
         </fieldset>
       </div>
 
-      <div className="border-t border-slate-200/70 pt-5">
+      <div className="border-t border-slate-200 pt-5">
         <SubmitButton />
       </div>
     </form>

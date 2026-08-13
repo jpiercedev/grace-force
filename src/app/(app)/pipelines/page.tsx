@@ -57,10 +57,10 @@ export default async function PipelinesPage() {
             <Link
               key={pipeline.id}
               href={`/pipelines/${pipeline.slug}`}
-              className="group flex flex-col rounded-xl border border-slate-200/70 bg-white p-5 shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:shadow-raised motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+              className="group flex flex-col rounded-lg border border-slate-200 bg-white p-5 shadow-card transition-colors duration-150 hover:border-slate-300 hover:bg-slate-50"
             >
               <div className="flex items-start justify-between gap-3">
-                <h2 className="min-w-0 font-display text-xl font-semibold tracking-tight text-slate-900 transition-colors duration-150 group-hover:text-brand-700">
+                <h2 className="min-w-0 text-base font-semibold text-slate-900 transition-colors duration-150 group-hover:text-brand-700">
                   {pipeline.name}
                 </h2>
                 {pipeline.is_default ? <Badge tone="brand">Default</Badge> : null}
@@ -100,13 +100,13 @@ export default async function PipelinesPage() {
                 </ul>
               )}
 
-              <div className="mt-auto flex flex-wrap items-baseline justify-between gap-2 border-t border-slate-200/70 pt-3.5">
+              <div className="mt-auto flex flex-wrap items-baseline justify-between gap-2 border-t border-slate-200 pt-3.5">
                 <p className="text-sm text-slate-600">
                   {pluralize(pipeline.open_count, 'open card')}
                   {pipeline.open_value_cents !== null ? (
                     <>
                       {' · '}
-                      <span className="font-display text-base font-semibold tabular-nums text-slate-900">
+                      <span className="text-sm font-semibold tabular-nums text-slate-900">
                         {formatCurrency(pipeline.open_value_cents)}
                       </span>{' '}
                       open

@@ -104,7 +104,7 @@ export function NewEngagementType() {
           <div
             ref={formRef}
             id={formId}
-            className="space-y-4 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:p-5"
+            className="space-y-4 rounded-lg border border-slate-200 bg-slate-100/60 p-4 sm:p-5"
           >
             <Field label="Label" error={state.fieldErrors?.label} required className="max-w-md">
               {(props) => (

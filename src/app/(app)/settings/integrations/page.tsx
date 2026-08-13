@@ -287,7 +287,7 @@ function IntegrationCard({ integration }: { integration: IntegrationView }) {
       {/* Not CardHeader: with a long description its flex-wrap pushes the
           action under the text, and the status chip must always hold the top
           right corner — it is the one signal this header exists to give. */}
-      <div className="border-b border-slate-200/70 px-5 py-4">
+      <div className="border-b border-slate-200 px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
           <h2 className="text-base font-semibold tracking-tight text-slate-900">
             {integration.name}
@@ -309,7 +309,7 @@ function IntegrationCard({ integration }: { integration: IntegrationView }) {
         {/* The wiring reference reads as a quiet aside — present when needed,
             never competing with the card's one status signal. */}
         <div className="rounded-lg bg-slate-100/70 px-4 py-3">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="text-xs font-medium text-slate-500">
             Environment variables
           </h3>
           <ul className="mt-1 divide-y divide-slate-200/70">
@@ -319,7 +319,7 @@ function IntegrationCard({ integration }: { integration: IntegrationView }) {
                   <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-slate-800 ring-1 ring-inset ring-slate-200">
                     {variable.name}
                   </code>
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  <span className="text-xs font-medium text-slate-500">
                     {variable.requirement}
                   </span>
                 </p>
@@ -485,7 +485,7 @@ function Th({ children, align }: { children: ReactNode; align?: 'right' }) {
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 first:pl-5 last:pr-5 ${
+      className={`whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 first:pl-5 last:pr-5 ${
         align === 'right' ? 'text-right' : 'text-left'
       }`}
     >

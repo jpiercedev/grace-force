@@ -82,7 +82,7 @@ export function ProposalForm({
 
       <FormError state={state} />
 
-      <div className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
+      <div className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
         <Field
           label="What is this proposal?"
           hint="A short name you would recognise in a list."

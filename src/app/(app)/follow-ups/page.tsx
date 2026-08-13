@@ -67,8 +67,8 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Se
         {/* An eyebrow rule, not a second title: the segmented control already
             says where we are, so the ledger header just restates it quietly
             and carries the count. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200/70 px-4 py-3.5 sm:px-5">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-200 px-4 py-3.5 sm:px-5">
+          <h2 className="text-xs font-medium text-slate-500">
             {SEGMENT_LABELS[segment]}
           </h2>
           <p className="text-sm tabular-nums text-slate-500">{pluralize(items.length, 'follow-up')}</p>

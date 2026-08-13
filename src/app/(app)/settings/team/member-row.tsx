@@ -140,7 +140,7 @@ export function MemberRow({
           <div
             ref={panelRef}
             id={panelId}
-            className="mt-4 space-y-4 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:p-5"
+            className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-slate-100/60 p-4 sm:p-5"
           >
             <Field
               label={`Role for ${name}`}
@@ -173,7 +173,7 @@ export function MemberRow({
             {/* Removing sign-in is the roster's most consequential action, so
                 it gets its own section rather than blending into routine edits. */}
             <div className="space-y-3 border-t border-slate-200 pt-4">
-              <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <h4 className="text-xs font-medium text-slate-500">
                 Sign-in access
               </h4>
               <Checkbox

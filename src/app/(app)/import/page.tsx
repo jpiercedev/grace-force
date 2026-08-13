@@ -175,7 +175,7 @@ function Th({
   return (
     <th
       scope="col"
-      className={`whitespace-nowrap px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 ${
+      className={`whitespace-nowrap px-3 py-2.5 text-xs font-medium text-slate-500 ${
         align === 'right' ? 'text-right' : 'text-left'
       } ${className ?? ''}`}
     >

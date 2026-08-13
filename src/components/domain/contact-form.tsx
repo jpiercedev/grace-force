@@ -85,7 +85,7 @@ export function ContactForm({
 
       <FormError state={state} />
 
-      <div className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
+      <div className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="First name" error={errors.first_name}>
             {(props) => (

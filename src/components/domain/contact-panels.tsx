@@ -44,7 +44,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
     // A fixed narrow label column: an equal-thirds grid squeezed values so
     // hard that ordinary emails wrapped mid-word.
     <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 py-2">
-      <dt className="pt-px text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <dt className="pt-px text-xs font-medium text-slate-500">
         {label}
       </dt>
       <dd className="break-words text-sm text-slate-800">{children}</dd>
@@ -215,7 +215,7 @@ export function ContactFollowUpsPanel({
  * given" rather than "you cannot see this", which is a worse lie.
  *
  * Giving is stewardship context, not accounting: the total speaks in the
- * serif voice and the ledger of recent gifts stays muted beneath it.
+ * headline figure and the ledger of recent gifts stays muted beneath it.
  */
 export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
   const { summary, recent } = giving
@@ -238,10 +238,10 @@ export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
       ) : (
         <CardBody className="space-y-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="text-xs font-medium text-slate-500">
               Total given
             </p>
-            <p className="mt-1 font-display text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums text-slate-900">
+            <p className="mt-1 text-2xl font-semibold leading-none tabular-nums text-slate-900">
               {formatCurrency(summary.total_cents)}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
@@ -261,7 +261,7 @@ export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
 
           {recent.length > 0 ? (
             <div className="border-t border-slate-100 pt-3">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              <h3 className="text-xs font-medium text-slate-500">
                 Recent gifts
               </h3>
               <ul className="mt-1 divide-y divide-slate-100">
@@ -288,10 +288,10 @@ export function ContactGivingPanel({ giving }: { giving: ContactGiving }) {
 function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
       {/* Serif, a step below the headline total, so the four supporting
           figures read as context rather than competing headlines. */}
-      <dd className="mt-0.5 font-display text-lg font-semibold tabular-nums text-slate-900">
+      <dd className="mt-0.5 text-base font-semibold tabular-nums text-slate-900">
         {value}
       </dd>
     </div>
@@ -302,7 +302,7 @@ function Figure({ label, value }: { label: string; value: string }) {
 function QuietFigure({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</dt>
+      <dt className="text-xs font-medium text-slate-500">{label}</dt>
       <dd className="mt-0.5 text-sm font-semibold tabular-nums text-slate-700">{value}</dd>
     </div>
   )

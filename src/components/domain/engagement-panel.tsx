@@ -72,7 +72,7 @@ export function EngagementPanel({
 
       {disclosure.open ? (
         // A tinted zone, not a nested card — docs/DESIGN.md.
-        <CardBody id="add-engagement-panel" className="border-b border-slate-200/70 bg-slate-100/50">
+        <CardBody id="add-engagement-panel" className="border-b border-slate-200 bg-slate-100/50">
           <EngagementForm
             action={actions.add}
             contactId={contactId}

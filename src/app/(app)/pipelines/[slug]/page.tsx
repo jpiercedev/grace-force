@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: RouteParams }): Pro
   return { title: pipeline?.name ?? 'Pipeline' }
 }
 
-/** Eyebrow label + serif figure, inline on the canvas — not a row of tiles. */
+/** Plain label + figure, inline on the canvas — not a row of tiles. */
 function BoardFigure({
   label,
   value,
@@ -30,11 +30,11 @@ function BoardFigure({
 }) {
   return (
     <div>
-      <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <dt className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
         {dot ? <span aria-hidden="true" className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} /> : null}
         {label}
       </dt>
-      <dd className={`mt-1.5 font-display text-[1.75rem] font-semibold leading-none tabular-nums ${figureClass}`}>
+      <dd className={`mt-1.5 text-2xl font-semibold leading-none tabular-nums ${figureClass}`}>
         {value}
       </dd>
     </div>
@@ -75,7 +75,7 @@ export default async function PipelineBoardPage({ params }: { params: RouteParam
 
       {/* A ledger summary rule rather than a grid of tiles: the figures sit
           inline on the canvas between two hairlines. */}
-      <dl className="flex flex-wrap items-end gap-x-10 gap-y-4 border-y border-slate-200/70 py-4">
+      <dl className="flex flex-wrap items-end gap-x-10 gap-y-4 border-y border-slate-200 py-4">
         <BoardFigure label="Open cards" value={board.open_count} />
         {board.open_value_cents !== null ? (
           <BoardFigure label="Open value" value={formatCurrency(board.open_value_cents)} />

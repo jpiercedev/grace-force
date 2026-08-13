@@ -93,7 +93,7 @@ export function PipelineCard({
         className={cn(
           'space-y-2.5 rounded-lg border p-3 shadow-card',
           !settled &&
-            'border-slate-200/70 bg-white transition-all duration-150 hover:-translate-y-px hover:shadow-raised motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-card',
+            'border-slate-200 bg-white transition-colors duration-150 hover:border-slate-300',
           settled && (wonish ? 'border-emerald-200/70 bg-emerald-50/60' : 'border-slate-200/60 bg-white/60'),
         )}
       >
@@ -132,7 +132,7 @@ export function PipelineCard({
         {tracksValue && card.value_cents !== null ? (
           <p
             className={cn(
-              'font-display text-base font-semibold tabular-nums',
+              'text-sm font-semibold tabular-nums',
               settled ? 'text-slate-600' : 'text-slate-900',
             )}
           >

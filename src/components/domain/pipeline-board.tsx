@@ -79,7 +79,7 @@ export function PipelineBoard({ board, canEdit, action }: PipelineBoardProps) {
               <li key={stage.id} className="min-w-[15rem] max-w-[20rem] flex-1 shrink-0">
                 <section
                   aria-labelledby={headingId}
-                  className="flex h-full flex-col rounded-xl bg-slate-100/50 p-2.5 ring-1 ring-inset ring-slate-200/70"
+                  className="flex h-full flex-col rounded-lg bg-slate-100/50 p-2.5 ring-1 ring-inset ring-slate-200/70"
                 >
                   <div className="flex items-center justify-between gap-2 px-1 pb-2.5 pt-0.5">
                     <h2

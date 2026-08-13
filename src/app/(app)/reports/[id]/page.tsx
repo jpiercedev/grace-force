@@ -68,7 +68,7 @@ export default async function CallReportPage({
           <Link href={`/reports/${report.id}`} className="text-sm font-medium text-brand-700 hover:underline">
             ← Back to the report
           </Link>
-          <h1 className="mt-2 font-display text-[1.75rem] font-semibold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-xl font-bold leading-tight text-slate-900">
             Edit report
           </h1>
         </div>
@@ -119,7 +119,7 @@ export default async function CallReportPage({
           )}
           <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+              <h1 className="text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
                 Call report
               </h1>
               <p className="mt-1 text-[15px] text-slate-600">

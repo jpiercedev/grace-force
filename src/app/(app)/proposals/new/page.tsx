@@ -35,7 +35,7 @@ export default async function NewProposalPage({
         <PageHeader title="New proposal" description="Who is this proposal for?" />
         {/* Not a form that posts: choosing the donor navigates to the real
             form, which then knows who it is about from the first field. */}
-        <form action="/proposals/new" method="get" className="space-y-5 rounded-xl bg-white p-6 shadow-card">
+        <form action="/proposals/new" method="get" className="space-y-5 rounded-lg bg-white p-6 shadow-card">
           <PersonPicker name="contact" label="Which person?" required />
           <div className="flex flex-wrap gap-2">
             <button

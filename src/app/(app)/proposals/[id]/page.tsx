@@ -78,7 +78,7 @@ export default async function ProposalPage({
           >
             ← Back to the proposal
           </Link>
-          <h1 className="mt-2 font-display text-[1.75rem] font-semibold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-xl font-bold leading-tight text-slate-900">
             Edit proposal
           </h1>
         </div>
@@ -130,7 +130,7 @@ export default async function ProposalPage({
           ) : null}
           <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="break-words font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
+              <h1 className="break-words text-xl font-bold leading-tight text-slate-900 sm:text-2xl">
                 {proposal.title}
               </h1>
               <p className="mt-1 text-[15px] text-slate-600">
@@ -148,19 +148,19 @@ export default async function ProposalPage({
         </div>
 
         {/* The summary the brief asked for, in one band. */}
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-xl bg-white px-5 py-4 shadow-card sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 rounded-lg bg-white px-5 py-4 shadow-card sm:grid-cols-4">
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <dt className="text-xs font-medium text-slate-500">
               Amount
             </dt>
-            <dd className="mt-1 font-display text-xl font-semibold tabular-nums text-slate-900">
+            <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">
               {proposal.charitable_amount_cents !== null
                 ? formatCurrency(proposal.charitable_amount_cents, proposal.currency)
                 : 'Not yet set'}
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <dt className="text-xs font-medium text-slate-500">
               Stage
             </dt>
             <dd className="mt-1 text-sm font-medium text-slate-900">
@@ -168,7 +168,7 @@ export default async function ProposalPage({
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <dt className="text-xs font-medium text-slate-500">
               Led by
             </dt>
             <dd className="mt-1 flex items-center gap-2 text-sm font-medium text-slate-900">
@@ -177,7 +177,7 @@ export default async function ProposalPage({
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <dt className="text-xs font-medium text-slate-500">
               {proposal.closed_at ? 'Settled' : 'Expected'}
             </dt>
             <dd className="mt-1 text-sm font-medium tabular-nums text-slate-900">
@@ -214,7 +214,7 @@ export default async function ProposalPage({
             <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-3">
               {figures.map((figure) => (
                 <div key={figure.label}>
-                  <dt className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <dt className="text-xs font-medium text-slate-500">
                     {figure.label}
                   </dt>
                   <dd className="mt-1 text-lg font-semibold tabular-nums text-slate-900">

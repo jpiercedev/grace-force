@@ -80,8 +80,8 @@ export function CallReportForm({
 
         <FormError state={state} />
 
-        <section className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-slate-900">
+        <section className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
+          <h2 className="text-sm font-semibold text-slate-900">
             The meeting
           </h2>
 
@@ -221,8 +221,8 @@ export function CallReportForm({
           ) : null}
         </section>
 
-        <section className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-slate-900">
+        <section className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
+          <h2 className="text-sm font-semibold text-slate-900">
             The conversation
           </h2>
 
@@ -260,8 +260,8 @@ export function CallReportForm({
           </Field>
         </section>
 
-        <section className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-slate-900">
+        <section className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
+          <h2 className="text-sm font-semibold text-slate-900">
             What matters to them
           </h2>
 
@@ -298,8 +298,8 @@ export function CallReportForm({
           </Field>
         </section>
 
-        <section className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
-          <h2 className="font-display text-lg font-semibold tracking-tight text-slate-900">
+        <section className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
+          <h2 className="text-sm font-semibold text-slate-900">
             What happens next
           </h2>
 

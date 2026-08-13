@@ -46,7 +46,7 @@ export function EventForm({
       {event ? <input type="hidden" name="event_id" value={event.id} /> : null}
       <FormError state={state} />
 
-      <div className="space-y-5 rounded-xl bg-white p-5 shadow-card sm:p-6">
+      <div className="space-y-5 rounded-lg bg-white p-5 shadow-card sm:p-6">
         <Field label="What is it called?" error={errors.name} required>
           {(props) => (
             <Input

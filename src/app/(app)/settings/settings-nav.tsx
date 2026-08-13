@@ -23,7 +23,7 @@ export function SettingsNav() {
 
   return (
     <nav aria-label="Settings">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+      <p className="px-1 text-xs font-medium text-slate-500">
         Administration
       </p>
       <div className="mt-2.5 border-b border-slate-200">

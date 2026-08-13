@@ -242,7 +242,7 @@ export function FollowUpRow({
           <div
             ref={panelRef}
             id={panelId}
-            className="space-y-3 rounded-lg border border-slate-200/70 bg-slate-100/60 p-4 sm:ml-11"
+            className="space-y-3 rounded-lg border border-slate-200 bg-slate-100/60 p-4 sm:ml-11"
           >
             {panel === 'complete' ? (
               <>
