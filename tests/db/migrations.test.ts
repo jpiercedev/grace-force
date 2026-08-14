@@ -157,24 +157,102 @@ describe('migrations', () => {
     }
   })
 
-  it('revokes PUBLIC execute from functions created by future migrations', async () => {
+  it('gives anon no privilege on any current public relation or sequence', async () => {
+    const relations = await db.asPostgres((sql) =>
+      sql.query<{ relation: string; privilege: string }>(
+        `select c.relname as relation, wanted.privilege
+           from pg_class c
+           join pg_namespace n on n.oid = c.relnamespace
+          cross join (values
+            ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'),
+            ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')
+          ) as wanted(privilege)
+          where n.nspname = 'public'
+            and c.relkind in ('r', 'p', 'v', 'm', 'f')
+            and has_table_privilege('anon', c.oid, wanted.privilege)
+          order by c.relname, wanted.privilege`,
+      ),
+    )
+    const sequences = await db.asPostgres((sql) =>
+      sql.query<{ sequence: string; privilege: string }>(
+        `select c.relname as sequence, wanted.privilege
+           from pg_class c
+           join pg_namespace n on n.oid = c.relnamespace
+          cross join (values ('USAGE'), ('SELECT'), ('UPDATE')) as wanted(privilege)
+          where n.nspname = 'public'
+            and c.relkind = 'S'
+            and has_sequence_privilege('anon', c.oid, wanted.privilege)
+          order by c.relname, wanted.privilege`,
+      ),
+    )
+
+    expect(relations.rows).toEqual([])
+    expect(sequences.rows).toEqual([])
+  })
+
+  it('locks future relations away from anon and future functions away from API roles', async () => {
     await db.asPostgres((sql) =>
       sql.exec(`
+        create table public.default_privilege_table_probe (
+          id bigint generated always as identity primary key
+        );
         create function public.default_execute_probe()
         returns integer language sql as 'select 1';
       `),
     )
 
     const { rows } = await db.asPostgres((sql) =>
-      sql.query<{ anon_execute: boolean; authenticated_execute: boolean }>(
+      sql.query<{
+        anon_table: boolean
+        authenticated_table: boolean
+        anon_sequence: boolean
+        authenticated_sequence: boolean
+        anon_execute: boolean
+        authenticated_execute: boolean
+        service_execute: boolean
+      }>(
         `select
+           has_table_privilege('anon', 'public.default_privilege_table_probe', 'select')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'insert')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'update')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'delete')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'truncate')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'references')
+             or has_table_privilege('anon', 'public.default_privilege_table_probe', 'trigger')
+             as anon_table,
+           has_table_privilege('authenticated', 'public.default_privilege_table_probe', 'select')
+             and has_table_privilege('authenticated', 'public.default_privilege_table_probe', 'insert')
+             and has_table_privilege('authenticated', 'public.default_privilege_table_probe', 'update')
+             and has_table_privilege('authenticated', 'public.default_privilege_table_probe', 'delete')
+             as authenticated_table,
+           has_sequence_privilege('anon', 'public.default_privilege_table_probe_id_seq', 'usage')
+             or has_sequence_privilege('anon', 'public.default_privilege_table_probe_id_seq', 'select')
+             or has_sequence_privilege('anon', 'public.default_privilege_table_probe_id_seq', 'update')
+             as anon_sequence,
+           has_sequence_privilege('authenticated', 'public.default_privilege_table_probe_id_seq', 'usage')
+             and has_sequence_privilege('authenticated', 'public.default_privilege_table_probe_id_seq', 'select')
+             as authenticated_sequence,
            has_function_privilege('anon', 'public.default_execute_probe()', 'execute') as anon_execute,
-           has_function_privilege('authenticated', 'public.default_execute_probe()', 'execute') as authenticated_execute`,
+           has_function_privilege('authenticated', 'public.default_execute_probe()', 'execute') as authenticated_execute,
+           has_function_privilege('service_role', 'public.default_execute_probe()', 'execute') as service_execute`,
       ),
     )
 
-    expect(rows[0]).toEqual({ anon_execute: false, authenticated_execute: false })
-    await db.asPostgres((sql) => sql.exec('drop function public.default_execute_probe()'))
+    expect(rows[0]).toEqual({
+      anon_table: false,
+      authenticated_table: true,
+      anon_sequence: false,
+      authenticated_sequence: true,
+      anon_execute: false,
+      authenticated_execute: false,
+      service_execute: true,
+    })
+    await db.asPostgres((sql) =>
+      sql.exec(`
+        drop function public.default_execute_probe();
+        drop table public.default_privilege_table_probe;
+      `),
+    )
   })
 
   it('carries a unique idempotency key on every externally-synced table', async () => {

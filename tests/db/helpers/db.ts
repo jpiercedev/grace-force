@@ -29,6 +29,22 @@ const SUPABASE_BOOTSTRAP = `
   -- Mirrors the hosted platform: service_role sees through RLS.
   create role service_role nologin noinherit bypassrls;
 
+  -- Reproduce the hosted project's platform-managed default ACLs. The final
+  -- lockdown migration must remove anon again while preserving authenticated
+  -- relation access and trusted service-role access.
+  alter default privileges for role postgres
+    grant all on tables to anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public
+    grant all on tables to anon, authenticated, service_role;
+  alter default privileges for role postgres
+    grant all on sequences to anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public
+    grant all on sequences to anon, authenticated, service_role;
+  alter default privileges for role postgres
+    grant execute on functions to public, anon, authenticated, service_role;
+  alter default privileges for role postgres in schema public
+    grant execute on functions to anon, authenticated, service_role;
+
   create schema if not exists auth;
 
   create table auth.users (

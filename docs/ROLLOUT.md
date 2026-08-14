@@ -5,11 +5,12 @@
 > `claude/donor-crm-hubspot-redesign-smpmo4`.
 
 **State today:** production (Supabase project `phhkhvewcclzjkdbjmqw`, Vercel
-project `grace-force`) runs the original 20-table schema with the 16
-`20260805…` migrations applied. The application on this branch expects 29
-tables plus the private `attachments` Storage bucket — the 8 `20260806…`
-migrations below have **not** been applied to production. The redesign itself
-adds no schema, no environment variables and no routes beyond this set.
+project `grace-force`) has the first eight `20260806…` schema migrations
+applied, adding the 29-table schema and private `attachments` Storage bucket.
+Post-push verification found hosted default-ACL drift, so the ninth migration
+below must lock down anonymous privileges before the redesigned application is
+deployed. The redesign itself adds no schema, no environment variables and no
+routes beyond this set.
 
 The order matters: the schema is additive and the running production build
 never queries the new tables, so migrations go first and are safe under the
@@ -37,10 +38,11 @@ supabase migration list --linked
 supabase db push --linked --dry-run
 ```
 
-The dry run must list only `20260806000100` through `20260806000800`. Stop if
-it lists any `20260805` migration.
+The initial dry run must list only `20260806000100` through `20260806000900`.
+After the first eight have been applied, a repeat dry run must list only
+`20260806000900`. Stop if it lists any `20260805` migration.
 
-## 2. Apply the eight migrations, in filename order
+## 2. Apply the nine migrations, in filename order
 
 After the exact dry-run check, use `supabase db push --linked` from this
 branch. The pending migration files include the pre-deploy security hardening
@@ -57,6 +59,7 @@ and attachment ownership/type/size enforcement.
 | `20260806000600_attachments.sql` | `attachments` + the **`attachments` Storage bucket and its three policies** |
 | `20260806000700_activity_outcome.sql` | `outcome` on `activities`; new activity enum values |
 | `20260806000800_call_report_joint_donor.sql` | joint-donor column on `call_reports` |
+| `20260806000900_anon_privilege_lockdown.sql` | removes hosted `anon` relation grants and locks future table, sequence, and function defaults |
 
 The rollout adds tables, enum values, policies, triggers, and columns. It does
 not drop data or rewrite existing rows; the activity read policy is tightened
@@ -113,6 +116,19 @@ the accepted findings recorded in `IMPLEMENTATION_STATUS.md`.
 Also verify that `anon` cannot execute public functions or use public tables,
 that the new trigger functions are not RPC-executable by `authenticated`, and
 that attachment object deletion requires uploader ownership or admin access.
+
+```sql
+-- Both counts must be 0.
+select count(*) from information_schema.role_table_grants
+ where grantee = 'anon' and table_schema = 'public';
+select count(*) from information_schema.role_usage_grants
+ where grantee = 'anon' and object_schema = 'public';
+-- Inspect postgres-owned defaults: no anon table/sequence grants and no
+-- PUBLIC/anon/authenticated function EXECUTE grants may remain.
+select defaclobjtype, defaclacl from pg_default_acl d
+ join pg_roles r on r.oid = d.defaclrole
+ where r.rolname = 'postgres';
+```
 
 The old build keeps running untouched throughout — it never touches the new
 tables.
@@ -177,7 +193,7 @@ no network request; a ~19MB file succeeds (proves both body-size ceilings).
   rollback path for any UI-level problem.
 - **Database**: leave the new tables in place even if the app is rolled
   back — they are unreachable from the old build and empty (or nearly so).
-  Dropping them is a last resort, in strict reverse order (`…000800` down to
+  Dropping them is a last resort, in strict reverse order (`…000900` down to
   `…000100`), and destroys any attachments metadata/objects and development
   records created in the interim; export first if anything real was entered.
   The `attachments` bucket must be emptied before it can be dropped.

@@ -10,10 +10,10 @@
 | Field | Value |
 | --- | --- |
 | Current phase | Production-ready HubSpot-style redesign and rollout hardening on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`); production rollout in progress |
-| Overall status | Feature-complete. 24 migrations and 45 routes; pending migrations, attachment actions, and multi-action forms hardened before first production application |
-| Tests | 587 Vitest (31 files) + 28 browser `@public` passing; production `@authed` pass follows deployment |
+| Overall status | Feature-complete. 25 migrations and 45 routes; pending migrations, attachment actions, and multi-action forms hardened before first production application |
+| Tests | 588 Vitest (31 files) + 28 browser `@public` passing; production `@authed` pass follows deployment |
 | Build | `next build` succeeds — 45 routes |
-| Deployment | `grace-force` on Vercel, production target, git-connected. **Production still runs the 20-table schema; see `docs/ROLLOUT.md` for the ordered plan** |
+| Deployment | `grace-force` on Vercel, production target, git-connected. **The first eight release migrations are applied; the privilege lockdown and application deploy remain. See `docs/ROLLOUT.md`.** |
 
 ## The HubSpot-style redesign (2026-08-13)
 
@@ -67,7 +67,7 @@ clamp to two lines behind a native show-more, system entries stay a register
 quieter. Timeline filters keep the active tab across GET submits via hidden
 fields (a GET submit replaces the action's query string).
 
-**Verification.** 587 Vitest + 28 `@public` Playwright green; typecheck,
+**Verification.** 588 Vitest + 28 `@public` Playwright green; typecheck,
 lint and `next build` clean. Visually QA'd via screenshots: public pages
 against the real built app; the donor record (both tabs) and People index
 via a static-render harness (mocked query layer, real components + built
@@ -88,6 +88,9 @@ otherwise complete redesign:
   gate as its source tables, closing an existing export/timeline side channel;
 - late `SECURITY DEFINER` trigger functions are not callable as RPCs, and new
   functions no longer inherit `PUBLIC EXECUTE` by default;
+- hosted grant drift is neutralized: `anon` has no public relation privileges,
+  and postgres-owned defaults cannot restore anonymous relation access or make
+  future functions executable by anonymous/authenticated API roles;
 - call-report authors and attachment uploaders default to the signed-in user
   and cannot be spoofed or reassigned by ordinary staff;
 - attachment metadata is immutable, Storage objects enforce a 20 MiB ceiling,
@@ -100,7 +103,7 @@ otherwise complete redesign:
   hidden `id` and `intent` fields, fixing the real-browser server-action defect.
 
 Regression coverage was added at the database, action, and UI layers. The full
-release gate is 587 Vitest tests, 28 public Playwright tests, lint, typecheck,
+release gate is 588 Vitest tests, 28 public Playwright tests, lint, typecheck,
 and a 45-route production build.
 
 ## The simplification redesign (2026-08-12)
@@ -109,13 +112,14 @@ The brief: Salesforce capability, dramatically less cognitive load. The audit
 is in `docs/UX_AUDIT.md` — read it before changing any of this, because most
 of the structure below is a direct answer to something recorded there.
 
-**Schema.** Eight migrations (`20260806000100`–`20260806000800`) add what the
+**Schema.** Nine migrations (`20260806000100`–`20260806000900`) add what the
 gap analysis found missing: related constituents, philanthropic interests,
 giving capability, events and attendance, proposals and planned gifts, call
 reports, and attachments. Plus communication preferences and an interaction
-outcome on existing tables. Every table has RLS, indexes and tests; capability
-and proposals follow `can_view_giving()`. See `docs/DATA_MODEL.md` for the
-three decisions worth knowing.
+outcome on existing tables; the ninth migration removes hosted anonymous grant
+drift and seals postgres-owned defaults. Every table has RLS, indexes and
+tests; capability and proposals follow `can_view_giving()`. See
+`docs/DATA_MODEL.md` for the three decisions worth knowing.
 
 **Navigation.** Twelve always-visible destinations in four labelled groups
 became six primary, a collapsed "More" group, and one Settings entry. Search
@@ -195,26 +199,26 @@ platform itself.
 Both the cleanup and the delete-ordering assertions were confirmed to fail when
 the behaviour they guard is inverted, so they are not passing vacuously.
 
-**What is still unverified: a real byte round trip.** Two independent blockers,
-both external to the code:
+**What is still unverified: a real byte round trip.** One external blocker
+remains:
 
 1. **Egress is denied by policy.** The agent proxy answers
    `403` to `CONNECT phhkhvewcclzjkdbjmqw.supabase.co:443` (and to
    `supabase.com:443`). Nothing in this container can reach the project over
    HTTPS. The Supabase management tooling that *is* reachable exposes Postgres
    only — it has no storage transfer.
-2. **The schema is not deployed yet.** The live project currently has the 20
-   original tables and no storage buckets: none of the nine new tables and no
-   `attachments` bucket exist there. Applying migrations to production is a
-   deploy step, not something this session performed.
+The first eight release migrations have since created the live tables and
+Storage bucket. The ninth, defense-in-depth privilege-lockdown migration must
+be applied before the redesigned application is deployed.
 
-### Manual verification, once the migrations are deployed
+### Manual verification, after the final migration and app deploy
 
 Run as a staff or admin account, with a small non-sensitive file (a one-page
 PDF is ideal).
 
-1. **Deploy the schema.** `supabase db push` (or apply
-   `20260806000100`–`20260806000800` in filename order). Confirm afterwards:
+1. **Deploy the schema.** `supabase db push` (or, on a fresh environment, apply
+   `20260806000100`–`20260806000900` in filename order). Production currently
+   needs only `20260806000900`. Confirm afterwards:
    `select count(*) from storage.buckets where id = 'attachments';` → `1`, and
    `select policyname from pg_policies where schemaname='storage' and tablename='objects';`
    → `attachments_read`, `attachments_write`, `attachments_remove`.
@@ -250,7 +254,7 @@ PDF is ideal).
 ## Next task
 
 Complete the authorized production rollout in `docs/ROLLOUT.md`: reconcile
-the two historical migration versions, apply the eight `20260806…` migrations,
+the two historical migration versions, apply the nine `20260806…` migrations,
 verify, deploy this build, then run the smoke/authed/attachment passes. The manual
 attachment script below and the `@authed` browser suite both run after that
 deploy, from a network with normal egress:
