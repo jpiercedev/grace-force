@@ -87,7 +87,7 @@ export type FollowUpStatus = 'open' | 'completed' | 'cancelled'
 
 export type FollowUpPriority = 'low' | 'normal' | 'high' | 'urgent'
 
-export type PipelineCardStatus = 'open' | 'won' | 'lost'
+export type PipelineCardStatus = 'open' | 'won' | 'lost' | 'archived'
 
 export type LeadStatus = 'new' | 'in_review' | 'converted' | 'spam' | 'archived'
 
@@ -300,6 +300,7 @@ export type PipelineStageRow = {
   is_won: boolean
   is_lost: boolean
   color: string
+  archived_at: string | null
   created_at: string
   updated_at: string
 }
@@ -312,6 +313,8 @@ export type PipelineCardRow = {
   engagement_id: string | null
   title: string
   details: string | null
+  organization_name: string | null
+  next_step: string | null
   value_cents: number | null
   currency: string
   status: PipelineCardStatus

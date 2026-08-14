@@ -8,8 +8,9 @@ import { createTestDb, expectRejected, type TestDb, type TestUser } from './help
  * The same principle as `behaviour.test.ts` — much of the correctness here is
  * delegated to Postgres on purpose. The timeline is complete because triggers
  * write it; the paired fields stay honest because check constraints refuse the
- * alternative; capability and proposals stay private because a policy says so,
- * not because a component remembered to hide them.
+ * alternative; capability, proposals and call reports are shared with every
+ * active team member because a policy says so (20260814000400), while writes
+ * stay role-gated.
  */
 describe('relationship development schema', () => {
   let db: TestDb
@@ -25,8 +26,8 @@ describe('relationship development schema', () => {
     db = await createTestDb()
     admin = await db.createUser({ email: 'dev-admin@graceforce.test' })
     staff = await db.createUser({ email: 'dev-staff@graceforce.test', role: 'staff' })
-    // Staff *with* the giving capability: the only kind that may read a
-    // proposal or a capability estimate.
+    // Staff *with* the legacy giving flag — retained to prove the flag no
+    // longer changes what anyone can read.
     fundraiser = await db.createUser({
       email: 'dev-fundraiser@graceforce.test',
       role: 'staff',
@@ -239,23 +240,26 @@ describe('relationship development schema', () => {
       expect(rows).toHaveLength(1)
     })
 
-    it('is invisible to staff without giving access, even though they can read the person', async () => {
-      const person = await db.asUser(staff.id, (sql) =>
-        sql.query('select id from public.contacts where id = $1', [ada]),
-      )
-      expect(person.rows).toHaveLength(1)
-
+    it('is visible to staff without the giving flag — shared team data', async () => {
       const capability = await db.asUser(staff.id, (sql) =>
         sql.query('select level from public.contact_capability where contact_id = $1', [ada]),
       )
-      expect(capability.rows).toHaveLength(0)
+      expect(capability.rows).toHaveLength(1)
     })
 
-    it('is invisible to a viewer', async () => {
+    it('is visible to a viewer, who still cannot write it', async () => {
       const { rows } = await db.asUser(viewer.id, (sql) =>
         sql.query('select level from public.contact_capability where contact_id = $1', [ada]),
       )
-      expect(rows).toHaveLength(0)
+      expect(rows).toHaveLength(1)
+
+      const write = await db.asUser(viewer.id, (sql) =>
+        sql.query(
+          `update public.contact_capability set level = 'major' where contact_id = $1 returning contact_id`,
+          [ada],
+        ),
+      )
+      expect(write.rows).toEqual([])
     })
   })
 
@@ -403,38 +407,39 @@ describe('relationship development schema', () => {
       expect(message).toMatch(/proposals_joint_is_someone_else/)
     })
 
-    it('is invisible to staff without giving access', async () => {
+    it('is visible to staff without the giving flag — shared team data', async () => {
       const { rows } = await db.asUser(staff.id, (sql) =>
         sql.query('select id from public.proposals where contact_id = $1', [ada]),
       )
-      expect(rows).toHaveLength(0)
+      expect(rows.length).toBeGreaterThan(0)
     })
 
-    it('also hides its title and amount on the shared timeline', async () => {
-      const blocked = await db.asUser(staff.id, (sql) =>
-        sql.query<{ subject: string; metadata: Record<string, unknown> }>(
-          `select subject, metadata from public.activities
-            where proposal_id = $1 and type = 'proposal_created'`,
-          [proposalId],
-        ),
-      )
-      expect(blocked.rows).toHaveLength(0)
-
-      const allowed = await db.asUser(fundraiser.id, (sql) =>
-        sql.query<{ subject: string; metadata: Record<string, unknown> }>(
-          `select subject, metadata from public.activities
-            where proposal_id = $1 and type = 'proposal_created'`,
-          [proposalId],
-        ),
-      )
-      expect(allowed.rows).toHaveLength(1)
-      expect(allowed.rows[0]!.subject).toContain('Charitable remainder trust')
-      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000000)
+    it('shares its title and amount on the team timeline', async () => {
+      for (const reader of [staff.id, fundraiser.id]) {
+        const { rows } = await db.asUser(reader, (sql) =>
+          sql.query<{ subject: string; metadata: Record<string, unknown> }>(
+            `select subject, metadata from public.activities
+              where proposal_id = $1 and type = 'proposal_created'`,
+            [proposalId],
+          ),
+        )
+        expect(rows).toHaveLength(1)
+        expect(rows[0]!.subject).toContain('Charitable remainder trust')
+        expect(rows[0]!.metadata.amount_cents).toBe(25000000)
+      }
     })
 
-    it('cannot be written by staff without giving access', async () => {
+    it('can be written by any staff member, but not by a viewer', async () => {
+      const created = await db.asUser(staff.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.proposals (contact_id, title) values ($1, 'Staff-written') returning id`,
+          [ada],
+        ),
+      )
+      expect(created.rows).toHaveLength(1)
+
       const message = await expectRejected(
-        db.asUser(staff.id, (sql) =>
+        db.asUser(viewer.id, (sql) =>
           sql.query(`insert into public.proposals (contact_id, title) values ($1, 'Sneaky')`, [ada]),
         ),
       )
@@ -496,21 +501,21 @@ describe('relationship development schema', () => {
       expect(reassign).toMatch(/row-level security|violates/i)
     })
 
-    it('hides a draft from everyone but its author and administrators', async () => {
-      const asAuthor = await db.asUser(staff.id, (sql) =>
-        sql.query('select id from public.call_reports where id = $1', [draftId]),
-      )
-      expect(asAuthor.rows).toHaveLength(1)
+    it('shares a draft with the whole team, but only the author or an admin may edit it', async () => {
+      for (const reader of [staff.id, fundraiser.id, admin.id, viewer.id]) {
+        const { rows } = await db.asUser(reader, (sql) =>
+          sql.query('select id from public.call_reports where id = $1', [draftId]),
+        )
+        expect(rows).toHaveLength(1)
+      }
 
       const asColleague = await db.asUser(fundraiser.id, (sql) =>
-        sql.query('select id from public.call_reports where id = $1', [draftId]),
+        sql.query(
+          `update public.call_reports set summary = 'Rewritten' where id = $1 returning id`,
+          [draftId],
+        ),
       )
-      expect(asColleague.rows).toHaveLength(0)
-
-      const asAdmin = await db.asUser(admin.id, (sql) =>
-        sql.query('select id from public.call_reports where id = $1', [draftId]),
-      )
-      expect(asAdmin.rows).toHaveLength(1)
+      expect(asColleague.rows).toEqual([])
     })
 
     it('refuses a filed report with no filing time', async () => {

@@ -122,7 +122,7 @@ describe('database types match the schema', () => {
     // mismatch here means a `switch` somewhere has a dead or missing case.
     expect(byName.get('user_role')).toEqual(['admin', 'staff', 'viewer'])
     expect(byName.get('follow_up_status')).toEqual(['open', 'completed', 'cancelled'])
-    expect(byName.get('pipeline_card_status')).toEqual(['open', 'won', 'lost'])
+    expect(byName.get('pipeline_card_status')).toEqual(['open', 'won', 'lost', 'archived'])
     expect(byName.get('notification_status')).toEqual(['pending', 'sent', 'failed', 'skipped'])
     expect(byName.get('engagement_status')).toEqual([
       'prospect',

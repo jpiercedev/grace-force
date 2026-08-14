@@ -151,14 +151,19 @@ describe('row level security', () => {
       expect(check.rows[0]!.first_name).toBe('Ada')
     })
 
-    it('cannot see leads at all', async () => {
+    it('can read leads but cannot triage them', async () => {
       await db.asServiceRole((sql) =>
         sql.query(
           `insert into public.leads (email, message, form_key) values ('lead@example.org','Hi','web')`,
         ),
       )
       const { rows } = await db.asUser(viewer.id, (sql) => sql.query('select * from public.leads'))
-      expect(rows).toEqual([])
+      expect(rows.length).toBeGreaterThan(0)
+
+      const triage = await db.asUser(viewer.id, (sql) =>
+        sql.query(`update public.leads set status = 'in_review' where status = 'new' returning id`),
+      )
+      expect(triage.rows).toEqual([])
 
       const staffView = await db.asUser(staff.id, (sql) =>
         sql.query('select * from public.leads'),
@@ -216,7 +221,7 @@ describe('row level security', () => {
     })
   })
 
-  describe('giving history is gated separately', () => {
+  describe('giving history is shared with the team; writes stay admin-only', () => {
     beforeAll(async () => {
       await db.asServiceRole((sql) =>
         sql.query(
@@ -227,55 +232,38 @@ describe('row level security', () => {
       )
     })
 
-    it('hides gifts from staff without the flag', async () => {
-      const { rows } = await db.asUser(staff.id, (sql) =>
+    it('shows gifts to every active user, with or without the legacy flag', async () => {
+      for (const reader of [staff.id, giftViewer.id, admin.id, viewer.id]) {
+        const { rows } = await db.asUser(reader, (sql) =>
+          sql.query('select id from public.gifts'),
+        )
+        expect(rows.length).toBeGreaterThan(0)
+      }
+    })
+
+    it('keeps gifts away from deactivated profiles', async () => {
+      const { rows } = await db.asUser(deactivated.id, (sql) =>
         sql.query('select id from public.gifts'),
       )
       expect(rows).toEqual([])
     })
 
-    it('shows gifts to staff with can_view_giving', async () => {
-      const { rows } = await db.asUser(giftViewer.id, (sql) =>
-        sql.query('select id from public.gifts'),
-      )
-      expect(rows.length).toBeGreaterThan(0)
-    })
-
-    it('shows gifts to admins', async () => {
-      const { rows } = await db.asUser(admin.id, (sql) =>
-        sql.query('select id from public.gifts'),
-      )
-      expect(rows.length).toBeGreaterThan(0)
-    })
-
-    it('applies the giving gate to gift activity metadata too', async () => {
-      const blocked = await db.asUser(staff.id, (sql) =>
+    it('shares gift activity metadata on the team timeline', async () => {
+      const { rows } = await db.asUser(staff.id, (sql) =>
         sql.query<{ metadata: Record<string, unknown> }>(
           `select metadata from public.activities where type = 'gift_recorded'`,
         ),
       )
-      expect(blocked.rows).toEqual([])
-
-      const allowed = await db.asUser(giftViewer.id, (sql) =>
-        sql.query<{ metadata: Record<string, unknown> }>(
-          `select metadata from public.activities where type = 'gift_recorded'`,
-        ),
-      )
-      expect(allowed.rows).toHaveLength(1)
-      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000)
+      expect(rows).toHaveLength(1)
+      expect(rows[0]!.metadata.amount_cents).toBe(25000)
     })
 
-    it('applies the same gate to the giving summary view', async () => {
-      // security_invoker=on means the view cannot become a side door.
-      const blocked = await db.asUser(staff.id, (sql) =>
-        sql.query('select * from public.contact_giving_summary'),
-      )
-      expect(blocked.rows).toEqual([])
-
-      const allowed = await db.asUser(giftViewer.id, (sql) =>
+    it('shares the giving summary view the same way', async () => {
+      // security_invoker=on: the view follows the gifts policy either way.
+      const { rows } = await db.asUser(staff.id, (sql) =>
         sql.query<{ total_cents: string }>('select * from public.contact_giving_summary'),
       )
-      expect(allowed.rows.length).toBeGreaterThan(0)
+      expect(rows.length).toBeGreaterThan(0)
     })
 
     it('refuses gift writes from non-admins', async () => {
