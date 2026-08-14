@@ -12,6 +12,7 @@ import {
   fieldErrorsFrom,
   moveCardSchema,
   parseCardIntent,
+  updateOpportunitySchema,
 } from '@/lib/validation/pipeline'
 import type { PipelineCardRow } from '@/types/database'
 
@@ -40,9 +41,10 @@ function text(formData: FormData, name: string): string {
   return typeof value === 'string' ? value : ''
 }
 
-/** Revalidates the index and every board beneath it in one call. */
+/** Revalidates the boards, the Sales section and the dashboard in one call. */
 function revalidatePipelines(contactId?: string | null): void {
   revalidatePath('/pipelines', 'layout')
+  revalidatePath('/sales', 'layout')
   revalidatePath('/dashboard')
   if (contactId) revalidatePath(`/contacts/${contactId}`)
 }
@@ -56,9 +58,12 @@ export async function addContactToPipeline(
 
   const parsed = addPipelineCardSchema.safeParse({
     pipeline_id: text(formData, 'pipeline_id'),
+    stage_id: text(formData, 'stage_id'),
     contact_id: text(formData, 'contact_id'),
     title: text(formData, 'title'),
     details: text(formData, 'details'),
+    organization_name: text(formData, 'organization_name'),
+    next_step: text(formData, 'next_step'),
     value_cents: text(formData, 'value_cents'),
     owner_id: formData.has('owner_id') ? text(formData, 'owner_id') : profile.id,
     expected_close_on: text(formData, 'expected_close_on'),
@@ -69,7 +74,7 @@ export async function addContactToPipeline(
   }
 
   const supabase = await createClient()
-  const [pipelineResult, stageResult] = await Promise.all([
+  const [pipelineResult, stagesResult] = await Promise.all([
     supabase
       .from('pipelines')
       .select('id, slug, tracks_value')
@@ -79,24 +84,34 @@ export async function addContactToPipeline(
       .from('pipeline_stages')
       .select('id')
       .eq('pipeline_id', parsed.data.pipeline_id)
-      .order('position', { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+      .is('archived_at', null)
+      .order('position', { ascending: true }),
   ])
 
   if (pipelineResult.error || !pipelineResult.data) {
     return { error: 'That pipeline could not be found.' }
   }
-  if (stageResult.error || !stageResult.data) {
+  const stages = stagesResult.data ?? []
+  if (stagesResult.error || stages.length === 0) {
     return { error: 'That pipeline has no stages yet, so cards cannot be added to it.' }
+  }
+  // A stage passed explicitly must be one of this pipeline's live stages; an
+  // omitted one lands the opportunity at the start.
+  const stageId = parsed.data.stage_id
+    ? stages.find((stage) => stage.id === parsed.data.stage_id)?.id
+    : stages[0]?.id
+  if (!stageId) {
+    return { error: 'That stage is not part of this pipeline.' }
   }
 
   const { error } = await supabase.from('pipeline_cards').insert({
     pipeline_id: pipelineResult.data.id,
-    stage_id: stageResult.data.id,
+    stage_id: stageId,
     contact_id: parsed.data.contact_id,
     title: parsed.data.title,
     details: parsed.data.details,
+    organization_name: parsed.data.organization_name,
+    next_step: parsed.data.next_step,
     // A pipeline that does not track value has nowhere sensible to show one.
     value_cents: pipelineResult.data.tracks_value ? parsed.data.value_cents : null,
     owner_id: parsed.data.owner_id,
@@ -158,6 +173,31 @@ export async function updatePipelineCard(
     )
   }
 
+  if (intent === 'move_up' || intent === 'move_down') {
+    const id = text(formData, 'id')
+    if (!id) return { error: 'That card could not be found.' }
+    return reorderCard(id, intent === 'move_up' ? -1 : 1)
+  }
+
+  if (intent === 'archive') {
+    const parsed = closeCardSchema.safeParse({
+      id: text(formData, 'id'),
+      close_reason: text(formData, 'close_reason'),
+    })
+    if (!parsed.success) {
+      return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
+    }
+    return applyCardUpdate(
+      parsed.data.id,
+      {
+        status: 'archived',
+        closed_at: new Date().toISOString(),
+        close_reason: parsed.data.close_reason,
+      },
+      (title) => `Archived ${title}.`,
+    )
+  }
+
   const outcome = closeOutcomeFor(intent)
   if (!outcome) return { error: 'That action is not available.' }
 
@@ -180,6 +220,83 @@ export async function updatePipelineCard(
     },
     (title) => `Marked ${title} ${outcome}.`,
   )
+}
+
+/**
+ * Swap a card with its neighbour inside its stage. Positions may still be the
+ * default 0 from before ordering existed, so the whole stage is renumbered
+ * with the swap applied and only the rows that changed are written.
+ */
+async function reorderCard(id: string, direction: -1 | 1): Promise<PipelineActionState> {
+  const supabase = await createClient()
+  const { data: card, error: cardError } = await supabase
+    .from('pipeline_cards')
+    .select('id, stage_id, contact_id, title')
+    .eq('id', id)
+    .eq('status', 'open')
+    .maybeSingle()
+
+  if (cardError) return { error: 'That change could not be saved.' }
+  if (!card) return { error: 'That card is no longer open, so it could not be changed.' }
+
+  const { data: siblings, error: siblingsError } = await supabase
+    .from('pipeline_cards')
+    .select('id, position')
+    .eq('stage_id', card.stage_id)
+    .eq('status', 'open')
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  if (siblingsError || !siblings) return { error: 'That change could not be saved.' }
+
+  const index = siblings.findIndex((sibling) => sibling.id === card.id)
+  const target = index + direction
+  if (index === -1 || target < 0 || target >= siblings.length) {
+    return { notice: `“${truncate(card.title, 60)}” is already at the ${direction < 0 ? 'top' : 'bottom'}.` }
+  }
+
+  const ordered = [...siblings]
+  ;[ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!]
+
+  for (const [position, sibling] of ordered.entries()) {
+    const next = (position + 1) * 10
+    if (sibling.position === next) continue
+    const { error } = await supabase
+      .from('pipeline_cards')
+      .update({ position: next })
+      .eq('id', sibling.id)
+      .eq('status', 'open')
+    if (error) return { error: 'That change could not be saved.' }
+  }
+
+  revalidatePipelines(card.contact_id)
+  return { notice: `Moved “${truncate(card.title, 60)}” ${direction < 0 ? 'up' : 'down'}.` }
+}
+
+/** Edit an opportunity's own fields — stage and status stay with the board. */
+export async function updateOpportunity(
+  _prev: PipelineActionState,
+  formData: FormData,
+): Promise<PipelineActionState> {
+  const profile = await requireProfile()
+  if (!canWrite(profile)) return { error: NO_PERMISSION }
+
+  const parsed = updateOpportunitySchema.safeParse({
+    id: text(formData, 'id'),
+    title: text(formData, 'title'),
+    details: text(formData, 'details'),
+    organization_name: text(formData, 'organization_name'),
+    next_step: text(formData, 'next_step'),
+    value_cents: text(formData, 'value_cents'),
+    owner_id: text(formData, 'owner_id'),
+    expected_close_on: text(formData, 'expected_close_on'),
+  })
+  if (!parsed.success) {
+    return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
+  }
+
+  const { id, ...fields } = parsed.data
+  return applyCardUpdate(id, fields, (title) => `Saved ${title}.`)
 }
 
 async function applyCardUpdate(

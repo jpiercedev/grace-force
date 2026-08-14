@@ -1,5 +1,5 @@
 import type { ProfileRow } from '@/types/database'
-import { canViewGiving, canWrite, isAdmin } from '@/lib/permissions'
+import { canWrite, isAdmin } from '@/lib/permissions'
 
 /**
  * Navigation comes in two shapes, and keeping them distinct is the point.
@@ -39,7 +39,7 @@ export interface NavItem {
 }
 
 export interface Navigation {
-  /** The everyday work of a development office. */
+  /** The everyday work of relationship and lead management. */
   primary: NavItem[]
   /** Less-frequent tools, in their own labelled group — always visible. */
   more: NavItem[]
@@ -52,26 +52,30 @@ export interface Navigation {
  *
  * Everything is visible at once — no collapse, no scroll — because knowing
  * what the product can do is part of being able to use it. The hierarchy is
- * carried by grouping and order, not by hiding: the top group is where a
- * development officer lives most weeks; the group below is the machinery
- * (giving records, pipelines, lead triage, email marketing, data in and out)
- * they reach for on purpose rather than by habit.
+ * carried by grouping and order, not by hiding: the top group is where the
+ * team lives most weeks — people, sales opportunities, follow-through; the
+ * group below is the machinery (giving records, planned gifts, lead triage,
+ * email marketing, data in and out) they reach for on purpose rather than by
+ * habit.
+ *
+ * This is one shared workspace: nothing here is gated on giving visibility
+ * any more, and viewers see every destination their read access covers.
  *
  * Search is not a destination: it is a field in the header, on every page.
  */
 const PRIMARY: NavItemDefinition[] = [
   { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { href: '/contacts', label: 'People', icon: 'Users' },
+  { href: '/sales', label: 'Sales', icon: 'TrendingUp' },
   { href: '/follow-ups', label: 'Follow-ups', icon: 'CheckSquare' },
-  { href: '/proposals', label: 'Planned gifts', icon: 'FileSignature', visible: canViewGiving },
   { href: '/events', label: 'Events', icon: 'CalendarDays' },
   { href: '/reports', label: 'Call reports', icon: 'FileText' },
 ]
 
 const MORE: NavItemDefinition[] = [
-  { href: '/giving', label: 'Giving', icon: 'HandCoins', visible: canViewGiving },
-  { href: '/pipelines', label: 'Pipelines', icon: 'KanbanSquare' },
-  { href: '/leads', label: 'New leads', icon: 'Inbox', visible: canWrite },
+  { href: '/leads', label: 'New leads', icon: 'Inbox' },
+  { href: '/proposals', label: 'Planned gifts', icon: 'FileSignature' },
+  { href: '/giving', label: 'Giving', icon: 'HandCoins' },
   { href: '/mailchimp', label: 'Marketing', icon: 'Mail' },
   { href: '/import', label: 'Import', icon: 'Upload', visible: canWrite },
   { href: '/export', label: 'Export', icon: 'Download', visible: canWrite },

@@ -1,21 +1,25 @@
+import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
- * The GF mark + wordmark, shared by every screen that renders outside the app
- * shell (auth, setup, no-access, intake) so a stranded visitor always sees
- * the same brand reassurance.
+ * The Grace “G” emblem + wordmark, shared by every screen that renders outside
+ * the app shell (auth, setup, no-access, intake) so a stranded visitor always
+ * sees the same brand reassurance. The emblem keeps its native proportions
+ * inside a square box via object-contain.
  */
 export function BrandMark({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5 text-lg font-bold text-slate-900', className)}>
-      <span
+      <Image
+        src="/brand/grace-g.webp"
+        alt=""
         aria-hidden="true"
-        className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white"
-      >
-        GF
-      </span>
-      Grace Force
+        width={32}
+        height={32}
+        className="h-8 w-8 shrink-0 object-contain"
+      />
+      Grace Lead Management
     </span>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -11,12 +12,12 @@ import {
   FileText,
   HandCoins,
   Inbox,
-  KanbanSquare,
   LayoutDashboard,
   Mail,
   Menu,
   Search,
   Settings,
+  TrendingUp,
   Upload,
   Users,
   X,
@@ -35,12 +36,12 @@ import { ROLE_LABELS } from '@/lib/permissions'
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
   Users,
+  TrendingUp,
   CheckSquare,
   FileSignature,
   CalendarDays,
   FileText,
   HandCoins,
-  KanbanSquare,
   Inbox,
   Mail,
   Upload,
@@ -54,17 +55,26 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <Resolved className={className} aria-hidden="true" />
 }
 
-/** One brand lockup for sidebar, mobile topbar and drawer alike. */
+/**
+ * One brand lockup for sidebar, mobile topbar and drawer alike: the Grace “G”
+ * emblem beside the product name. The emblem file keeps its native 196×198
+ * proportions inside a square box via object-contain.
+ */
 function Brand() {
   return (
     <span className="flex items-center gap-2">
-      <span
+      <Image
+        src="/brand/grace-g.webp"
+        alt=""
         aria-hidden="true"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-600 text-[12px] font-bold text-white"
-      >
-        G
+        width={24}
+        height={24}
+        className="h-6 w-6 shrink-0 object-contain"
+        priority
+      />
+      <span className="text-[14px] font-bold leading-tight text-slate-900">
+        Grace Lead Management
       </span>
-      <span className="text-[15px] font-bold text-slate-900">Grace Force</span>
     </span>
   )
 }

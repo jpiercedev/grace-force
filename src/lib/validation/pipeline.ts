@@ -25,6 +25,14 @@ export const CARD_STATUS_TONES: Record<PipelineCardStatus, BadgeTone> = {
   open: 'sky',
   won: 'emerald',
   lost: 'zinc',
+  archived: 'slate',
+}
+
+export const CARD_STATUS_LABELS: Record<PipelineCardStatus, string> = {
+  open: 'Open',
+  won: 'Won',
+  lost: 'Lost',
+  archived: 'Archived',
 }
 
 /** Terminal stages get a matching outcome hint on the board. */
@@ -83,6 +91,8 @@ const optionalDate = z
 
 export const addPipelineCardSchema = z.object({
   pipeline_id: uuidField('That pipeline could not be found'),
+  /** Optional — an omitted stage lands the opportunity in the first one. */
+  stage_id: optionalUuid,
   contact_id: uuidField('Choose a contact to add'),
   title: z
     .string()
@@ -90,12 +100,29 @@ export const addPipelineCardSchema = z.object({
     .min(1, 'Give this card a title')
     .max(200, 'Keep the title under 200 characters'),
   details: optionalText(4000),
+  organization_name: optionalText(200),
+  next_step: optionalText(300),
   value_cents: optionalCents,
   owner_id: optionalUuid,
   expected_close_on: optionalDate,
 })
 
 export type AddPipelineCardInput = z.infer<typeof addPipelineCardSchema>
+
+export const updateOpportunitySchema = z.object({
+  id: uuidField('That opportunity could not be found'),
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Give this opportunity a title')
+    .max(200, 'Keep the title under 200 characters'),
+  details: optionalText(4000),
+  organization_name: optionalText(200),
+  next_step: optionalText(300),
+  value_cents: optionalCents,
+  owner_id: optionalUuid,
+  expected_close_on: optionalDate,
+})
 
 export const moveCardSchema = z.object({
   id: uuidField('That card could not be found'),
@@ -110,9 +137,17 @@ export const closeCardSchema = z.object({
 /**
  * Won and lost are separate intents because a submit button carries exactly one
  * name/value pair; a shared `close` intent would need a second control to say
- * which outcome, which is one more thing to keep in sync.
+ * which outcome, which is one more thing to keep in sync. The same reasoning
+ * gives reordering two intents rather than a direction field.
  */
-export const PIPELINE_CARD_INTENTS = ['move', 'close_won', 'close_lost'] as const
+export const PIPELINE_CARD_INTENTS = [
+  'move',
+  'close_won',
+  'close_lost',
+  'archive',
+  'move_up',
+  'move_down',
+] as const
 
 export type PipelineCardIntent = (typeof PIPELINE_CARD_INTENTS)[number]
 
@@ -136,4 +171,118 @@ export function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
     if (typeof key === 'string' && !errors[key]) errors[key] = issue.message
   }
   return errors
+}
+
+// --- Pipeline editing --------------------------------------------------------
+
+/** The stage colors the board can actually render (Tailwind literal classes). */
+export const STAGE_COLORS = [
+  'slate',
+  'sky',
+  'indigo',
+  'violet',
+  'amber',
+  'emerald',
+  'rose',
+  'zinc',
+] as const satisfies readonly BadgeTone[]
+
+export type StageColor = (typeof STAGE_COLORS)[number]
+
+/** In-flight, or one of the two terminal outcomes. */
+export const STAGE_OUTCOMES = ['none', 'won', 'lost'] as const
+
+export type StageOutcome = (typeof STAGE_OUTCOMES)[number]
+
+export const STAGE_OUTCOME_CHOICES: Record<StageOutcome, string> = {
+  none: 'In progress',
+  won: 'Won — opportunities here count as landed',
+  lost: 'Lost — opportunities here count as closed without a deal',
+}
+
+/**
+ * Slugs route boards (`/pipelines/[slug]`) and key the seeds. Stage slugs must
+ * satisfy `^[a-z0-9_]+$` (no hyphens — the tighter of the two DB checks), so
+ * both kinds use underscores.
+ */
+export function pipelineSlug(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 60)
+    .replace(/_+$/g, '')
+  return slug || 'pipeline'
+}
+
+const pipelineName = z
+  .string()
+  .trim()
+  .min(1, 'Name this pipeline')
+  .max(80, 'Keep the name under 80 characters')
+
+const stageName = z
+  .string()
+  .trim()
+  .min(1, 'Name this stage')
+  .max(60, 'Keep the name under 60 characters')
+
+const stageColor = z
+  .string()
+  .trim()
+  .transform((value) => (value === '' ? 'slate' : value))
+  .pipe(z.enum(STAGE_COLORS, { message: 'Pick one of the listed colors' }))
+
+const stageOutcome = z
+  .string()
+  .trim()
+  .transform((value) => (value === '' ? 'none' : value))
+  .pipe(z.enum(STAGE_OUTCOMES, { message: 'Pick an outcome' }))
+
+export const createPipelineSchema = z.object({
+  name: pipelineName,
+  description: optionalText(500),
+  // A checkbox posts "on" or nothing at all.
+  tracks_value: z.string().optional().transform((value) => value === 'on'),
+})
+
+export const updatePipelineSchema = z.object({
+  id: uuidField('That pipeline could not be found'),
+  name: pipelineName,
+  description: optionalText(500),
+  tracks_value: z.string().optional().transform((value) => value === 'on'),
+})
+
+export const createStageSchema = z.object({
+  pipeline_id: uuidField('That pipeline could not be found'),
+  name: stageName,
+  color: stageColor,
+  outcome: stageOutcome,
+})
+
+export const updateStageSchema = z.object({
+  id: uuidField('That stage could not be found'),
+  name: stageName,
+  color: stageColor,
+  outcome: stageOutcome,
+})
+
+export const PIPELINE_EDITOR_INTENTS = [
+  'rename',
+  'archive',
+  'restore',
+  'delete',
+  'add_stage',
+  'edit_stage',
+  'stage_up',
+  'stage_down',
+  'archive_stage',
+  'restore_stage',
+  'delete_stage',
+] as const
+
+export type PipelineEditorIntent = (typeof PIPELINE_EDITOR_INTENTS)[number]
+
+export function parseEditorIntent(value: string | undefined | null): PipelineEditorIntent | null {
+  return PIPELINE_EDITOR_INTENTS.find((intent) => intent === value) ?? null
 }
