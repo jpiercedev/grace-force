@@ -1,4 +1,4 @@
-# Grace Force CRM — Design System
+# Grace Lead Management — Design System
 
 > The visual language of the product. Read this before styling anything.
 > Tokens live in `tailwind.config.ts` and `src/app/globals.css`; primitives in
@@ -6,7 +6,7 @@
 
 ## The idea: a bright, practical CRM
 
-Grace Force is a working tool for a development office. The benchmark is
+Grace Lead Management is a working tool for a development office. The benchmark is
 HubSpot's usability — approachable despite real capability — tailored to donor
 development and deliberately simpler than Salesforce. The interface should be
 professional, warm, bright, familiar and operational: someone who has used any

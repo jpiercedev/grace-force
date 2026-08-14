@@ -109,7 +109,7 @@ staff, and an admin adjusts them at `/settings/team`.
 
 ## 7. Optional integrations
 
-Neither is required to run the CRM. When a key is absent the relevant screen
+Neither is required to run the app. When a key is absent the relevant screen
 explains what is missing and the sync/send paths return a clear "not configured"
 result instead of failing. See [`INTEGRATIONS.md`](INTEGRATIONS.md).
 

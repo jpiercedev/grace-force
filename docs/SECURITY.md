@@ -1,6 +1,6 @@
 # Security model
 
-Grace Force CRM holds contact PII and donor giving history. The design assumes the
+Grace Lead Management holds contact PII and donor giving history. The design assumes the
 application layer will eventually have a bug, and puts the enforcement
 somewhere a bug cannot reach past.
 
@@ -115,7 +115,7 @@ Client IPs are **hashed before storage**. The raw address is never persisted.
 `Permissions-Policy`, and HSTS. `poweredByHeader` is off. The Playwright suite
 asserts these are actually present.
 
-The CRM is marked `noindex, nofollow`.
+The app is marked `noindex, nofollow`.
 
 ## Auth details
 
@@ -123,7 +123,7 @@ The CRM is marked `noindex, nofollow`.
   server), never `getSession()` alone (which only decodes a cookie the client
   supplied).
 - Sign-in failures are deliberately uniform, so the form cannot be used to
-  enumerate who has a Grace Force account.
+  enumerate who has a Grace Lead Management account.
 - `?next=` and the auth callback's `next` parameter accept relative paths only,
   so neither can be turned into an open redirect.
 - Sign-out is a POST (a server action), not a link.

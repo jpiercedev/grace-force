@@ -1,12 +1,13 @@
-# Grace Force CRM
+# Grace Lead Management
 
-Relationship management for **Grace Force**.
+Relationship and lead management for **Grace Force**.
 
-Grace Force CRM exists because a ministry's relationships do not fit a sales CRM. The
-same person is often a monthly donor *and* a volunteer team lead *and* the
-contact at a partner church — three relationships with different owners,
-different histories and different next steps. The CRM models that directly, then
-puts everything that has ever happened with that person on one timeline.
+Grace Lead Management exists because a ministry's relationships do not fit a
+sales CRM. The same person is often a monthly donor *and* a volunteer team lead
+*and* the contact at a partner church — three relationships with different
+owners, different histories and different next steps. Grace Lead Management
+models that directly, then puts everything that has ever happened with that
+person on one timeline.
 
 ## What it does
 
@@ -73,7 +74,7 @@ Application code filters for relevance, never for safety.
 
 - `anon` has **no table privileges at all**. Public traffic reaches the database
   only through the service-role lead-intake route.
-- Giving data is gated separately from the rest of the CRM.
+- Giving data is gated separately from the rest of the app.
 - The service-role key is server-only and used in exactly three places: lead
   intake, integration sync, and the notification outbox.
 

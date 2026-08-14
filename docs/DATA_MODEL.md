@@ -113,20 +113,43 @@ trailing twelve months). It is declared `security_invoker = on` so the `gifts`
 RLS policy still applies — otherwise the view would hand giving totals to every
 authenticated user.
 
-## Pipelines
+## Pipelines and sales opportunities
 
 ```
 pipelines 1 ── * pipeline_stages
 pipelines 1 ── * pipeline_cards * ── 1 contacts
 ```
 
+A `pipeline_card` **is** a sales opportunity — there is deliberately no second
+"opportunities" table. When the product grew a general Sales section
+(migrations `20260814…`), the existing card model was generalized instead:
+cards gained `organization_name` (free text, defaulted in the UI from the
+contact but independent of it) and `next_step` (the board-visible one-liner;
+dated, assignable work stays in `follow_ups`), and `pipeline_card_status`
+gained `archived` alongside `open`/`won`/`lost`. Every pre-existing card, its
+id, stage and timeline history carried forward unchanged.
+
 `pipeline_cards` references its stage with a **composite foreign key**
 `(stage_id, pipeline_id) → pipeline_stages (id, pipeline_id)`, which makes it
 structurally impossible for a card to point at a stage belonging to a different
-pipeline. A unique index permits one open card per `(pipeline, contact)`.
+pipeline. A unique index permits one open card per `(pipeline, contact)` —
+archiving a card frees the slot without deleting the history.
 
 Check constraints tie `status` to `closed_at` in both directions, so a "won"
-card always records when it was won.
+card always records when it was won (and an archived one when it was shelved).
+
+**Pipelines are team-editable structure, not fixtures.** Active staff may
+create, rename, reorder, archive and (when empty) delete pipelines and stages
+from Sales → Manage pipelines. Three guard triggers make the destructive paths
+safe at the database rather than in the application, because the FK from cards
+is `on delete cascade` and a buggy DELETE must not take opportunities with it:
+
+- a pipeline that still holds any card refuses deletion, for every role;
+- a stage that still holds any card refuses deletion;
+- a stage with *open* cards refuses archiving (`pipeline_stages.archived_at`).
+
+Archiving is therefore the safe default everywhere; deletion is only reachable
+once a pipeline or stage is genuinely empty.
 
 ## Soft deletes
 
@@ -169,6 +192,11 @@ survive re-running it.
 | `…000600_attachments` | attachment metadata and the storage bucket |
 | `…000700_activity_outcome` | `activities.outcome` |
 | `…000800_call_report_joint_donor` | second donor on a call report |
+| `20260806000900_anon_privilege_lockdown` | strips hosted `anon` grants, seals default ACLs |
+| `20260814000100_sales_enums` | `pipeline_card_status` gains `archived` |
+| `…000200_configurable_pipelines` | card `organization_name`/`next_step`, stage `archived_at`, staff-managed pipelines, delete/archive guard triggers |
+| `…000300_sales_reference_data` | seeds General Sales + Relationship Development (idempotent) |
+| `…000400_shared_team_visibility` | one shared workspace: SELECT opens to every active user |
 
 They must be applied in filename order; later files reference earlier tables.
 
@@ -202,17 +230,28 @@ of a single fact to disagree with each other, and doubles every edit and
 delete. Symmetric kinds (spouse, sibling, friend) simply name themselves in
 both maps, so they need no special case anywhere.
 
-### Capability and proposals follow the giving permission, not the contact permission
+### Capability and proposals are shared with the whole team (since 20260814000400)
 
-Postgres RLS is row-level. A `capability_level` column on `contacts` would be
-legible to every profile that can read the person — which is every active
-user. So estimated capability lives in its own table, `contact_capability`,
-whose policies call `public.can_view_giving()`, exactly as `gifts` does.
-`proposals` carries gift amounts and is gated the same way.
+Historically, capability estimates and proposals followed an opt-in giving
+permission (`public.can_view_giving()`), which is why capability lives in its
+own `contact_capability` table rather than as a column on `contacts` — a
+column would have been legible to everyone who could read the person.
 
-That is why the Proposals destination is hidden from staff without the giving
-flag, and why the donor record's Giving and Proposals tabs are absent rather
-than empty for them.
+The shared-workspace decision (migration `20260814000400_shared_team_visibility`)
+retired that partition: **every active authenticated user reads the same
+business records** — gifts, capability, proposals, giving-typed activity rows,
+leads and call-report drafts included. Ownership and attribution columns
+(`owner_id`, `assigned_to`, `created_by`, `author_id`, `uploaded_by`) still
+record responsibility, but none of them is a visibility boundary; assigning
+work to someone else never hides the underlying record from the team.
+
+Writes kept their role gates: viewers stay read-only, staff write shared
+records (proposals and capability no longer require any flag), gift inserts
+and hard deletes stay admin. `profiles.can_view_giving` and the
+`can_view_giving()` helper remain **defined but unreferenced**, so the change
+is cleanly reversible — the rollback in `docs/ROLLOUT.md` restores the old
+policies without touching data. The separate-table shape of
+`contact_capability` also keeps that door open.
 
 ### The new objects post to the timeline by trigger
 

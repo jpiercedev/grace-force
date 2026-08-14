@@ -125,7 +125,7 @@ function dayLabel(iso: string, now: Date): string {
 
 /** Who did it: a staff profile if we have one, otherwise the machine that did. */
 function actorName(activity: TimelineActivity): string {
-  return activity.actor?.name ?? activity.actor_label?.trim() ?? 'Grace Force CRM'
+  return activity.actor?.name ?? activity.actor_label?.trim() ?? 'Grace Lead Management'
 }
 
 export function Timeline({

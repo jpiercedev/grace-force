@@ -1,6 +1,6 @@
 # Data dictionary
 
-A reference for the CRM's own entities and the columns its exports produce.
+A reference for Grace Lead Management's own entities and the columns its exports produce.
 Written for whoever needs to reason about the data without reading the schema —
 a staff member auditing an export, or a developer joining the project.
 
@@ -121,7 +121,7 @@ Client IPs are stored only as a salted hash, never in the raw.
 
 ### Profile
 
-A CRM team member, mirroring `auth.users`. Carries `role`
+A team member, mirroring `auth.users`. Carries `role`
 (`admin` / `staff` / `viewer`), `can_view_giving` and `is_active`.
 
 ## Exports
@@ -133,7 +133,7 @@ and soft-deleted contacts are excluded.
 
 ### Stable identifiers
 
-Each exported row carries its `id` — the CRM's own uuid, stable for the life of
+Each exported row carries its `id` — the app's own uuid, stable for the life of
 the record — and child rows carry their parent's id in a `*_id` column:
 
 | Export | Identifier | References |

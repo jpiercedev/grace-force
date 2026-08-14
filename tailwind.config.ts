@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 /**
- * Grace Force visual system — a bright, practical CRM. See docs/DESIGN.md.
+ * Grace Lead Management visual system — a bright, practical CRM. See docs/DESIGN.md.
  *
  * The neutral scale keeps the token name `slate` (it is used across the whole
  * codebase as "neutral") but its values are a near-neutral ramp with a faint

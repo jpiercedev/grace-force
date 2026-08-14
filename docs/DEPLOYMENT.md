@@ -1,6 +1,6 @@
 # Deployment runbook
 
-Getting Grace Force CRM onto Vercel, connected to the hosted Supabase project.
+Getting Grace Lead Management onto Vercel, connected to the hosted Supabase project.
 
 Everything here is a dashboard or CLI action. It is written as a checklist
 because the ordering matters in two places, both called out below.
@@ -55,7 +55,7 @@ These are never printed, logged, or committed by any tooling in this repo.
 
 | Variable | Where to get it | What breaks without it |
 | --- | --- | --- |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role`. **Bypasses Row Level Security.** Server-side only; never prefix with `NEXT_PUBLIC_`. | Public lead intake (`POST /api/leads`), the Mailchimp sync runner, the notification outbox, and the follow-up reminder cron. The rest of the CRM works. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → `service_role`. **Bypasses Row Level Security.** Server-side only; never prefix with `NEXT_PUBLIC_`. | Public lead intake (`POST /api/leads`), the Mailchimp sync runner, the notification outbox, and the follow-up reminder cron. The rest of the app works. |
 | `CRON_SECRET` | Generate one: `openssl rand -hex 32`. Sent by Vercel Cron as `Authorization: Bearer …` and compared in constant time. | Both `/api/cron/*` endpoints refuse to run. |
 | `LEAD_INTAKE_SECRET` | Optional. Generate as above if you want the public form to require a shared secret in the `x-crm-intake-key` header. | Nothing — intake still works, protected by the origin allow-list, honeypot and rate limit. Set it if the form is embedded somewhere you control the request headers. |
 

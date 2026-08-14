@@ -1,6 +1,6 @@
 # Integrations
 
-Both integrations are optional. When a key is absent the CRM runs normally: the
+Both integrations are optional. When a key is absent the app runs normally: the
 relevant screen explains what is missing, sync endpoints return `503` with a
 clear message, and notifications are recorded with status `skipped` rather than
 silently vanishing.
@@ -12,7 +12,7 @@ covered by tests.
 
 ## Mailchimp
 
-Mirrors Mailchimp into the CRM so that a contact record shows what that person
+Mirrors Mailchimp into Grace Lead Management so that a contact record shows what that person
 has actually received and engaged with.
 
 ### Setup
@@ -47,7 +47,7 @@ Every run is recorded in `integration_sync_runs` with row counts in `stats`.
 
 ### Contact matching
 
-Mailchimp knows email addresses; the CRM knows people. Matching resolves one to
+Mailchimp knows email addresses; Grace Lead Management knows people. Matching resolves one to
 the other in a fixed, documented order:
 
 1. Exact match on `contacts.email_normalized` (non-deleted). Ties break by
@@ -62,7 +62,7 @@ The method used is stored in `match_method`, so a surprising link can be
 explained later.
 
 Subscribed, matched contacts also get a `newsletter` engagement, which is what
-makes "who is on the list" answerable from the CRM side.
+makes "who is on the list" answerable from the app side.
 
 ### Idempotency
 
@@ -102,7 +102,7 @@ Grace Force team. It never emails contacts; this is staff-facing only.
 
    ```
    RESEND_API_KEY=<key>
-   RESEND_FROM_EMAIL=Grace Force CRM <crm@yourdomain.org>
+   RESEND_FROM_EMAIL=Grace Lead Management <crm@yourdomain.org>
    NOTIFY_INTERNAL_EMAILS=team@yourdomain.org,director@yourdomain.org
    ```
 

@@ -14,7 +14,7 @@ export default async function LoginPage({
   return (
     <AuthCard
       title="Sign in"
-      description="Use your Grace Force staff account."
+      description="Use your Grace Lead Management staff account."
       footer={
         <p className="text-sm text-slate-600">
           No account yet?{' '}

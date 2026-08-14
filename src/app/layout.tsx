@@ -29,11 +29,11 @@ const sourceSans = localFont({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Grace Force CRM',
-    template: '%s · Grace Force CRM',
+    default: 'Grace Lead Management',
+    template: '%s · Grace Lead Management',
   },
   description:
-    'Relationship management for Grace Force: contacts, engagements, follow-ups and giving in one place.',
+    'Relationship and lead management for Grace Force: people, pipelines, follow-ups and giving in one place.',
   robots: {
     // A CRM holds contact and donor PII; it should never be indexed.
     index: false,
