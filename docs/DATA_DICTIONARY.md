@@ -13,7 +13,7 @@ lives anywhere else.
 ### Contact
 
 A person or organisation the ministry is in relationship with. Holds identity
-and reachability only — what someone *is* to Grace Force is expressed as
+and reachability only — what someone *is* to Grace is expressed as
 engagements, because one person is often several things at once.
 
 | Field | Type | Notes |

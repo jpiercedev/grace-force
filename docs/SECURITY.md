@@ -1,8 +1,8 @@
 # Security model
 
-Grace Force CRM holds contact PII and donor giving history. The design assumes the
-application layer will eventually have a bug, and puts the enforcement
-somewhere a bug cannot reach past.
+Grace Lead Management holds contact PII and donor giving history. The design
+assumes the application layer will eventually have a bug, and puts the
+enforcement somewhere a bug cannot reach past.
 
 ## The boundary is Row Level Security
 
@@ -17,18 +17,27 @@ list, not a data leak.
 
 | Role | Capabilities |
 | --- | --- |
-| `admin` | Everything: team management, giving, integrations, deletes |
-| `staff` | Create/edit contacts, engagements, activities, follow-ups, pipelines, leads |
-| `viewer` | Read contacts and activity. No leads, no giving, no writes |
+| `admin` | Everything: team management, integrations, deletes |
+| `staff` | Create/edit people, engagements, activities, follow-ups, pipelines, opportunities, leads, proposals, giving records |
+| `viewer` | Read the whole shared workspace. No writes |
 
-Two orthogonal flags sharpen this:
+**Business information is shared.** Every active authenticated team member
+reads the same people, opportunities, pipelines, leads, activities,
+follow-ups, events, proposals and giving history. Assignment and attribution
+columns (`owner_id`, `assigned_to`, `created_by`, `author_id`, `uploaded_by`)
+record responsibility; they are never visibility boundaries. Assigning work to
+someone cannot hide the underlying record from the rest of the team.
 
-- `can_view_giving` — grants read access to `gifts`. Admins always have it.
-  Staff do not, unless an admin turns it on. Giving is the most sensitive data
-  in the system and the smallest audience should see it.
+One flag sharpens this:
+
 - `is_active` — a deactivated profile authenticates successfully but every
   policy fails, so it sees nothing. The app routes them to `/no-access` with an
   explanation instead of the login screen.
+
+`profiles.can_view_giving` and `public.can_view_giving()` still exist so the
+shared-visibility change stays cleanly reversible, but nothing references
+them: the `20260814183353_shared_team_visibility` migration replaced every
+policy that did.
 
 ## Database roles
 
@@ -44,8 +53,9 @@ service-role key. A leaked anon key therefore reads nothing.
 
 ## Policy helpers
 
-Policies delegate to five `SECURITY DEFINER` functions: `is_active_user()`,
-`is_admin()`, `can_write()`, `can_view_giving()`, `current_user_role()`.
+Policies delegate to `SECURITY DEFINER` functions: `is_active_user()`,
+`is_admin()`, `can_write()`, `current_user_role()` — plus `can_view_giving()`,
+which remains defined for reversibility though no policy references it.
 
 They must be `SECURITY DEFINER` because they read `public.profiles`, which is
 itself policy-protected — an invoker-rights function would re-enter the policy
@@ -123,7 +133,7 @@ The CRM is marked `noindex, nofollow`.
   server), never `getSession()` alone (which only decodes a cookie the client
   supplied).
 - Sign-in failures are deliberately uniform, so the form cannot be used to
-  enumerate who has a Grace Force account.
+  enumerate who has a Grace Lead Management account.
 - `?next=` and the auth callback's `next` parameter accept relative paths only,
   so neither can be turned into an open redirect.
 - Sign-out is a POST (a server action), not a link.

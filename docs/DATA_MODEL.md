@@ -113,12 +113,19 @@ trailing twelve months). It is declared `security_invoker = on` so the `gifts`
 RLS policy still applies — otherwise the view would hand giving totals to every
 authenticated user.
 
-## Pipelines
+## Pipelines and sales opportunities
 
 ```
 pipelines 1 ── * pipeline_stages
 pipelines 1 ── * pipeline_cards * ── 1 contacts
 ```
+
+`pipeline_cards` **is** the sales opportunity record — there is deliberately
+no parallel "opportunities" table, so a deal, a donor journey and a volunteer
+onboarding all share one model, one timeline trigger and one board. A card
+carries title, optional organization (free text, defaulted from the contact),
+value in cents, owner, expected close date, next step, and an
+`open | won | lost | archived` status.
 
 `pipeline_cards` references its stage with a **composite foreign key**
 `(stage_id, pipeline_id) → pipeline_stages (id, pipeline_id)`, which makes it
@@ -126,7 +133,21 @@ structurally impossible for a card to point at a stage belonging to a different
 pipeline. A unique index permits one open card per `(pipeline, contact)`.
 
 Check constraints tie `status` to `closed_at` in both directions, so a "won"
-card always records when it was won.
+card always records when it was won; archiving is a closure with a different
+label.
+
+Pipelines are **shared, team-configurable structure**, not fixtures: any
+active staff member may create, rename, reorder, archive and — when empty —
+delete pipelines and stages. Four guard triggers make the destructive paths
+safe regardless of what the application does:
+
+- a pipeline holding any opportunity refuses `DELETE`;
+- a stage holding any opportunity refuses `DELETE`;
+- a stage with *open* opportunities refuses archiving (`archived_at`);
+- an archived stage refuses receiving an open opportunity.
+
+Each raises `check_violation` with a sentence written for the person reading
+it, which the server actions pass through verbatim.
 
 ## Soft deletes
 
@@ -169,6 +190,11 @@ survive re-running it.
 | `…000600_attachments` | attachment metadata and the storage bucket |
 | `…000700_activity_outcome` | `activities.outcome` |
 | `…000800_call_report_joint_donor` | second donor on a call report |
+| `…000900_anon_privilege_lockdown` | removes hosted `anon` grants, seals defaults |
+| `20260814183037_sales_enums` | the `archived` opportunity status |
+| `…183153_configurable_pipelines` | opportunity fields, stage archiving, guard triggers, staff-managed pipelines |
+| `…183201_sales_reference_data` | General Sales + Relationship Development seeds (idempotent) |
+| `…183353_shared_team_visibility` | shared-team read policies; giving-flag conditions removed |
 
 They must be applied in filename order; later files reference earlier tables.
 
@@ -202,17 +228,15 @@ of a single fact to disagree with each other, and doubles every edit and
 delete. Symmetric kinds (spouse, sibling, friend) simply name themselves in
 both maps, so they need no special case anywhere.
 
-### Capability and proposals follow the giving permission, not the contact permission
+### Capability and proposals are shared with the whole active team
 
-Postgres RLS is row-level. A `capability_level` column on `contacts` would be
-legible to every profile that can read the person — which is every active
-user. So estimated capability lives in its own table, `contact_capability`,
-whose policies call `public.can_view_giving()`, exactly as `gifts` does.
-`proposals` carries gift amounts and is gated the same way.
-
-That is why the Proposals destination is hidden from staff without the giving
-flag, and why the donor record's Giving and Proposals tabs are absent rather
-than empty for them.
+`contact_capability` began life as a separately-gated table so the giving
+permission could fence it off. Since `20260814183353_shared_team_visibility`,
+its policies — like `gifts`, `proposals`, `activities`, `leads` and
+`call_reports` — admit every active authenticated user for reads and every
+staff member for writes. The separate table stays: it keeps capability's own
+audit trail and lets the old partition come back with one migration if it is
+ever needed (`can_view_giving()` remains defined, unreferenced).
 
 ### The new objects post to the timeline by trigger
 

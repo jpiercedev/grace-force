@@ -1,7 +1,7 @@
-# Grace Force CRM — notes for Claude Code
+# Grace Lead Management — notes for Claude Code
 
-Relationship management for Grace Force. Next.js 15 App Router · React 19 ·
-TypeScript strict · Tailwind 3 · Supabase.
+People, relationship and sales management for the Grace team. Next.js 15 App
+Router · React 19 · TypeScript strict · Tailwind 3 · Supabase.
 
 ## Read first
 
@@ -29,10 +29,19 @@ event.
 "<from> is the <kind> of <to>"; the two sides render the kind and its inverse
 from `@/lib/relationships`. Never write a mirrored second row.
 
-**Capability and proposals follow `can_view_giving()`, not the contact
-permission.** That is why `contact_capability` is its own table — RLS is
-row-level, so a column on `contacts` would be readable by anyone who can read
-the person.
+**Business records are one shared workspace.** Every active authenticated
+team member reads the same people, opportunities, leads, giving, proposals and
+activity — `owner_id` / `assigned_to` / `created_by` record responsibility,
+never visibility. `profiles.can_view_giving` and `public.can_view_giving()`
+still exist for reversibility but nothing references them; do not reintroduce
+them as visibility gates. Anon and deactivated profiles still read nothing;
+viewers stay read-only.
+
+**Pipelines are shared working structure, not fixtures.** Staff manage them at
+`/sales/manage`. Deletion guards live in database triggers (a pipeline or
+stage holding any opportunity refuses DELETE; a stage with open opportunities
+refuses archiving; an archived stage refuses open cards) — they raise
+`check_violation` with a human message, which the actions surface verbatim.
 
 **Generated columns must never be written**: `contacts.full_name`,
 `email_normalized`, `phone_normalized`, `search_vector`, and the equivalents on

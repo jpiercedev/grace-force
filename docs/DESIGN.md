@@ -1,4 +1,4 @@
-# Grace Force CRM — Design System
+# Grace Lead Management — Design System
 
 > The visual language of the product. Read this before styling anything.
 > Tokens live in `tailwind.config.ts` and `src/app/globals.css`; primitives in
@@ -6,12 +6,13 @@
 
 ## The idea: a bright, practical CRM
 
-Grace Force is a working tool for a development office. The benchmark is
-HubSpot's usability — approachable despite real capability — tailored to donor
-development and deliberately simpler than Salesforce. The interface should be
-professional, warm, bright, familiar and operational: someone who has used any
-mainstream CRM should know how to use this one without being told, and it
-should still feel custom to this ministry.
+Grace Lead Management is a working tool for the Grace team. The benchmark is
+HubSpot's usability — approachable despite real capability — people and
+relationships first, general sales second, giving as supporting context, and
+deliberately simpler than Salesforce. The interface should be professional,
+warm, bright, familiar and operational: someone who has used any mainstream
+CRM should know how to use this one without being told, and it should still
+feel custom to this ministry.
 
 What it must never feel like: an admin template, a developer tool, a marketing
 site, or a dashboard product. Three earlier tells to guard against — oversized
@@ -88,10 +89,12 @@ convention that says "this opens a record".
 
 ## Application shell
 
-- **Left nav**: white, compact (`w-56`), always fully visible — six primary
-  destinations (Dashboard, People, Follow-ups, Planned gifts, Events, Call
-  reports), a labelled "More" group (Giving, Pipelines, New leads, Marketing,
-  Import, Export), Settings and the account pinned at the foot. Selected =
+- **Left nav**: white, compact (`w-56`), always fully visible — seven primary
+  destinations (Dashboard, People, Sales, Follow-ups, Leads, Events, Call
+  reports), a labelled "More" group (Giving, Planned gifts, Marketing,
+  Import, Export), Settings and the account pinned at the foot. The wordmark
+  is the official Grace "G" (a knockout script g on the gold disc,
+  `src/brand/grace-g.webp`) beside "Grace Lead Management". Selected =
   `brand-50` wash + `brand-800` semibold. 32px rows, 16px icons.
 - **Header**: white, slim (48px), carries global search. On phones the nav
   becomes a modal drawer (scroll lock, focus trap, Escape).

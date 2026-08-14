@@ -1,6 +1,6 @@
 # Deployment runbook
 
-Getting Grace Force CRM onto Vercel, connected to the hosted Supabase project.
+Getting Grace Lead Management onto Vercel, connected to the hosted Supabase project.
 
 Everything here is a dashboard or CLI action. It is written as a checklist
 because the ordering matters in two places, both called out below.
