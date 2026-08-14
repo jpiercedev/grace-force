@@ -57,7 +57,7 @@ export default async function ContactsPage({
     <div className="mx-auto max-w-7xl space-y-4">
       <PageHeader
         title="People"
-        description="Everyone Grace Force is in relationship with."
+        description="Everyone Grace is in relationship with."
         action={writable ? <LinkButton href="/contacts/new">Add person</LinkButton> : null}
       />
 
@@ -82,7 +82,7 @@ export default async function ContactsPage({
           ) : (
             <EmptyState
               title="No contacts yet"
-              description="Add the first person Grace Force is in relationship with, or bring a list in from a CSV."
+              description="Add the first person Grace is in relationship with, or bring a list in from a CSV."
               action={
                 writable ? <LinkButton href="/contacts/new">Add a person</LinkButton> : null
               }

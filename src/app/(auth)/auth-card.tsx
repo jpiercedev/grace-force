@@ -1,21 +1,31 @@
 import type { ReactNode } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import graceMark from '@/brand/grace-g.webp'
 
 /**
- * The GF mark + wordmark, shared by every screen that renders outside the app
- * shell (auth, setup, no-access, intake) so a stranded visitor always sees
- * the same brand reassurance.
+ * The Grace "G" mark + wordmark, shared by every screen that renders outside
+ * the app shell (auth, setup, no-access, intake) so a stranded visitor always
+ * sees the same brand reassurance. The mark is decorative — the wordmark text
+ * is the accessible name.
  */
-export function BrandMark({ className }: { className?: string }) {
+export function BrandMark({
+  className,
+  label = 'Grace Lead Management',
+}: {
+  className?: string
+  /** Public pages (intake) brand as the organization, not the internal tool. */
+  label?: string
+}) {
   return (
-    <span className={cn('inline-flex items-center gap-2.5 text-lg font-bold text-slate-900', className)}>
-      <span
-        aria-hidden="true"
-        className="flex h-8 w-8 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white"
-      >
-        GF
-      </span>
-      Grace Force
+    <span
+      className={cn(
+        'inline-flex items-center gap-2.5 text-lg font-bold tracking-tight text-slate-900',
+        className,
+      )}
+    >
+      <Image src={graceMark} alt="" aria-hidden="true" className="h-8 w-8 shrink-0" />
+      {label}
     </span>
   )
 }
@@ -28,9 +38,11 @@ export function BrandMark({ className }: { className?: string }) {
 export function BrandBand({
   tagline,
   width = 'max-w-2xl',
+  label,
 }: {
   tagline?: string
   width?: string
+  label?: string
 }) {
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -40,7 +52,7 @@ export function BrandBand({
           width,
         )}
       >
-        <BrandMark />
+        <BrandMark label={label} />
         {tagline ? <p className="hidden text-sm text-slate-500 sm:block">{tagline}</p> : null}
       </div>
     </header>

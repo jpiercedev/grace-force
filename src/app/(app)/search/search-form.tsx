@@ -12,7 +12,7 @@ import { Input, Label } from '@/components/ui/form'
  */
 export function SearchForm({ q }: { q: string }) {
   return (
-    <form method="get" action="/search" role="search" aria-label="Search Grace Force">
+    <form method="get" action="/search" role="search" aria-label="Search Grace Lead Management">
       <Label htmlFor="search-query" className="sr-only">
         Search
       </Label>

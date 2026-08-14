@@ -9,7 +9,7 @@ import { TypeRow } from './type-row'
 export const metadata = { title: 'Engagement types' }
 
 /**
- * The catalogue of ways a contact can relate to Grace Force.
+ * The catalogue of ways a contact can relate to Grace.
  *
  * Admin-only because it shapes reporting across the whole organisation — the
  * same reason the database restricts writes on `engagement_types` to admins.
@@ -25,7 +25,7 @@ export default async function EngagementTypesPage() {
     <div className="space-y-5">
       <PageHeader
         title="Engagement types"
-        description="The ways a contact can relate to Grace Force. One contact can hold several at once."
+        description="The ways a contact can relate to Grace. One contact can hold several at once."
       />
 
       <Callout tone="info" title="Slugs are permanent">

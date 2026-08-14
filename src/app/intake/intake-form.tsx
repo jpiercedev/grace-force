@@ -93,7 +93,7 @@ export function IntakeForm({ formKey }: { formKey: string }) {
     return (
       <div ref={outcomeRef} tabIndex={-1} className="space-y-4">
         <Callout tone="success" title="Thank you — we have your message." role="status">
-          Someone from the Grace Force team will be in touch. There is nothing else you need to
+          Someone from the Grace team will be in touch. There is nothing else you need to
           do.
         </Callout>
         <Button variant="secondary" onClick={() => setStatus('idle')}>

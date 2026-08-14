@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -23,6 +24,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import graceMark from '@/brand/grace-g.webp'
 import { Avatar } from '@/components/ui/display'
 import type { NavItem, Navigation } from './nav'
 import type { ProfileRow } from '@/types/database'
@@ -54,17 +56,25 @@ function Icon({ name, className }: { name: string; className?: string }) {
   return <Resolved className={className} aria-hidden="true" />
 }
 
-/** One brand lockup for sidebar, mobile topbar and drawer alike. */
+/**
+ * One brand lockup for sidebar, mobile topbar and drawer alike: the official
+ * Grace "G" mark (a knockout, so the script g takes the surface's color)
+ * beside the product name. The image is decorative — the adjacent text *is*
+ * the accessible name.
+ */
 function Brand() {
   return (
     <span className="flex items-center gap-2">
-      <span
+      <Image
+        src={graceMark}
+        alt=""
         aria-hidden="true"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-600 text-[12px] font-bold text-white"
-      >
-        G
+        priority
+        className="h-6 w-6 shrink-0"
+      />
+      <span className="whitespace-nowrap text-sm font-bold tracking-tight text-slate-900">
+        Grace Lead Management
       </span>
-      <span className="text-[15px] font-bold text-slate-900">Grace Force</span>
     </span>
   )
 }

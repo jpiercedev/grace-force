@@ -1,8 +1,8 @@
 {
-  "name": "grace-force-crm",
+  "name": "grace-lead-management",
   "version": "0.1.0",
   "private": true,
-  "description": "Relationship management for Grace Force",
+  "description": "People, leads and sales pipelines for the Grace team",
   "engines": {
     "node": ">=20.11"
   },

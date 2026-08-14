@@ -44,7 +44,7 @@ export async function signIn(_prev: AuthFormState, formData: FormData): Promise<
 
   if (error) {
     // Deliberately vague: distinguishing "no such user" from "wrong password"
-    // would let anyone enumerate who has a Grace Force account.
+    // would let anyone enumerate who has a Grace Lead Management account.
     return { error: 'That email and password combination was not recognised.' }
   }
 

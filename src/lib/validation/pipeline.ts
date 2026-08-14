@@ -25,6 +25,7 @@ export const CARD_STATUS_TONES: Record<PipelineCardStatus, BadgeTone> = {
   open: 'sky',
   won: 'emerald',
   lost: 'zinc',
+  archived: 'slate',
 }
 
 /** Terminal stages get a matching outcome hint on the board. */

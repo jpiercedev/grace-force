@@ -1,27 +1,30 @@
-# Grace Force CRM
+# Grace Lead Management
 
-Relationship management for **Grace Force**.
+People and relationship management for the **Grace** team.
 
-Grace Force CRM exists because a ministry's relationships do not fit a sales CRM. The
-same person is often a monthly donor *and* a volunteer team lead *and* the
-contact at a partner church — three relationships with different owners,
-different histories and different next steps. The CRM models that directly, then
-puts everything that has ever happened with that person on one timeline.
+Grace Lead Management exists because the team's relationships do not fit an
+off-the-shelf sales CRM. The same person is often a monthly donor *and* a
+volunteer team lead *and* the contact at a partner church — several
+relationships with different owners, different histories and different next
+steps. The product models that directly, puts everything that has ever
+happened with that person on one timeline, and runs general sales
+opportunities through the same shared people records.
 
 ## What it does
 
-- **Contacts** with multiple concurrent **engagements** (donor, volunteer,
+- **People** with multiple concurrent **engagements** (donor, volunteer,
   prayer partner, partner church, …), each with its own status, owner and dates.
-- **Unified timeline** — notes, calls, meetings, pipeline moves, gifts,
+- **Sales** — shared, team-configurable pipelines and opportunity boards built
+  on the same people records; staff can create pipelines, reshape stages and
+  work opportunities from first contact to won or lost.
+- **Unified timeline** — notes, calls, meetings, opportunity moves, gifts,
   follow-ups, lead submissions and Mailchimp opens/clicks in one chronological
-  view per contact.
+  view per person.
 - **Follow-ups** with an overdue/today/this-week queue and reminder emails.
-- **Pipelines** — configurable staged processes (supporter journey, major-gift
-  cultivation, volunteer onboarding) with a keyboard-operable board.
 - **Dashboard** of what needs attention today.
-- **Search** across contacts, activity and leads.
-- **Giving context** — giving history beside the relationship, visible only to
-  those explicitly granted it.
+- **Search** across people, activity and leads.
+- **Giving context** — giving history beside the relationship, shared with the
+  whole active team as supporting context rather than the product's center.
 - **Lead intake** — a hardened public endpoint feeding a triage queue.
 - **Mailchimp** — audiences, campaigns and per-contact email engagement,
   synchronised idempotently.
@@ -73,7 +76,9 @@ Application code filters for relevance, never for safety.
 
 - `anon` has **no table privileges at all**. Public traffic reaches the database
   only through the service-role lead-intake route.
-- Giving data is gated separately from the rest of the CRM.
+- Business records are shared: every *active* team member reads the same
+  people, opportunities, leads, activity and giving context. Assignment and
+  attribution columns record responsibility, never visibility.
 - The service-role key is server-only and used in exactly three places: lead
   intake, integration sync, and the notification outbox.
 
