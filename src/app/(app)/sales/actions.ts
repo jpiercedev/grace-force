@@ -137,7 +137,7 @@ export async function createOpportunity(
   redirect(
     returnTo === 'contact'
       ? `/contacts/${parsed.data.contact_id}`
-      : `/sales/${pipelineResult.data.slug}`,
+      : `/sales/pipelines/${pipelineResult.data.slug}`,
   )
 }
 
@@ -229,7 +229,25 @@ export async function updateOpportunityDetails(
     return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
   }
 
-  const { id, ...patch } = parsed.data
+  const { id, value_cents, ...patch } = parsed.data
+
+  // The value field only renders on value-tracking pipelines, so a form
+  // without it must not null a stored value — and a crafted POST must not
+  // plant one on a pipeline that does not track value. Same rule as create.
+  if (formData.has('value_cents')) {
+    const supabase = await createClient()
+    const { data: card } = await supabase
+      .from('pipeline_cards')
+      .select('pipeline:pipelines!inner(tracks_value)')
+      .eq('id', id)
+      .maybeSingle()
+      .overrideTypes<{ pipeline: { tracks_value: boolean } | null }, { merge: false }>()
+
+    if (card?.pipeline?.tracks_value) {
+      return applyCardUpdate(id, { ...patch, value_cents }, (title) => `Saved ${title}.`)
+    }
+  }
+
   return applyCardUpdate(id, patch, (title) => `Saved ${title}.`)
 }
 

@@ -1,4 +1,4 @@
-# Implementation Status — Grace Force CRM
+# Implementation Status — Grace Lead Management
 
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
@@ -9,11 +9,86 @@
 
 | Field | Value |
 | --- | --- |
-| Current phase | Production-ready HubSpot-style redesign and rollout hardening on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`); production rollout in progress |
-| Overall status | Feature-complete. 25 migrations and 45 routes; pending migrations, attachment actions, and multi-action forms hardened before first production application |
-| Tests | 588 Vitest (31 files) + 28 browser `@public` passing; production `@authed` pass follows deployment |
-| Build | `next build` succeeds — 45 routes |
-| Deployment | `grace-force` on Vercel, production target, git-connected. **The first eight release migrations are applied; the privilege lockdown and application deploy remain. See `docs/ROLLOUT.md`.** |
+| Current phase | Grace Lead Management release on `claude/grace-lead-management-rebrand-x2a0bf` (from the deployed `0e078c9`): rebrand, people-first Sales section, configurable pipelines, shared team visibility |
+| Overall status | Feature-complete, verified locally, awaiting the authorized production deploy (see `docs/ROLLOUT.md` — an app deploy only; the four schema migrations are already applied to production) |
+| Tests | 648 Vitest (37 files) + 28 browser `@public` passing; `npm run verify` green end to end |
+| Build | `next build` succeeds — 53 routes |
+| Deployment | `grace-force` on Vercel, git-connected; production still serves `0e078c9`. This branch's push produces a preview deployment. |
+
+## The Grace Lead Management release (2026-08-14)
+
+The product renamed from Grace Force CRM to **Grace Lead Management** and
+rebalanced from donation-heavy to people-first: relationships and general
+sales share the front of the product, giving becomes supporting context.
+
+**Rebrand.** The official Grace "G" (knockout script g on the gold disc,
+sourced from the brand's own asset library, stored at `src/brand/grace-g.webp`)
+carries the shell wordmark, the auth/setup/no-access lockup, the favicon and
+the apple icon. Title template, metadata, email footer, export filename prefix
+(`grace-lead-management-*`), package metadata and docs follow. The public
+intake pages brand as the organization ("Grace"), not the internal tool. The
+interface font moved behind `src/app/fonts/index.ts`, a one-file seam prepared
+for licensed Proxima Nova `.woff2` files (regular 400 / semibold 600 / bold
+700); Source Sans 3 keeps rendering until those exist, because Adobe Fonts'
+hosted license does not permit self-hosting the binaries.
+
+**Sales.** A primary destination built on the existing pipeline model —
+`pipeline_cards` *is* the opportunity record; no parallel table. `/sales`
+(overview: figures, shared boards, closing-soon), `/sales/opportunities`
+(filterable table: pipeline/stage/owner/close-window/status/search; stacked
+summaries under `md`), `/sales/opportunities/[id]` (detail + edit + visible
+attribution), `/sales/new` (create from anywhere; person records link with
+`?contact=&from=contact`), `/sales/pipelines/[slug]` boards,
+`/sales/manage` + `/sales/manage/[slug]` (pipeline editor). Old `/pipelines`
+URLs redirect. Opportunities gained organization, next step and an archived
+status; boards show next actions and archive beside won/lost.
+
+**Configurable pipelines.** Staff create, rename, describe, reorder, archive
+and (empty, confirmed) delete pipelines and stages. Safety is in the database:
+guard triggers refuse deleting a pipeline/stage holding any opportunity,
+archiving a stage with open opportunities, and placing an open opportunity
+into an archived stage — each raising `check_violation` with a sentence the
+actions surface verbatim. Seeds ship General Sales and Relationship
+Development as editable, idempotent templates.
+
+**Shared team visibility.** One workspace: gifts, capability, proposals,
+activities, leads and call reports (drafts included) read for every active
+authenticated user; the giving-flag conditions left the staff write policies;
+`can_view_giving()` and `profiles.can_view_giving` remain defined but
+unreferenced for clean reversibility. The interface followed: giving/planned
+gift tabs and nav entries for everyone, the lead queue read-only for viewers,
+every export dataset for anyone who may export, the roster's giving-access
+switch retired. Unchanged: anon reads nothing, deactivated profiles read
+nothing, viewers write nothing, imports/exports stay staff tooling,
+administration stays admin.
+
+**The four schema migrations were already applied to production** when this
+branch began (they appear in `supabase_migrations.schema_migrations`,
+timestamped 2026-08-14 18:30–18:33 UTC). The repository copies are
+byte-identical to the applied history (md5-verified), so `supabase db push`
+treats them as applied and a fresh environment converges to the same schema.
+This release therefore ships no new migrations — see `docs/ROLLOUT.md`.
+
+**Tests.** 648 Vitest across 37 files (was 588/31): the DB suite grew to 174
+with `tests/db/shared-visibility.test.ts` (15 — cross-user visibility,
+assignment-never-hides, viewer read-only, anon/inactive shut out, the giving
+flag proven inert) and `tests/db/pipeline-management.test.ts` (18 — staff
+manage pipelines, viewers refused, delete/archive guards fire with their
+sentences, seeds idempotent under re-run, opportunities survive re-running
+the new migrations, the archived status honors closed-consistency); eleven
+old-partition assertions were rewritten to the shared contract. The UI suite
+gained 26 tests over the pipeline editor, opportunity forms and navigation.
+28 `@public` Playwright tests pass against the production build, including
+the phone-width overflow checks.
+
+**A fault this release found and fixed:** the interface font was never
+actually rendering. Tailwind 3 strips cascade layers, so globals.css's
+`:root { --font-sans: <fallback> }` landed *after* next/font's variable class
+in the built CSS and won the custom-property battle — production has been on
+the system fallback stack all along. The fallback now lives inside `var()`
+where it cannot compete, which also means the prepared Proxima Nova seam
+(`src/app/fonts/index.ts`) will genuinely take effect when licensed `.woff2`
+files are dropped in.
 
 ## The HubSpot-style redesign (2026-08-13)
 

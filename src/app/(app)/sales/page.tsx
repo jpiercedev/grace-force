@@ -116,7 +116,7 @@ export default async function SalesPage() {
       <dl className="flex flex-wrap items-end gap-x-10 gap-y-4 border-y border-slate-200 py-4">
         <Figure label="Open opportunities" value={overview.open_count} />
         <Figure label="Open value" value={formatCurrency(overview.open_value_cents)} />
-        <Figure label="Closing in 30 days" value={overview.closing_soon.length} />
+        <Figure label="Closing in 30 days" value={overview.closing_soon_count} />
         <Figure label="Won this quarter" value={overview.won_this_quarter} />
         <div className="ml-auto self-center">
           <Link

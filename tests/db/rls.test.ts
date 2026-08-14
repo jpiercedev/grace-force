@@ -151,19 +151,31 @@ describe('row level security', () => {
       expect(check.rows[0]!.first_name).toBe('Ada')
     })
 
-    it('cannot see leads at all', async () => {
+    it('can read the lead queue but cannot write it', async () => {
       await db.asServiceRole((sql) =>
         sql.query(
           `insert into public.leads (email, message, form_key) values ('lead@example.org','Hi','web')`,
         ),
       )
-      const { rows } = await db.asUser(viewer.id, (sql) => sql.query('select * from public.leads'))
-      expect(rows).toEqual([])
 
-      const staffView = await db.asUser(staff.id, (sql) =>
-        sql.query('select * from public.leads'),
+      // Shared team visibility: the queue is one workspace, so a viewer reads
+      // it like everyone else. Triage remains a staff action.
+      const { rows } = await db.asUser(viewer.id, (sql) => sql.query('select * from public.leads'))
+      expect(rows.length).toBeGreaterThan(0)
+
+      expect(
+        await expectRejected(
+          db.asUser(viewer.id, (sql) =>
+            sql.query(`insert into public.leads (email) values ('viewer-added@example.org')`),
+          ),
+        ),
+      ).toMatch(/row-level security/i)
+
+      const touched = await db.asUser(viewer.id, (sql) =>
+        sql.query(`update public.leads set message = 'Edited' returning id`),
       )
-      expect(staffView.rows.length).toBeGreaterThan(0)
+      // No row passes the USING clause, so the update touches nothing.
+      expect(touched.rows).toEqual([])
     })
   })
 
@@ -216,7 +228,7 @@ describe('row level security', () => {
     })
   })
 
-  describe('giving history is gated separately', () => {
+  describe('giving history is shared with the team', () => {
     beforeAll(async () => {
       await db.asServiceRole((sql) =>
         sql.query(
@@ -227,14 +239,23 @@ describe('row level security', () => {
       )
     })
 
-    it('hides gifts from staff without the flag', async () => {
+    it('shows gifts to staff without the old giving flag', async () => {
+      // Shared team visibility: can_view_giving no longer gates reads, so the
+      // same staff member the old model shut out now sees the record.
       const { rows } = await db.asUser(staff.id, (sql) =>
         sql.query('select id from public.gifts'),
       )
-      expect(rows).toEqual([])
+      expect(rows.length).toBeGreaterThan(0)
     })
 
-    it('shows gifts to staff with can_view_giving', async () => {
+    it('shows gifts to viewers', async () => {
+      const { rows } = await db.asUser(viewer.id, (sql) =>
+        sql.query('select id from public.gifts'),
+      )
+      expect(rows.length).toBeGreaterThan(0)
+    })
+
+    it('shows gifts to staff who still carry can_view_giving', async () => {
       const { rows } = await db.asUser(giftViewer.id, (sql) =>
         sql.query('select id from public.gifts'),
       )
@@ -248,34 +269,37 @@ describe('row level security', () => {
       expect(rows.length).toBeGreaterThan(0)
     })
 
-    it('applies the giving gate to gift activity metadata too', async () => {
-      const blocked = await db.asUser(staff.id, (sql) =>
+    it('shares gift activity metadata with every active user', async () => {
+      // The timeline mirrors the tables it summarises: gift_recorded rows are
+      // as visible as the gifts themselves, amounts included.
+      const asStaff = await db.asUser(staff.id, (sql) =>
         sql.query<{ metadata: Record<string, unknown> }>(
           `select metadata from public.activities where type = 'gift_recorded'`,
         ),
       )
-      expect(blocked.rows).toEqual([])
+      expect(asStaff.rows).toHaveLength(1)
+      expect(asStaff.rows[0]!.metadata.amount_cents).toBe(25000)
 
-      const allowed = await db.asUser(giftViewer.id, (sql) =>
+      const asViewer = await db.asUser(viewer.id, (sql) =>
         sql.query<{ metadata: Record<string, unknown> }>(
           `select metadata from public.activities where type = 'gift_recorded'`,
         ),
       )
-      expect(allowed.rows).toHaveLength(1)
-      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000)
+      expect(asViewer.rows).toHaveLength(1)
     })
 
-    it('applies the same gate to the giving summary view', async () => {
-      // security_invoker=on means the view cannot become a side door.
-      const blocked = await db.asUser(staff.id, (sql) =>
-        sql.query('select * from public.contact_giving_summary'),
-      )
-      expect(blocked.rows).toEqual([])
-
-      const allowed = await db.asUser(giftViewer.id, (sql) =>
+    it('shares the giving summary view the same way', async () => {
+      // security_invoker=on means the view follows the gifts policy — which
+      // now admits every active user rather than becoming a side door.
+      const asStaff = await db.asUser(staff.id, (sql) =>
         sql.query<{ total_cents: string }>('select * from public.contact_giving_summary'),
       )
-      expect(allowed.rows.length).toBeGreaterThan(0)
+      expect(asStaff.rows.length).toBeGreaterThan(0)
+
+      const asViewer = await db.asUser(viewer.id, (sql) =>
+        sql.query('select * from public.contact_giving_summary'),
+      )
+      expect(asViewer.rows.length).toBeGreaterThan(0)
     })
 
     it('refuses gift writes from non-admins', async () => {

@@ -91,7 +91,8 @@ export async function listPipelineSummaries(): Promise<PipelineSummary[]> {
         .from('pipeline_stages')
         .select(STAGE_FIELDS)
         .is('archived_at', null)
-        .order('position', { ascending: true }),
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true }),
     ])
 
   if (pipelineError) throw pipelineError
@@ -216,7 +217,10 @@ export async function getPipelineBoard(slug: string): Promise<PipelineBoard | nu
       .select(STAGE_FIELDS)
       .eq('pipeline_id', pipeline.id)
       .is('archived_at', null)
-      .order('position', { ascending: true }),
+      .order('position', { ascending: true })
+      // Tiebreaker: two stages can hold equal positions (e.g. one restored
+      // from the archive), and column order must not shift between requests.
+      .order('created_at', { ascending: true }),
     supabase
       .from('pipeline_cards')
       .select(BOARD_CARD_SELECT)
@@ -419,6 +423,9 @@ export async function listOpportunities(
 export interface SalesOverview {
   open_count: number
   open_value_cents: number
+  /** The headline figure — not capped by the list below. */
+  closing_soon_count: number
+  /** The first few rows for display; `closing_soon_count` is the number. */
   closing_soon: OpportunityListItem[]
   won_this_quarter: number
 }
@@ -426,35 +433,57 @@ export interface SalesOverview {
 export async function getSalesOverview(now = new Date()): Promise<SalesOverview> {
   const supabase = await createClient()
   const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+  const today = now.toISOString().slice(0, 10)
+  const in30 = new Date(now.getTime() + 30 * 86_400_000).toISOString().slice(0, 10)
 
-  const [openResult, closingSoon, wonResult] = await Promise.all([
-    supabase
-      .from('pipeline_cards')
-      .select('value_cents, pipeline:pipelines!inner(tracks_value), contact:contacts!inner(id)')
-      .eq('status', 'open')
-      .is('contact.deleted_at', null)
-      .overrideTypes<
-        { value_cents: number | null; pipeline: { tracks_value: boolean } | null }[],
-        { merge: false }
-      >(),
-    listOpportunities({ status: 'open', closeWithinDays: 30 }, now),
-    supabase
-      .from('pipeline_cards')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'won')
-      .gte('closed_at', quarterStart.toISOString()),
-  ])
+  const [openCountResult, valueResult, closingSoon, closingCountResult, wonResult] =
+    await Promise.all([
+      // Counts come from Postgres, not from shipped rows — a row fetch is
+      // silently capped at PostgREST's max-rows and would undercount.
+      supabase
+        .from('pipeline_cards')
+        .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+        .eq('status', 'open')
+        .is('contact.deleted_at', null),
+      // The value sum still reads rows (PostgREST has no server-side sum
+      // without an RPC), narrowed to value-tracking pipelines. The explicit
+      // limit documents the bound rather than hiding behind the default.
+      supabase
+        .from('pipeline_cards')
+        .select('value_cents, pipeline:pipelines!inner(tracks_value), contact:contacts!inner(id)')
+        .eq('status', 'open')
+        .eq('pipeline.tracks_value', true)
+        .is('contact.deleted_at', null)
+        .limit(1000)
+        .overrideTypes<{ value_cents: number | null }[], { merge: false }>(),
+      listOpportunities({ status: 'open', closeWithinDays: 30 }, now),
+      supabase
+        .from('pipeline_cards')
+        .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+        .eq('status', 'open')
+        .is('contact.deleted_at', null)
+        .gte('expected_close_on', today)
+        .lte('expected_close_on', in30),
+      supabase
+        .from('pipeline_cards')
+        .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+        .eq('status', 'won')
+        .is('contact.deleted_at', null)
+        .gte('closed_at', quarterStart.toISOString()),
+    ])
 
-  if (openResult.error) throw openResult.error
+  if (openCountResult.error) throw openCountResult.error
+  if (valueResult.error) throw valueResult.error
+  if (closingCountResult.error) throw closingCountResult.error
   if (wonResult.error) throw wonResult.error
 
-  const open = openResult.data ?? []
   return {
-    open_count: open.length,
-    open_value_cents: open.reduce(
-      (total, card) => total + (card.pipeline?.tracks_value ? (card.value_cents ?? 0) : 0),
+    open_count: openCountResult.count ?? 0,
+    open_value_cents: (valueResult.data ?? []).reduce(
+      (total, card) => total + (card.value_cents ?? 0),
       0,
     ),
+    closing_soon_count: closingCountResult.count ?? 0,
     closing_soon: closingSoon.slice(0, 6),
     won_this_quarter: wonResult.count ?? 0,
   }
@@ -484,6 +513,9 @@ export async function getOpportunity(id: string): Promise<OpportunityListItem | 
     .from('pipeline_cards')
     .select(OPPORTUNITY_SELECT)
     .eq('id', id)
+    // A soft-deleted person's opportunities disappear from every list; their
+    // detail URLs must not stay quietly reachable.
+    .is('contact.deleted_at', null)
     .maybeSingle()
     .overrideTypes<OpportunityListItem, { merge: false }>()
 
@@ -514,38 +546,51 @@ export interface ManagedPipeline {
 export async function listPipelinesForManage(): Promise<ManagedPipeline[]> {
   const supabase = await createClient()
 
-  const [pipelinesResult, stagesResult, cardsResult] = await Promise.all([
+  const [pipelinesResult, stagesResult] = await Promise.all([
     supabase
       .from('pipelines')
       .select('id, slug, name, description, tracks_value, is_default, is_active, sort_order')
       .order('sort_order', { ascending: true })
       .order('name', { ascending: true }),
     supabase.from('pipeline_stages').select('id, pipeline_id').is('archived_at', null),
-    supabase.from('pipeline_cards').select('id, pipeline_id, status'),
   ])
 
   if (pipelinesResult.error) throw pipelinesResult.error
   if (stagesResult.error) throw stagesResult.error
-  if (cardsResult.error) throw cardsResult.error
 
   const stageCounts = new Map<string, number>()
   for (const stage of stagesResult.data ?? []) {
     stageCounts.set(stage.pipeline_id, (stageCounts.get(stage.pipeline_id) ?? 0) + 1)
   }
-  const cardCounts = new Map<string, { open: number; total: number }>()
-  for (const card of cardsResult.data ?? []) {
-    const counts = cardCounts.get(card.pipeline_id) ?? { open: 0, total: 0 }
-    counts.total += 1
-    if (card.status === 'open') counts.open += 1
-    cardCounts.set(card.pipeline_id, counts)
-  }
 
-  return (pipelinesResult.data ?? []).map((pipeline) => ({
-    ...pipeline,
-    stage_count: stageCounts.get(pipeline.id) ?? 0,
-    open_count: cardCounts.get(pipeline.id)?.open ?? 0,
-    card_count: cardCounts.get(pipeline.id)?.total ?? 0,
-  }))
+  // Card counts as real counts, two per pipeline. A fetch of every card would
+  // silently cap at PostgREST's max-rows and could report a busy pipeline as
+  // empty — the number that decides whether the Delete affordance renders.
+  const pipelines = pipelinesResult.data ?? []
+  return Promise.all(
+    pipelines.map(async (pipeline) => {
+      const [totalResult, openResult] = await Promise.all([
+        supabase
+          .from('pipeline_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('pipeline_id', pipeline.id),
+        supabase
+          .from('pipeline_cards')
+          .select('id', { count: 'exact', head: true })
+          .eq('pipeline_id', pipeline.id)
+          .eq('status', 'open'),
+      ])
+      if (totalResult.error) throw totalResult.error
+      if (openResult.error) throw openResult.error
+
+      return {
+        ...pipeline,
+        stage_count: stageCounts.get(pipeline.id) ?? 0,
+        open_count: openResult.count ?? 0,
+        card_count: totalResult.count ?? 0,
+      }
+    }),
+  )
 }
 
 export interface ManagedStage extends StageRow {
@@ -583,7 +628,11 @@ export async function getPipelineForManage(slug: string): Promise<PipelineForMan
       .from('pipeline_stages')
       .select(STAGE_FIELDS)
       .eq('pipeline_id', pipeline.id)
-      .order('position', { ascending: true }),
+      .order('position', { ascending: true })
+      .order('created_at', { ascending: true }),
+    // One pipeline's cards, for per-stage counts. Beyond PostgREST's max-rows
+    // the counts floor at the cap — never at zero — and the database triggers,
+    // not these numbers, are what actually guard deletion.
     supabase.from('pipeline_cards').select('id, stage_id, status').eq('pipeline_id', pipeline.id),
   ])
 

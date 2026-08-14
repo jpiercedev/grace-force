@@ -344,9 +344,10 @@ export async function updateStage(
 }
 
 /**
- * Swap the stage with its live neighbour, then renumber every live stage to a
- * clean 10/20/30 sequence — two stages created with equal positions would
- * otherwise never separate.
+ * Swap the stage with its live neighbour, then renumber *every* stage —
+ * archived ones included — to a clean 10/20/30 sequence. Renumbering only the
+ * live subset would leave an archived stage holding a position that ties with
+ * a live one, and a tie makes the board's column order flap between requests.
  */
 async function moveStage(id: string, direction: -1 | 1): Promise<ManageActionState> {
   const supabase = await createClient()
@@ -362,28 +363,33 @@ async function moveStage(id: string, direction: -1 | 1): Promise<ManageActionSta
 
   const { data: siblings, error: siblingsError } = await supabase
     .from('pipeline_stages')
-    .select('id, name, position')
+    .select('id, name, position, archived_at')
     .eq('pipeline_id', stage.pipeline_id)
-    .is('archived_at', null)
     .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
 
   if (siblingsError || !siblings) return { error: 'That change could not be saved.' }
 
-  const index = siblings.findIndex((row) => row.id === id)
+  const live = siblings.filter((row) => row.archived_at === null)
+  const archived = siblings.filter((row) => row.archived_at !== null)
+
+  const index = live.findIndex((row) => row.id === id)
   const targetIndex = index + direction
   if (index === -1) return { error: 'That stage could not be found.' }
-  if (targetIndex < 0 || targetIndex >= siblings.length) {
+  if (targetIndex < 0 || targetIndex >= live.length) {
     return { error: 'That stage is already at the end of the board.' }
   }
 
-  const reordered = [...siblings]
+  const reordered = [...live]
   const [moved] = reordered.splice(index, 1)
   if (!moved) return { error: 'That change could not be saved.' }
   reordered.splice(targetIndex, 0, moved)
 
   // One UPDATE per stage; the board is bounded by what a team can hold in
-  // flight, so a handful of writes beats an RPC nobody else needs.
-  for (const [position, row] of reordered.entries()) {
+  // flight, so a handful of writes beats an RPC nobody else needs. Archived
+  // stages renumber after the live ones, keeping their relative order — a
+  // restored stage reappears at the end of the board, deterministically.
+  for (const [position, row] of [...reordered, ...archived].entries()) {
     const { error } = await supabase
       .from('pipeline_stages')
       .update({ position: (position + 1) * 10 })

@@ -72,7 +72,9 @@ function Brand() {
         priority
         className="h-6 w-6 shrink-0"
       />
-      <span className="whitespace-nowrap text-sm font-bold tracking-tight text-slate-900">
+      {/* 13px bold: the full wordmark has to fit the w-56 rail beside the
+          mark — at 14px it truncates to "Grace Lead Manageme". */}
+      <span className="whitespace-nowrap text-[13px] font-bold tracking-tight text-slate-900">
         Grace Lead Management
       </span>
     </span>
@@ -269,7 +271,7 @@ export function AppShell({
           operational rail, not a showcase. Sticky so navigation and Sign out
           stay reachable on long pages. */}
       <aside className="hidden w-56 shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-0 lg:flex lg:h-dvh">
-        <div className="flex h-14 shrink-0 items-center border-b border-slate-200 px-5">
+        <div className="flex h-14 shrink-0 items-center border-b border-slate-200 px-4">
           <Brand />
         </div>
         <NavLinks navigation={navigation} />

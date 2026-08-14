@@ -8,8 +8,8 @@ import { createTestDb, expectRejected, type TestDb, type TestUser } from './help
  * The same principle as `behaviour.test.ts` — much of the correctness here is
  * delegated to Postgres on purpose. The timeline is complete because triggers
  * write it; the paired fields stay honest because check constraints refuse the
- * alternative; capability and proposals stay private because a policy says so,
- * not because a component remembered to hide them.
+ * alternative; capability and proposals are shared with every active user
+ * because a policy says so, not because a component remembered to show them.
  */
 describe('relationship development schema', () => {
   let db: TestDb
@@ -25,8 +25,9 @@ describe('relationship development schema', () => {
     db = await createTestDb()
     admin = await db.createUser({ email: 'dev-admin@graceforce.test' })
     staff = await db.createUser({ email: 'dev-staff@graceforce.test', role: 'staff' })
-    // Staff *with* the giving capability: the only kind that may read a
-    // proposal or a capability estimate.
+    // Staff who still carry the legacy giving flag. Since shared team
+    // visibility the flag changes nothing — these tests prove it by expecting
+    // `staff` (without it) and `fundraiser` (with it) to read the same rows.
     fundraiser = await db.createUser({
       email: 'dev-fundraiser@graceforce.test',
       role: 'staff',
@@ -239,23 +240,41 @@ describe('relationship development schema', () => {
       expect(rows).toHaveLength(1)
     })
 
-    it('is invisible to staff without giving access, even though they can read the person', async () => {
+    it('is readable by staff without the old giving flag', async () => {
+      // Shared team visibility: capability is team knowledge, not a privilege.
+      // The same staff member the old model shut out reads it alongside the
+      // person it describes.
       const person = await db.asUser(staff.id, (sql) =>
         sql.query('select id from public.contacts where id = $1', [ada]),
       )
       expect(person.rows).toHaveLength(1)
 
       const capability = await db.asUser(staff.id, (sql) =>
-        sql.query('select level from public.contact_capability where contact_id = $1', [ada]),
+        sql.query<{ level: string }>(
+          'select level from public.contact_capability where contact_id = $1',
+          [ada],
+        ),
       )
-      expect(capability.rows).toHaveLength(0)
+      expect(capability.rows).toHaveLength(1)
+      expect(capability.rows[0]!.level).toBe('significant')
     })
 
-    it('is invisible to a viewer', async () => {
+    it('is readable by a viewer, who still cannot record one', async () => {
       const { rows } = await db.asUser(viewer.id, (sql) =>
         sql.query('select level from public.contact_capability where contact_id = $1', [ada]),
       )
-      expect(rows).toHaveLength(0)
+      expect(rows).toHaveLength(1)
+
+      // Reading opened up; writing stayed staff work.
+      const message = await expectRejected(
+        db.asUser(viewer.id, (sql) =>
+          sql.query(
+            `insert into public.contact_capability (contact_id, level) values ($1, 'modest')`,
+            [grace],
+          ),
+        ),
+      )
+      expect(message).toMatch(/row-level security|violates/i)
     })
   })
 
@@ -403,42 +422,48 @@ describe('relationship development schema', () => {
       expect(message).toMatch(/proposals_joint_is_someone_else/)
     })
 
-    it('is invisible to staff without giving access', async () => {
+    it('is visible to staff without the old giving flag', async () => {
+      // Shared team visibility: a proposal is the team's work in progress, so
+      // the giving flag no longer decides who may read it.
       const { rows } = await db.asUser(staff.id, (sql) =>
-        sql.query('select id from public.proposals where contact_id = $1', [ada]),
+        sql.query('select id from public.proposals where id = $1', [proposalId]),
       )
-      expect(rows).toHaveLength(0)
+      expect(rows).toHaveLength(1)
     })
 
-    it('also hides its title and amount on the shared timeline', async () => {
-      const blocked = await db.asUser(staff.id, (sql) =>
+    it('shares its title and amount on the timeline with every active user', async () => {
+      // The timeline entry matches the table it mirrors: nothing is redacted
+      // for staff without the flag, and viewers read the same record.
+      const asStaff = await db.asUser(staff.id, (sql) =>
         sql.query<{ subject: string; metadata: Record<string, unknown> }>(
           `select subject, metadata from public.activities
             where proposal_id = $1 and type = 'proposal_created'`,
           [proposalId],
         ),
       )
-      expect(blocked.rows).toHaveLength(0)
+      expect(asStaff.rows).toHaveLength(1)
+      expect(asStaff.rows[0]!.subject).toContain('Charitable remainder trust')
+      expect(asStaff.rows[0]!.metadata.amount_cents).toBe(25000000)
 
-      const allowed = await db.asUser(fundraiser.id, (sql) =>
-        sql.query<{ subject: string; metadata: Record<string, unknown> }>(
-          `select subject, metadata from public.activities
+      const asViewer = await db.asUser(viewer.id, (sql) =>
+        sql.query(
+          `select subject from public.activities
             where proposal_id = $1 and type = 'proposal_created'`,
           [proposalId],
         ),
       )
-      expect(allowed.rows).toHaveLength(1)
-      expect(allowed.rows[0]!.subject).toContain('Charitable remainder trust')
-      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000000)
+      expect(asViewer.rows).toHaveLength(1)
     })
 
-    it('cannot be written by staff without giving access', async () => {
-      const message = await expectRejected(
-        db.asUser(staff.id, (sql) =>
-          sql.query(`insert into public.proposals (contact_id, title) values ($1, 'Sneaky')`, [ada]),
+    it('can be opened by any staff member — the giving flag no longer gates writes', async () => {
+      const { rows } = await db.asUser(staff.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.proposals (contact_id, title, created_by)
+           values ($1, 'Gift of grain', $2) returning id`,
+          [grace, staff.id],
         ),
       )
-      expect(message).toMatch(/row-level security|violates/i)
+      expect(rows).toHaveLength(1)
     })
   })
 
@@ -496,7 +521,11 @@ describe('relationship development schema', () => {
       expect(reassign).toMatch(/row-level security|violates/i)
     })
 
-    it('hides a draft from everyone but its author and administrators', async () => {
+    it('keeps a draft visible to the whole team — authorship no longer hides it', async () => {
+      // Shared team visibility: a colleague picking up the relationship sees
+      // the conversation is already being written up, instead of walking into
+      // the same meeting twice. Filing still controls the timeline, not who
+      // may read the report.
       const asAuthor = await db.asUser(staff.id, (sql) =>
         sql.query('select id from public.call_reports where id = $1', [draftId]),
       )
@@ -505,7 +534,12 @@ describe('relationship development schema', () => {
       const asColleague = await db.asUser(fundraiser.id, (sql) =>
         sql.query('select id from public.call_reports where id = $1', [draftId]),
       )
-      expect(asColleague.rows).toHaveLength(0)
+      expect(asColleague.rows).toHaveLength(1)
+
+      const asViewer = await db.asUser(viewer.id, (sql) =>
+        sql.query('select id from public.call_reports where id = $1', [draftId]),
+      )
+      expect(asViewer.rows).toHaveLength(1)
 
       const asAdmin = await db.asUser(admin.id, (sql) =>
         sql.query('select id from public.call_reports where id = $1', [draftId]),
@@ -572,7 +606,7 @@ describe('relationship development schema', () => {
       expect(message).toMatch(/call_reports_joint_is_someone_else/)
     })
 
-    it('becomes visible to colleagues once filed', async () => {
+    it('stays visible to colleagues after filing', async () => {
       const { rows } = await db.asUser(fundraiser.id, (sql) =>
         sql.query('select id from public.call_reports where id = $1', [draftId]),
       )
@@ -701,6 +735,12 @@ describe('relationship development schema', () => {
         ],
         [`insert into public.events (name, event_date) values ('Sneaky', current_date)`, []],
         [`insert into public.call_reports (contact_id, met_on) values ($1, current_date)`, [ada]],
+        // Their SELECT opened to every active user; their writes stayed staff.
+        [`insert into public.proposals (contact_id, title) values ($1, 'Sneaky ask')`, [ada]],
+        [
+          `insert into public.contact_capability (contact_id, level) values ($1, 'modest')`,
+          [grace],
+        ],
         [
           `insert into public.attachments (contact_id, storage_path, file_name) values ($1, 'x/y.pdf', 'y.pdf')`,
           [ada],

@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-  /* Fallback only — next/font sets --font-sans on <html> with the real face. */
-  :root {
-    --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
     @apply bg-slate-50 text-slate-900 antialiased;
-    font-family: var(--font-sans);
+    /* next/font sets --font-sans on <html>. The fallback lives inside var()
+       rather than as a competing :root declaration: Tailwind 3 strips cascade
+       layers from the output, so a :root rule that lands after next/font's
+       class in the bundle silently wins the custom-property battle and the
+       loaded face never applies — which is exactly what happened. */
+    font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   }
 
   /* Text selection in the brand tint — a small signature that a default

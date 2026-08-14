@@ -51,8 +51,6 @@ export interface ExportDataset {
   columns: readonly string[]
   /** Datasets whose ids appear in this one's columns. */
   references: readonly ExportDatasetKey[]
-  /** A capability beyond write access that the caller also needs. */
-  requires: 'giving' | null
   countRows: (db: ExportClient) => Promise<number>
   createReader: (db: ExportClient) => Promise<ExportPageReader>
 }
@@ -386,7 +384,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'Every person and organisation, excluding those in the deleted state.',
     columns: CONTACT_EXPORT_COLUMNS,
     references: [],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db
         .from('contacts')
@@ -414,7 +411,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'How each contact is involved — donor, volunteer, prayer partner and the rest.',
     columns: ENGAGEMENT_EXPORT_COLUMNS,
     references: ['contacts'],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db
         .from('engagements')
@@ -450,7 +446,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'Work in progress on a pipeline, with its stage and value.',
     columns: PIPELINE_CARD_EXPORT_COLUMNS,
     references: ['contacts', 'engagements'],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db
         .from('pipeline_cards')
@@ -487,7 +482,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'The timeline: notes, calls, meetings and everything the database logs itself.',
     columns: ACTIVITY_EXPORT_COLUMNS,
     references: ['contacts', 'engagements', 'pipeline_cards'],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db.from('activities').select('id', { count: 'exact', head: true })
       if (error) throw failed('activities', error)
@@ -511,7 +505,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'Commitments to get back to someone, open and completed.',
     columns: FOLLOW_UP_EXPORT_COLUMNS,
     references: ['contacts', 'engagements', 'pipeline_cards'],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db.from('follow_ups').select('id', { count: 'exact', head: true })
       if (error) throw failed('follow-ups', error)
@@ -535,7 +528,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'Every recorded gift, in integer cents. Visible only with giving access.',
     columns: GIFT_EXPORT_COLUMNS,
     references: ['contacts'],
-    requires: 'giving',
     async countRows(db) {
       const { count, error } = await db.from('gifts').select('id', { count: 'exact', head: true })
       if (error) throw failed('gifts', error)
@@ -559,7 +551,6 @@ export const EXPORT_DATASETS: readonly ExportDataset[] = [
     description: 'Enquiries from the public forms, including the contact each became.',
     columns: LEAD_EXPORT_COLUMNS,
     references: ['contacts'],
-    requires: null,
     async countRows(db) {
       const { count, error } = await db.from('leads').select('id', { count: 'exact', head: true })
       if (error) throw failed('leads', error)

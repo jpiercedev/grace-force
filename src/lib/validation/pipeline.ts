@@ -112,21 +112,13 @@ export const addPipelineCardSchema = z.object({
 
 export type AddPipelineCardInput = z.infer<typeof addPipelineCardSchema>
 
-/** The opportunity edit page — everything but pipeline, person and status. */
-export const updateOpportunitySchema = z.object({
-  id: uuidField('That opportunity could not be found'),
-  title: z
-    .string()
-    .trim()
-    .min(1, 'Give this opportunity a title')
-    .max(200, 'Keep the title under 200 characters'),
-  details: optionalText(4000),
-  value_cents: optionalCents,
-  owner_id: optionalUuid,
-  expected_close_on: optionalDate,
-  organization_name: optionalText(200),
-  next_step: optionalText(300),
-})
+/**
+ * The opportunity edit page — everything but pipeline, person and status.
+ * Derived from the create schema so the two forms cannot drift apart.
+ */
+export const updateOpportunitySchema = addPipelineCardSchema
+  .omit({ pipeline_id: true, contact_id: true })
+  .extend({ id: uuidField('That opportunity could not be found') })
 
 export const moveCardSchema = z.object({
   id: uuidField('That card could not be found'),

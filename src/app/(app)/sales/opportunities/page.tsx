@@ -64,12 +64,21 @@ export default async function OpportunitiesPage({
 
   const status = parseStatus(single(query.status))
   const pipelineId = parseId(single(query.pipeline))
-  const stageId = parseId(single(query.stage))
+  const rawStageId = parseId(single(query.stage))
   const rawOwner = single(query.owner)
   const ownerId = rawOwner === 'unassigned' ? 'unassigned' : parseId(rawOwner)
   const due = single(query.due)
   const dueWindow = due ? DUE_WINDOWS[due] : undefined
   const q = single(query.q)
+
+  const [pipelines, team] = await Promise.all([listPipelineSummaries(), listAssignableProfiles()])
+
+  const activePipeline = pipelines.find((pipeline) => pipeline.id === pipelineId)
+  const stages = activePipeline?.stages ?? []
+  // Switching pipelines resubmits the previous pipeline's stage — silently
+  // matching nothing. A stage filter only counts when it belongs to the
+  // pipeline actually selected.
+  const stageId = stages.some((stage) => stage.id === rawStageId) ? rawStageId : undefined
 
   const filters: OpportunityFilters = {
     status: status === 'all' ? 'all' : (status as PipelineCardStatus),
@@ -80,14 +89,7 @@ export default async function OpportunitiesPage({
     q,
   }
 
-  const [items, pipelines, team] = await Promise.all([
-    listOpportunities(filters),
-    listPipelineSummaries(),
-    listAssignableProfiles(),
-  ])
-
-  const activePipeline = pipelines.find((pipeline) => pipeline.id === pipelineId)
-  const stages = activePipeline?.stages ?? []
+  const items = await listOpportunities(filters)
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
