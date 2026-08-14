@@ -15,6 +15,8 @@ export interface LeadQueueProps {
   statusFilter: LeadStatusFilter
   /** Rendered once on the server so relative ages match on hydration. */
   nowIso: string
+  /** Viewers read the queue; only staff act on it. */
+  canEdit: boolean
 }
 
 /**
@@ -25,7 +27,7 @@ export interface LeadQueueProps {
  * time there is anything to say. The outcome therefore lives above the list and
  * takes focus, rather than being announced from a row that no longer exists.
  */
-export function LeadQueue({ leads, team, statusFilter, nowIso }: LeadQueueProps) {
+export function LeadQueue({ leads, team, statusFilter, nowIso, canEdit }: LeadQueueProps) {
   const [state, formAction] = useActionState<LeadActionState, FormData>(updateLead, {})
   const [resolvedCount, setResolvedCount] = useState(0)
   const statusRef = useRef<HTMLDivElement>(null)
@@ -57,6 +59,7 @@ export function LeadQueue({ leads, team, statusFilter, nowIso }: LeadQueueProps)
             key={lead.id}
             lead={lead}
             team={team}
+            canEdit={canEdit}
             statusFilter={statusFilter}
             nowIso={nowIso}
             formAction={formAction}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useEffect, useRef } from 'react'
-import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
+import type { PipelineActionState } from '@/app/(app)/sales/actions'
 import { PipelineCard } from '@/components/domain/pipeline-card'
 import { Badge, Callout, badgeTone, type BadgeTone } from '@/components/ui/display'
 import type { PipelineBoard as PipelineBoardData } from '@/lib/queries/pipelines'

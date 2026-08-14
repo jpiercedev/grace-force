@@ -1,5 +1,5 @@
 import { buttonClasses } from '@/components/ui/button'
-import { Badge, Callout, Card, CardBody, CardHeader, PageHeader } from '@/components/ui/display'
+import { Callout, Card, CardBody, CardHeader, PageHeader } from '@/components/ui/display'
 import {
   MANIFEST_DESCRIPTION,
   MANIFEST_KEY,
@@ -9,16 +9,15 @@ import {
   exportEndpoint,
 } from '@/lib/export/bundle'
 import type { ExportDataset } from '@/lib/export/datasets'
-import { canViewGiving, requireWriteAccess } from '@/lib/auth'
+import { requireWriteAccess } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { pluralize } from '@/lib/utils'
 
 export const metadata = { title: 'Export' }
 
 export default async function ExportPage() {
-  const profile = await requireWriteAccess()
-  const access = { canViewGiving: canViewGiving(profile) }
-  const datasets = availableDatasets(access)
+  await requireWriteAccess()
+  const datasets = availableDatasets()
   const supabase = await createClient()
 
   // A count is a convenience, not the point of the page: if one fails the
@@ -47,15 +46,6 @@ export default async function ExportPage() {
         <code className="font-mono text-xs">engagement_id</code> column. A spreadsheet, a database
         or a script can rebuild the whole picture from the CSVs alone.
       </Callout>
-
-      {/* Sits directly above the list it qualifies, so someone scanning the
-          datasets for giving sees why it is missing without scrolling on. */}
-      {access.canViewGiving ? null : (
-        <Callout tone="warning" title="Giving history is not included">
-          Exporting gifts needs the giving permission, which your account does not have. An
-          administrator can grant it or run that export for you.
-        </Callout>
-      )}
 
       <Card>
         <CardHeader
@@ -108,14 +98,7 @@ function DatasetRow({ dataset, rowCount }: { dataset: ExportDataset; rowCount: n
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-slate-100/60">
       <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-900">
-          {dataset.label}
-          {dataset.requires === 'giving' ? (
-            <span className="ml-2 align-middle">
-              <Badge tone="amber">Giving access</Badge>
-            </span>
-          ) : null}
-        </p>
+        <p className="text-sm font-semibold text-slate-900">{dataset.label}</p>
         <p className="mt-0.5 text-sm text-slate-600">{dataset.description}</p>
         <p className="mt-1 text-xs tabular-nums text-slate-500">
           {rowCount === null ? 'Row count unavailable' : pluralize(rowCount, 'row')} ·{' '}

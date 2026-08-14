@@ -146,10 +146,26 @@ export function PipelineCard({
             <dt>Owner</dt>
             <dd className="min-w-0 truncate font-medium text-slate-600">{ownerName}</dd>
           </div>
+          {card.organization_name ? (
+            <div className="flex gap-1">
+              <dt>Organization</dt>
+              <dd className="min-w-0 truncate font-medium text-slate-600">
+                {card.organization_name}
+              </dd>
+            </div>
+          ) : null}
           {card.expected_close_on ? (
             <div className="flex gap-1">
               <dt>Expected close</dt>
               <dd className="font-medium text-slate-600">{formatDate(card.expected_close_on)}</dd>
+            </div>
+          ) : null}
+          {card.next_step ? (
+            <div className="flex gap-1">
+              <dt className="shrink-0">Next step</dt>
+              <dd className="min-w-0 truncate font-medium text-slate-700" title={card.next_step}>
+                {card.next_step}
+              </dd>
             </div>
           ) : null}
         </dl>
@@ -199,13 +215,16 @@ export function PipelineCard({
               ) : (
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               )}
-              Close card…
+              Close or archive…
               <Subject title={card.title} />
             </Button>
 
             {closing ? (
               <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-100/80 p-2.5">
-                <Field label="Reason" hint="Optional — why did it land this way?">
+                <Field
+                  label="Reason"
+                  hint="Optional — why did it land this way? Archiving sets it aside without an outcome."
+                >
                   {(props) => (
                     <Textarea
                       {...props}
@@ -224,7 +243,13 @@ export function PipelineCard({
                       <input type="hidden" name="close_reason" value={closeReason} />
                       <SubmitButton
                         size="sm"
-                        variant={close.outcome === 'won' ? 'primary' : 'secondary'}
+                        variant={
+                          close.outcome === 'won'
+                            ? 'primary'
+                            : close.outcome === 'archived'
+                              ? 'ghost'
+                              : 'secondary'
+                        }
                       >
                         {close.label}
                         <Subject title={card.title} />

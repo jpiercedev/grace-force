@@ -1,6 +1,5 @@
 import { parseISO } from 'date-fns'
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import {
   Avatar,
   Badge,
@@ -11,7 +10,7 @@ import {
   EmptyState,
   PageHeader,
 } from '@/components/ui/display'
-import { canViewGiving, requireProfile } from '@/lib/auth'
+import { requireProfile } from '@/lib/auth'
 import {
   getGivingOverview,
   hasGivingFilters,
@@ -52,11 +51,7 @@ export default async function GivingPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const profile = await requireProfile()
-  // The page-level guard mirrors the `gifts` RLS policy. The database is what
-  // actually refuses; this is so the redirect explains itself.
-  if (!canViewGiving(profile)) redirect('/dashboard?denied=giving')
-
+  await requireProfile()
   const params = await searchParams
   const filters = parseGivingFilters(params)
   const now = new Date()

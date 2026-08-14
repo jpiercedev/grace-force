@@ -229,12 +229,11 @@ describe('bundle structure', () => {
     }
   })
 
-  it('hides giving from anyone without the permission for it', () => {
-    const withGiving = availableDatasets({ canViewGiving: true }).map((dataset) => dataset.key)
-    const without = availableDatasets({ canViewGiving: false }).map((dataset) => dataset.key)
+  it('offers every dataset — business records are shared across the team', () => {
+    const keys = availableDatasets().map((dataset) => dataset.key)
 
-    expect(withGiving).toContain('gifts')
-    expect(without).not.toContain('gifts')
+    expect(keys).toContain('gifts')
+    expect(keys).toEqual(BUNDLE_DATASETS.map((dataset) => dataset.key))
   })
 
   it('names an endpoint per dataset', () => {
@@ -392,7 +391,7 @@ describe('manifest', () => {
 describe('exportFilename', () => {
   it('dates the file so two downloads do not overwrite each other', () => {
     expect(exportFilename('follow_ups', new Date(2026, 7, 5))).toBe(
-      'grace-force-follow-ups-2026-08-05.csv',
+      'grace-lead-management-follow-ups-2026-08-05.csv',
     )
   })
 })

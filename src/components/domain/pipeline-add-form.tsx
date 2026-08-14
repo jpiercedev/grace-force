@@ -1,29 +1,41 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
+import type { PipelineActionState } from '@/app/(app)/sales/actions'
 import { Button } from '@/components/ui/button'
 import { Avatar, Callout } from '@/components/ui/display'
 import { Field, Input, Select, Textarea } from '@/components/ui/form'
 import type { ContactSummary, TeamProfile } from '@/lib/queries/pipelines'
 import { contactDisplayName } from '@/lib/utils'
 
+export interface PipelineChoice {
+  id: string
+  name: string
+  tracks_value: boolean
+  has_stages: boolean
+}
+
 export interface PipelineAddFormProps {
   action: (prev: PipelineActionState, formData: FormData) => Promise<PipelineActionState>
-  pipelineId: string
-  pipelineName: string
+  /** Fixed pipeline (board's add page)… */
+  pipelineId?: string
+  pipelineName?: string
+  tracksValue?: boolean
+  /** …or a picker (creating from a person or the Sales overview). */
+  pipelines?: PipelineChoice[]
   contact: ContactSummary
   team: TeamProfile[]
-  tracksValue: boolean
   defaultOwnerId: string
+  /** Land back on the person instead of the board after creating. */
+  returnToContact?: boolean
 }
 
 function SubmitButton() {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? 'Adding…' : 'Add to pipeline'}
+      {pending ? 'Creating…' : 'Create opportunity'}
     </Button>
   )
 }
@@ -41,19 +53,29 @@ export function PipelineAddForm({
   action,
   pipelineId,
   pipelineName,
+  tracksValue,
+  pipelines,
   contact,
   team,
-  tracksValue,
   defaultOwnerId,
+  returnToContact = false,
 }: PipelineAddFormProps) {
   const [state, formAction] = useActionState<PipelineActionState, FormData>(action, {})
+  const [selectedPipeline, setSelectedPipeline] = useState(
+    pipelines?.find((pipeline) => pipeline.has_stages)?.id ?? '',
+  )
   const fieldErrors = state.fieldErrors ?? {}
   const displayName = contactDisplayName(contact)
 
+  // With a picker, value tracking follows whichever pipeline is chosen.
+  const chosen = pipelines?.find((pipeline) => pipeline.id === selectedPipeline)
+  const showValue = pipelines ? (chosen?.tracks_value ?? false) : (tracksValue ?? false)
+
   return (
     <form action={formAction} className="space-y-6" noValidate>
-      <input type="hidden" name="pipeline_id" value={pipelineId} />
+      {pipelines ? null : <input type="hidden" name="pipeline_id" value={pipelineId} />}
       <input type="hidden" name="contact_id" value={contact.id} />
+      {returnToContact ? <input type="hidden" name="return_to" value="contact" /> : null}
 
       {state.error ? (
         <Callout tone="danger" role="alert">
@@ -66,19 +88,42 @@ export function PipelineAddForm({
         <Avatar name={displayName} size="md" />
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500">
-            Adding to {pipelineName}
+            {pipelineName ? `New opportunity in ${pipelineName}` : 'New opportunity'}
           </p>
           <p className="truncate text-sm font-semibold text-slate-900">
             {displayName}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">The card starts in the first stage.</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            The opportunity starts in the pipeline’s first stage.
+          </p>
         </div>
       </div>
 
       <fieldset className="space-y-4">
-        <SectionLegend>The card</SectionLegend>
+        <SectionLegend>The opportunity</SectionLegend>
 
-        <Field label="Card title" required error={fieldErrors.title}>
+        {pipelines ? (
+          <Field label="Pipeline" required error={fieldErrors.pipeline_id}>
+            {(props) => (
+              <Select
+                {...props}
+                name="pipeline_id"
+                required
+                value={selectedPipeline}
+                onChange={(event) => setSelectedPipeline(event.currentTarget.value)}
+              >
+                {pipelines.map((pipeline) => (
+                  <option key={pipeline.id} value={pipeline.id} disabled={!pipeline.has_stages}>
+                    {pipeline.name}
+                    {pipeline.has_stages ? '' : ' (no stages yet)'}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        ) : null}
+
+        <Field label="Title" required error={fieldErrors.title}>
           {(props) => (
             <Input
               {...props}
@@ -91,7 +136,23 @@ export function PipelineAddForm({
           )}
         </Field>
 
-        <Field label="Details" hint="Optional context for the team." error={fieldErrors.details}>
+        <Field
+          label="Organization"
+          hint="Optional — when the deal is with a company or church rather than the person alone."
+          error={fieldErrors.organization_name}
+        >
+          {(props) => (
+            <Input
+              {...props}
+              name="organization_name"
+              maxLength={200}
+              defaultValue={contact.organization_name ?? ''}
+              invalid={!!fieldErrors.organization_name}
+            />
+          )}
+        </Field>
+
+        <Field label="Notes" hint="Optional context for the team." error={fieldErrors.details}>
           {(props) => (
             <Textarea {...props} name="details" rows={3} maxLength={4000} invalid={!!fieldErrors.details} />
           )}
@@ -103,7 +164,7 @@ export function PipelineAddForm({
           <SectionLegend>Forecast</SectionLegend>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {tracksValue ? (
+            {showValue ? (
               <Field
                 label="Expected value"
                 hint="Dollar amount — enter it like 1,500 or $1,500.50."
@@ -137,7 +198,7 @@ export function PipelineAddForm({
 
       <div className="border-t border-slate-200 pt-5">
         <fieldset className="space-y-4">
-          <SectionLegend>Ownership</SectionLegend>
+          <SectionLegend>Ownership and next action</SectionLegend>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Owner" error={fieldErrors.owner_id}>
@@ -150,6 +211,22 @@ export function PipelineAddForm({
                     </option>
                   ))}
                 </Select>
+              )}
+            </Field>
+
+            <Field
+              label="Next step"
+              hint="The one action that moves this forward — shown on the board."
+              error={fieldErrors.next_step}
+            >
+              {(props) => (
+                <Input
+                  {...props}
+                  name="next_step"
+                  maxLength={300}
+                  placeholder="e.g. Send the proposal draft"
+                  invalid={!!fieldErrors.next_step}
+                />
               )}
             </Field>
           </div>

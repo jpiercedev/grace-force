@@ -7,10 +7,8 @@ import type { ProposalRow, ProposalStatus } from '@/types/database'
 /**
  * Reads for proposals and planned gifts.
  *
- * `proposals` is gated on `can_view_giving()`, so a profile without that
- * capability reads nothing here rather than being refused. Callers check the
- * capability first so the destination is absent rather than mysteriously
- * empty.
+ * `proposals` is shared with every active team member; a deactivated profile
+ * reads nothing here rather than being refused.
  */
 
 function fail(what: string, error: { message: string }): never {

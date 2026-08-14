@@ -51,6 +51,7 @@ function renderRow(lead = makeLead()) {
     <LeadRow
       lead={lead}
       team={TEAM}
+      canEdit
       statusFilter={lead.status}
       nowIso={NOW}
       formAction={action}
@@ -124,6 +125,7 @@ describe('LeadRow', () => {
       <LeadRow
         lead={makeLead()}
         team={TEAM}
+        canEdit
         statusFilter="new"
         nowIso={NOW}
         formAction={() => undefined}
@@ -142,6 +144,7 @@ describe('LeadRow', () => {
       <LeadRow
         lead={makeLead({ status: 'spam' })}
         team={TEAM}
+        canEdit
         statusFilter="spam"
         nowIso={NOW}
         formAction={() => undefined}

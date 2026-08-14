@@ -57,10 +57,7 @@ export interface ContactPreviewData {
   proposalOptions: Array<{ id: string; title: string; status: ProposalSummary['status'] }>
 }
 
-export async function loadContactPreview(
-  id: string,
-  showGiving: boolean,
-): Promise<ContactPreviewData | null> {
+export async function loadContactPreview(id: string): Promise<ContactPreviewData | null> {
   const contact = await getContact(id)
   if (!contact) return null
 
@@ -70,7 +67,7 @@ export async function loadContactPreview(
     getContactTimeline(contact.id, { limit: 25 }),
     getContactInterests(contact.id),
     getRelatedPeople(contact.id),
-    showGiving ? getContactProposals(contact.id) : Promise.resolve([]),
+    getContactProposals(contact.id),
   ])
 
   return {

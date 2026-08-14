@@ -25,7 +25,6 @@ export function DonorAssociations({
   contactName,
   related,
   proposals,
-  showGiving,
   events,
   eventOptions,
   files,
@@ -38,7 +37,6 @@ export function DonorAssociations({
   contactName: string
   related: RelatedPerson[]
   proposals: ProposalSummary[]
-  showGiving: boolean
   events: ContactEventEntry[]
   eventOptions: Array<Pick<EventRow, 'id' | 'name' | 'event_date'>>
   files: AttachmentWithUrl[]
@@ -72,12 +70,11 @@ export function DonorAssociations({
         />
       </RailSection>
 
-      {showGiving ? (
-        <RailSection
-          title="Planned gifts"
-          count={proposals.length}
-          defaultOpen={proposals.length > 0}
-        >
+      <RailSection
+        title="Planned gifts"
+        count={proposals.length}
+        defaultOpen={proposals.length > 0}
+      >
           {proposals.length === 0 ? (
             <p className="text-[13px] leading-relaxed text-slate-500">
               Nothing under discussion yet.
@@ -122,8 +119,7 @@ export function DonorAssociations({
               </Link>
             ) : null}
           </div>
-        </RailSection>
-      ) : null}
+      </RailSection>
 
       <RailSection title="Events" count={events.length} defaultOpen={events.length > 0}>
         <DonorEvents

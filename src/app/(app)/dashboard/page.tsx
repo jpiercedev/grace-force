@@ -5,7 +5,7 @@ import { ProposalList } from '@/components/domain/proposal-list'
 import { LinkButton } from '@/components/ui/button'
 import { Callout, PageHeader } from '@/components/ui/display'
 import { SectionHeading } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, requireProfile } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import {
   ATTENTION_LIMIT,
   getDashboardStats,
@@ -15,8 +15,9 @@ import {
   type DashboardStats,
 } from '@/lib/queries/dashboard'
 import { listUpcomingEvents } from '@/lib/queries/events'
+import { getSalesOverview } from '@/lib/queries/pipelines'
 import { listMyOpenProposals } from '@/lib/queries/proposals'
-import { formatDate, pluralize } from '@/lib/utils'
+import { contactDisplayName, formatCurrency, formatDate, pluralize } from '@/lib/utils'
 import { ActivityPanel, FollowUpPanel } from './panels'
 
 export const metadata = { title: 'Dashboard' }
@@ -35,7 +36,6 @@ function single(value: string | string[] | undefined): string | undefined {
 const DENIED_MESSAGES: Record<string, string> = {
   write: 'That page is for staff and administrators. Your account has read-only access.',
   admin: 'That page is for administrators only.',
-  giving: 'Giving records and proposals are limited to administrators and staff granted access to them.',
 }
 
 /** "Wednesday, August 5" — the eyebrow above the greeting. Rendered server-side. */
@@ -94,15 +94,16 @@ export default async function DashboardPage({
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
   const writable = canWrite(profile)
-  const showGiving = canViewGiving(profile)
 
-  const [stats, overdue, upcoming, activity, proposals, events] = await Promise.all([
-    getDashboardStats(profile.id, { includeLeads: writable }, now),
+  const [stats, overdue, upcoming, activity, proposals, events, sales] = await Promise.all([
+    // Leads are shared business records now — viewers see the same queue.
+    getDashboardStats(profile.id, { includeLeads: true }, now),
     listMyOverdueFollowUps(profile.id, ATTENTION_LIMIT, now),
     listMyUpcomingFollowUps(profile.id, ATTENTION_LIMIT, now),
     listRecentActivity(6),
-    showGiving ? listMyOpenProposals(profile.id, 4) : Promise.resolve([]),
+    listMyOpenProposals(profile.id, 4),
     listUpcomingEvents(today, 3),
+    getSalesOverview(now),
   ])
 
   const firstName = profile.full_name?.trim().split(/\s+/)[0] ?? 'there'
@@ -146,7 +147,7 @@ export default async function DashboardPage({
       {/* New leads are the one inbound thing that goes stale if nobody looks,
           so they get a line of their own rather than only a mention in the
           summary sentence. Absent entirely when there are none. */}
-      {writable && (stats.newLeadsThisWeek ?? 0) > 0 ? (
+      {(stats.newLeadsThisWeek ?? 0) > 0 ? (
         <Link
           href="/leads"
           className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card transition-colors hover:border-slate-300 hover:bg-slate-50"
@@ -159,7 +160,9 @@ export default async function DashboardPage({
               Someone reached out and is waiting to hear back.
             </span>
           </span>
-          <span className="text-sm font-medium text-brand-700">Triage them →</span>
+          <span className="text-sm font-medium text-brand-700">
+            {writable ? 'Triage them →' : 'See them →'}
+          </span>
         </Link>
       ) : null}
 
@@ -181,7 +184,7 @@ export default async function DashboardPage({
             nowIso={nowIso}
           />
 
-          {showGiving && proposals.length > 0 ? (
+          {proposals.length > 0 ? (
             <section className="space-y-3">
               <SectionHeading
                 title="Your proposals"
@@ -197,6 +200,52 @@ export default async function DashboardPage({
         </div>
 
         <div className="min-w-0 space-y-6">
+          {/* The sales picture in one glance: what's in flight, what's about
+              to land. The boards are one click away. */}
+          <section className="space-y-3">
+            <SectionHeading
+              title="Sales"
+              action={
+                <Link href="/sales" className="text-sm font-medium text-brand-700 hover:underline">
+                  Open Sales
+                </Link>
+              }
+            />
+            <p className="text-sm text-slate-600">
+              {pluralize(sales.open_count, 'open opportunity', 'open opportunities')}
+              {sales.open_value_cents > 0
+                ? ` · ${formatCurrency(sales.open_value_cents)} in play`
+                : ''}
+              {sales.won_this_quarter > 0 ? ` · ${sales.won_this_quarter} won this quarter` : ''}
+            </p>
+            {sales.closing_soon.length > 0 ? (
+              <ul className="divide-y divide-slate-200 border-t border-slate-200">
+                {sales.closing_soon.slice(0, 3).map((item) => (
+                  <li key={item.id}>
+                    <Link
+                      href={`/sales/opportunities/${item.id}`}
+                      className="flex items-baseline justify-between gap-3 py-2.5 transition-colors hover:bg-slate-50"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium text-slate-900">
+                          {item.title}
+                        </span>
+                        <span className="block truncate text-[13px] text-slate-600">
+                          {item.contact ? contactDisplayName(item.contact) : 'Unknown person'}
+                          {item.stage ? ` · ${item.stage.name}` : ''}
+                        </span>
+                      </span>
+                      {item.expected_close_on ? (
+                        <span className="shrink-0 text-[13px] font-medium text-slate-600">
+                          {formatDate(item.expected_close_on)}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
           {events.length > 0 ? (
             <section className="space-y-3">
               <SectionHeading

@@ -13,7 +13,7 @@ import {
 /**
  * Team administration mutations.
  *
- * `role`, `can_view_giving` and `is_active` are protected columns: the
+ * `role` and `is_active` are protected columns: the
  * `profiles_protect_privileges` trigger silently reverts them for non-admins
  * rather than raising, so a successful update is not on its own proof that the
  * change took. Every write here reads the row back and compares.
@@ -36,7 +36,6 @@ export async function updateTeamMember(
   const parsed = memberAccessSchema.safeParse({
     id: text(formData, 'id'),
     role: text(formData, 'role'),
-    can_view_giving: formData.get('can_view_giving'),
     is_active: formData.get('is_active'),
   })
 
@@ -44,12 +43,12 @@ export async function updateTeamMember(
     return { error: 'Check the highlighted fields.', fieldErrors: toFieldErrors(parsed.error) }
   }
 
-  const { id, role, can_view_giving, is_active } = parsed.data
+  const { id, role, is_active } = parsed.data
 
   const supabase = await createClient()
   const { data: member, error: lookupError } = await supabase
     .from('profiles')
-    .select('id, email, full_name, role, can_view_giving, is_active')
+    .select('id, email, full_name, role, is_active')
     .eq('id', id)
     .maybeSingle()
 
@@ -62,18 +61,15 @@ export async function updateTeamMember(
   // untouched save is common. Saying nothing changed beats claiming it saved.
   const changes: string[] = []
   if (member.role !== role) changes.push(`role set to ${ROLE_LABELS[role].toLowerCase()}`)
-  if (member.can_view_giving !== can_view_giving) {
-    changes.push(can_view_giving ? 'giving access granted' : 'giving access removed')
-  }
   if (member.is_active !== is_active) changes.push(is_active ? 'reactivated' : 'deactivated')
 
   if (changes.length === 0) return { notice: `Nothing changed for ${name}.` }
 
   const { data, error } = await supabase
     .from('profiles')
-    .update({ role, can_view_giving, is_active })
+    .update({ role, is_active })
     .eq('id', id)
-    .select('id, role, can_view_giving, is_active')
+    .select('id, role, is_active')
     .maybeSingle()
 
   if (error) {
@@ -89,11 +85,7 @@ export async function updateTeamMember(
   // PostgREST; surface it as the refusal it is.
   if (!data) return { error: `${name}'s access could not be updated.` }
 
-  if (
-    data.role !== role ||
-    data.can_view_giving !== can_view_giving ||
-    data.is_active !== is_active
-  ) {
+  if (data.role !== role || data.is_active !== is_active) {
     return {
       error: `${name}'s access was left as it was. Only an administrator can change these, and the change was reverted.`,
     }

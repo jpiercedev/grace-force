@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { isClosedProposalStatus } from '@/components/domain/development-badges'
 import { requireAdmin, requireWriteAccess } from '@/lib/auth'
-import { canViewGiving } from '@/lib/permissions'
 import { createClient } from '@/lib/supabase/server'
 import type { ContactActionState } from '@/lib/validation/contact'
 import { proposalSchema } from '@/lib/validation/development'
@@ -50,10 +49,6 @@ export async function createProposal(
   formData: FormData,
 ): Promise<ContactActionState> {
   const profile = await requireWriteAccess()
-  if (!canViewGiving(profile)) {
-    return { error: 'Your account cannot work with proposals.' }
-  }
-
   const parsed = readForm(formData)
   if (!parsed.success) return invalid(parsed.error)
 
@@ -101,11 +96,7 @@ export async function updateProposal(
   _prev: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
-  const profile = await requireWriteAccess()
-  if (!canViewGiving(profile)) {
-    return { error: 'Your account cannot work with proposals.' }
-  }
-
+  await requireWriteAccess()
   const id = text(formData, 'proposal_id')
   if (!id) return { error: 'Missing proposal.' }
 
@@ -169,11 +160,7 @@ export async function moveProposalStage(
   _prev: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
-  const profile = await requireWriteAccess()
-  if (!canViewGiving(profile)) {
-    return { error: 'Your account cannot work with proposals.' }
-  }
-
+  await requireWriteAccess()
   const parsed = stageSchema.safeParse({
     proposal_id: text(formData, 'proposal_id'),
     status: text(formData, 'status'),

@@ -13,10 +13,8 @@ import type { GiftMethod } from '@/types/database'
 /**
  * Reads for giving context.
  *
- * `gifts` is readable only to profiles that pass `can_view_giving()`, so a
- * viewer without the capability reads nothing here rather than being refused.
- * Callers still check the capability first, so the page is absent rather than
- * empty-and-broken.
+ * `gifts` is readable by every active team member under shared visibility; a
+ * deactivated profile reads nothing here rather than being refused.
  *
  * Totals are summed in TypeScript over a bounded scan rather than pushed into
  * SQL aggregates: PostgREST aggregate functions are a server setting this app

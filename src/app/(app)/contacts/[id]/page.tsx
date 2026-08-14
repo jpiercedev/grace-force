@@ -36,9 +36,9 @@ import { ProposalList } from '@/components/domain/proposal-list'
 import { Timeline } from '@/components/domain/timeline'
 import { TimelineFilters } from '@/components/domain/timeline-filters'
 import { LinkButton, buttonClasses } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/display'
+import { Badge, EmptyState, badgeTone } from '@/components/ui/display'
 import { SectionHeading, Tabs, type TabDefinition } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, isAdmin, requireProfile } from '@/lib/auth'
+import { canWrite, isAdmin, requireProfile } from '@/lib/auth'
 import { getContactAttachments, withDownloadUrls } from '@/lib/queries/attachments'
 import { getContactCallReports } from '@/lib/queries/call-reports'
 import {
@@ -56,6 +56,7 @@ import {
   listTeamMembers,
 } from '@/lib/queries/contacts'
 import { getContactEvents, listEventOptions } from '@/lib/queries/events'
+import { getContactOpportunities } from '@/lib/queries/pipelines'
 import { getContactProposals, primaryProposal } from '@/lib/queries/proposals'
 import {
   getContactCapability,
@@ -63,7 +64,8 @@ import {
   getRelatedPeople,
   listInterestAreas,
 } from '@/lib/queries/relationships'
-import { formatDate, pluralize } from '@/lib/utils'
+import { CARD_STATUS_LABELS, CARD_STATUS_TONES } from '@/lib/validation/pipeline'
+import { formatCurrency, formatDate, pluralize } from '@/lib/utils'
 
 /**
  * The donor record — the heart of the application, in three zones:
@@ -127,7 +129,6 @@ export default async function ContactDetailPage({
   const type = parseActivityType(first(query.type))
   const shown = parseShown(first(query.show))
   const writable = canWrite(profile)
-  const showGiving = canViewGiving(profile)
   const admin = isAdmin(profile)
 
   // One clock for the whole render, so the day headings and every relative
@@ -149,6 +150,7 @@ export default async function ContactDetailPage({
     interestAreas,
     capability,
     proposals,
+    opportunities,
     events,
     eventOptions,
     reports,
@@ -159,13 +161,14 @@ export default async function ContactDetailPage({
     getContactFollowUps(contact.id),
     listTeamMembers(),
     listEngagementTypes(),
-    showGiving ? getContactGiving(contact.id) : Promise.resolve(null),
+    getContactGiving(contact.id),
     getContactEmailEngagement(contact.id),
     getRelatedPeople(contact.id),
     getContactInterests(contact.id),
     listInterestAreas(),
-    showGiving ? getContactCapability(contact.id) : Promise.resolve(null),
-    showGiving ? getContactProposals(contact.id) : Promise.resolve([]),
+    getContactCapability(contact.id),
+    getContactProposals(contact.id),
+    getContactOpportunities(contact.id),
     getContactEvents(contact.id),
     listEventOptions(),
     getContactCallReports(contact.id),
@@ -176,20 +179,15 @@ export default async function ContactDetailPage({
   const days = groupActivitiesByDay(timeline.activities)
   const basePath = `/contacts/${contact.id}`
 
-  // A tab a viewer cannot see must not be selectable, or a shared link lands
-  // them on an empty page with no explanation.
-  const allowed = TAB_KEYS.filter((key) => showGiving || (key !== 'giving' && key !== 'proposals'))
-  const tab = parseTab(first(query.tab), allowed)
+  // Every tab is shared: business records are visible to the whole active
+  // team, so nothing here depends on who is looking.
+  const tab = parseTab(first(query.tab), TAB_KEYS)
 
   const tabs: TabDefinition[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'activity', label: 'Activity', count: timeline.total },
-    ...(showGiving
-      ? ([
-          { key: 'proposals', label: 'Planned gifts', count: proposals.length },
-          { key: 'giving', label: 'Giving' },
-        ] as TabDefinition[])
-      : []),
+    { key: 'proposals', label: 'Planned gifts', count: proposals.length },
+    { key: 'giving', label: 'Giving' },
     { key: 'events', label: 'Events', count: events.length },
   ]
 
@@ -262,6 +260,77 @@ export default async function ContactDetailPage({
                   interests={interests}
                   nowIso={nowIso}
                 />
+
+                {/* Sales context lives on the person: their opportunities and
+                    where each sits, with the door to start another. */}
+                <section className="space-y-2">
+                  <SectionHeading
+                    title="Opportunities"
+                    action={
+                      writable ? (
+                        <Link
+                          href={`/sales/new?contact=${contact.id}&from=contact`}
+                          className="text-[13px] font-medium text-brand-700 hover:underline"
+                        >
+                          New opportunity
+                        </Link>
+                      ) : null
+                    }
+                  />
+                  {opportunities.length === 0 ? (
+                    <p className="text-sm leading-relaxed text-slate-600">
+                      No sales opportunities yet.
+                      {writable ? (
+                        <>
+                          {' '}
+                          <Link
+                            href={`/sales/new?contact=${contact.id}&from=contact`}
+                            className="font-medium text-brand-700 hover:underline"
+                          >
+                            Start one
+                          </Link>{' '}
+                          and it will show up on the shared board.
+                        </>
+                      ) : null}
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white shadow-card">
+                      {opportunities.map((opportunity) => (
+                        <li key={opportunity.id}>
+                          <Link
+                            href={`/sales/opportunities/${opportunity.id}`}
+                            className="flex flex-wrap items-center gap-x-4 gap-y-0.5 px-3.5 py-2.5 transition-colors hover:bg-slate-50"
+                          >
+                            <span className="min-w-0 flex-1 basis-52">
+                              <span className="block truncate text-sm font-medium text-slate-900">
+                                {opportunity.title}
+                              </span>
+                              <span className="block truncate text-[13px] text-slate-600">
+                                {opportunity.pipeline?.name}
+                                {opportunity.next_step ? ` · Next: ${opportunity.next_step}` : ''}
+                              </span>
+                            </span>
+                            {opportunity.status === 'open' && opportunity.stage ? (
+                              <Badge tone={badgeTone(opportunity.stage.color)}>
+                                {opportunity.stage.name}
+                              </Badge>
+                            ) : (
+                              <Badge tone={CARD_STATUS_TONES[opportunity.status]}>
+                                {CARD_STATUS_LABELS[opportunity.status]}
+                              </Badge>
+                            )}
+                            {opportunity.pipeline?.tracks_value &&
+                            opportunity.value_cents !== null ? (
+                              <span className="text-[13px] font-semibold tabular-nums text-slate-900">
+                                {formatCurrency(opportunity.value_cents, opportunity.currency)}
+                              </span>
+                            ) : null}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
 
                 <section className="space-y-2">
                   <SectionHeading title="Relationship summary" />
@@ -394,7 +463,7 @@ export default async function ContactDetailPage({
               </div>
             ) : null}
 
-            {tab === 'proposals' && showGiving ? (
+            {tab === 'proposals' ? (
               <section className="space-y-3">
                 <SectionHeading
                   title="Planned gifts and proposals"
@@ -454,12 +523,11 @@ export default async function ContactDetailPage({
               />
             ) : null}
 
-            {/* A giving-gated tab reached by a shared link, by someone without
-                the capability: say so rather than showing an empty page. */}
-            {(tab === 'giving' && !giving) || (tab === 'proposals' && !showGiving) ? (
+            {/* The giving rollup failed to load — a fault, not a permission. */}
+            {tab === 'giving' && !giving ? (
               <EmptyState
-                title="Not available to your account"
-                description="Giving records and planned gifts are limited to administrators and staff granted access to them."
+                title="Giving history is unavailable right now"
+                description="The rollup could not be loaded. Try again shortly."
               />
             ) : null}
           </div>
@@ -475,7 +543,6 @@ export default async function ContactDetailPage({
             contactName={contactName(contact)}
             related={related}
             proposals={proposals}
-            showGiving={showGiving}
             events={events}
             eventOptions={eventOptions}
             files={filesWithUrls}

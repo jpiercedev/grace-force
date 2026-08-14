@@ -26,7 +26,6 @@ import {
   uuidField,
   writeFailed,
 } from '@/lib/validation/form-data'
-import { canViewGiving } from '@/lib/permissions'
 import type { ContactMethod } from '@/types/database'
 import { z } from 'zod'
 
@@ -335,12 +334,6 @@ export async function saveCapability(
   formData: FormData,
 ): Promise<ContactActionState> {
   const profile = await requireWriteAccess()
-  // RLS would refuse this anyway; checking here turns a driver error into a
-  // sentence.
-  if (!canViewGiving(profile)) {
-    return { error: 'Your account cannot record giving capability.' }
-  }
-
   const parsed = capabilitySchema.safeParse({
     contact_id: text(formData, 'contact_id'),
     level: text(formData, 'level'),

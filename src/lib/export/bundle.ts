@@ -41,21 +41,19 @@ export const MANIFEST_LABEL = 'Manifest'
 export const MANIFEST_DESCRIPTION =
   'One row per dataset: how many records it holds, what its columns are, and which datasets it points at.'
 
-export interface ExportAccess {
-  canViewGiving: boolean
-}
-
 /**
  * Already in dependency order — `EXPORT_DATASETS` is defined that way, and
  * this is the assertion that keeps it honest.
  */
 export const BUNDLE_DATASETS: readonly ExportDataset[] = EXPORT_DATASETS
 
-/** Datasets this person may actually download; the rest would return nothing. */
-export function availableDatasets(access: ExportAccess): ExportDataset[] {
-  return BUNDLE_DATASETS.filter(
-    (dataset) => dataset.requires !== 'giving' || access.canViewGiving,
-  )
+/**
+ * Every dataset: business records are shared across the active team, so a
+ * profile that may export at all may export all of it. RLS still has the
+ * final word row by row.
+ */
+export function availableDatasets(): ExportDataset[] {
+  return [...BUNDLE_DATASETS]
 }
 
 export function exportEndpoint(key: string): string {

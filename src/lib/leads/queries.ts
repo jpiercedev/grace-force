@@ -15,8 +15,8 @@ import type { Json, LeadStatus } from '@/types/database'
  * Reads for the triage queue.
  *
  * Everything goes through the request-scoped client, so Row Level Security
- * decides visibility — `leads_select` requires `can_write()`, which is why a
- * viewer never sees this screen's data even if they reach the URL.
+ * decides visibility — `leads_select` admits every active team member, and
+ * the write policies keep triage itself staff-only.
  */
 
 export interface LeadContactSummary {

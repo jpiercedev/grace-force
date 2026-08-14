@@ -1,5 +1,5 @@
 import type { ProfileRow } from '@/types/database'
-import { canViewGiving, canWrite, isAdmin } from '@/lib/permissions'
+import { canWrite, isAdmin } from '@/lib/permissions'
 
 /**
  * Navigation comes in two shapes, and keeping them distinct is the point.
@@ -48,30 +48,34 @@ export interface Navigation {
 }
 
 /**
- * Six everyday destinations, then a quieter group of tools.
+ * Seven everyday destinations, then a quieter group of tools.
  *
  * Everything is visible at once — no collapse, no scroll — because knowing
  * what the product can do is part of being able to use it. The hierarchy is
- * carried by grouping and order, not by hiding: the top group is where a
- * development officer lives most weeks; the group below is the machinery
- * (giving records, pipelines, lead triage, email marketing, data in and out)
- * they reach for on purpose rather than by habit.
+ * carried by grouping and order, not by hiding: the top group is people and
+ * the work around them — the relationship first, sales second; the group
+ * below is the supporting machinery (giving history, planned gifts, email
+ * marketing, data in and out) reached for on purpose rather than by habit.
+ *
+ * Every destination is shared: business records are team-visible, so nothing
+ * here is gated on the old giving flag. Import/export stay staff-only —
+ * they are write tooling, not records.
  *
  * Search is not a destination: it is a field in the header, on every page.
  */
 const PRIMARY: NavItemDefinition[] = [
   { href: '/dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { href: '/contacts', label: 'People', icon: 'Users' },
+  { href: '/sales', label: 'Sales', icon: 'KanbanSquare' },
   { href: '/follow-ups', label: 'Follow-ups', icon: 'CheckSquare' },
-  { href: '/proposals', label: 'Planned gifts', icon: 'FileSignature', visible: canViewGiving },
+  { href: '/leads', label: 'Leads', icon: 'Inbox' },
   { href: '/events', label: 'Events', icon: 'CalendarDays' },
   { href: '/reports', label: 'Call reports', icon: 'FileText' },
 ]
 
 const MORE: NavItemDefinition[] = [
-  { href: '/giving', label: 'Giving', icon: 'HandCoins', visible: canViewGiving },
-  { href: '/pipelines', label: 'Pipelines', icon: 'KanbanSquare' },
-  { href: '/leads', label: 'New leads', icon: 'Inbox', visible: canWrite },
+  { href: '/giving', label: 'Giving', icon: 'HandCoins' },
+  { href: '/proposals', label: 'Planned gifts', icon: 'FileSignature' },
   { href: '/mailchimp', label: 'Marketing', icon: 'Mail' },
   { href: '/import', label: 'Import', icon: 'Upload', visible: canWrite },
   { href: '/export', label: 'Export', icon: 'Download', visible: canWrite },

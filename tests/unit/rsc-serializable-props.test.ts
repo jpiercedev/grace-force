@@ -148,28 +148,33 @@ describe('navigation still filters correctly after the refactor', () => {
     expect(hrefs(profile({ role: 'staff' }))).not.toContain('/settings/team')
   })
 
-  it('hides write destinations from viewers', () => {
+  it('hides write tooling from viewers, but never shared records', () => {
     const visible = hrefs(profile({ role: 'viewer' }))
-    expect(visible).not.toContain('/leads')
     expect(visible).not.toContain('/import')
     expect(visible).not.toContain('/export')
-    // Read-only destinations remain.
-    expect(visible).toEqual(expect.arrayContaining(['/dashboard', '/contacts', '/events']))
+    // Shared business records remain — leads and sales included.
+    expect(visible).toEqual(
+      expect.arrayContaining(['/dashboard', '/contacts', '/sales', '/leads', '/events']),
+    )
   })
 
-  it('gates giving and proposals on the flag rather than the role', () => {
-    const withGiving = hrefs(profile({ role: 'staff', can_view_giving: true }))
-    const without = hrefs(profile({ role: 'staff', can_view_giving: false }))
-    expect(withGiving).toEqual(expect.arrayContaining(['/giving', '/proposals']))
-    expect(without).not.toContain('/giving')
-    expect(without).not.toContain('/proposals')
+  it('shares giving and proposals with every active profile, whatever the old flag says', () => {
+    const withFlag = hrefs(profile({ role: 'staff', can_view_giving: true }))
+    const withoutFlag = hrefs(profile({ role: 'staff', can_view_giving: false }))
+    const viewer = hrefs(profile({ role: 'viewer' }))
+    for (const shared of ['/giving', '/proposals']) {
+      expect(withFlag).toContain(shared)
+      expect(withoutFlag).toContain(shared)
+      expect(viewer).toContain(shared)
+    }
   })
 
-  it('keeps the primary rail to six destinations at most', () => {
-    // The whole point of the redesign: the rail is a short list of everyday
-    // places, not an index of the database.
+  it('keeps the primary rail to seven destinations at most', () => {
+    // The rail is a short list of everyday places, not an index of the
+    // database. Seven: Dashboard, People, Sales, Follow-ups, Leads, Events,
+    // Call reports.
     for (const [, row] of PROFILES) {
-      expect(visibleNavigation(row).primary.length).toBeLessThanOrEqual(6)
+      expect(visibleNavigation(row).primary.length).toBeLessThanOrEqual(7)
     }
   })
 
@@ -179,7 +184,7 @@ describe('navigation still filters correctly after the refactor', () => {
 
   it('shows nothing capability-gated to an inactive profile', () => {
     const visible = hrefs(profile({ role: 'admin', is_active: false, can_view_giving: true }))
-    for (const gated of ['/leads', '/giving', '/proposals', '/import', '/export', '/settings/team']) {
+    for (const gated of ['/import', '/export', '/settings/team']) {
       expect(visible).not.toContain(gated)
     }
   })

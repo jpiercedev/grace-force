@@ -28,7 +28,6 @@ export interface TeamActionState {
 export const memberAccessSchema = z.object({
   id: z.string().trim().uuid('That team member could not be found'),
   role: z.enum(ROLES, { errorMap: () => ({ message: 'Choose a role from the list' }) }),
-  can_view_giving: checkboxField(),
   is_active: checkboxField(),
 })
 

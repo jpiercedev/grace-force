@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { PipelineBoard } from '@/components/domain/pipeline-board'
-import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
+import type { PipelineActionState } from '@/app/(app)/sales/actions'
 import type { BoardCard, PipelineBoard as PipelineBoardData } from '@/lib/queries/pipelines'
 
 /**
@@ -25,6 +25,8 @@ function makeCard(overrides: Partial<BoardCard> = {}): BoardCard {
     status: 'open',
     owner_id: null,
     expected_close_on: '2026-09-30',
+    organization_name: null,
+    next_step: null,
     position: 0,
     created_at: '2026-08-01T12:00:00.000Z',
     contact: {
@@ -62,6 +64,7 @@ function makeBoard(cards: BoardCard[] = [makeCard()]): PipelineBoardData {
         is_won: false,
         is_lost: false,
         color: 'slate',
+        archived_at: null,
         cards,
       },
       {
@@ -74,6 +77,7 @@ function makeBoard(cards: BoardCard[] = [makeCard()]): PipelineBoardData {
         is_won: false,
         is_lost: false,
         color: 'sky',
+        archived_at: null,
         cards: [],
       },
     ],
@@ -167,18 +171,23 @@ describe('PipelineBoard', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('no longer open')
   })
 
-  it('closes a card as won or lost, and Escape abandons the panel', async () => {
+  it('closes a card as won, lost or archived, and Escape abandons the panel', async () => {
     const user = userEvent.setup()
     const { action, calls } = recordingAction()
     render(<PipelineBoard board={makeBoard()} canEdit action={action} />)
 
-    await user.click(screen.getByRole('button', { name: /close card/i }))
+    await user.click(screen.getByRole('button', { name: /close or archive/i }))
     expect(screen.getByLabelText('Reason')).toBeInTheDocument()
+    // The archive path is its own dedicated form, like won and lost.
+    expectDedicatedActionForm(screen.getByRole('button', { name: /^archive/i }), {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'archive',
+    })
 
     await user.keyboard('{Escape}')
     await waitFor(() => expect(screen.queryByLabelText('Reason')).not.toBeInTheDocument())
 
-    await user.click(screen.getByRole('button', { name: /close card/i }))
+    await user.click(screen.getByRole('button', { name: /close or archive/i }))
     await user.type(screen.getByLabelText('Reason'), 'Gift received')
     const submit = screen.getByRole('button', { name: /mark won/i })
     expectDedicatedActionForm(submit, {

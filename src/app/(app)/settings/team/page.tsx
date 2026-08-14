@@ -20,15 +20,13 @@ export default async function TeamPage() {
   const [members, activeAdminCount] = await Promise.all([listTeamRoster(), countActiveAdmins()])
 
   const active = members.filter((member) => member.is_active)
-  const givingAccess = active.filter(
-    (member) => member.role === 'admin' || member.can_view_giving,
-  )
+  const staffCount = active.filter((member) => member.role !== 'viewer').length
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Team"
-        description="Who can sign in to the CRM, what each of them may do, and who can see giving."
+        description="Who can sign in, and what each of them may change. Everyone active sees the same shared records."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -52,9 +50,9 @@ export default async function TeamPage() {
           tone={activeAdminCount <= 1 ? 'amber' : 'slate'}
         />
         <StatTile
-          label="Can see giving"
-          value={givingAccess.length}
-          hint="Administrators, plus anyone granted access"
+          label="Can edit records"
+          value={staffCount}
+          hint="Administrators and staff; viewers are read-only"
         />
       </div>
 

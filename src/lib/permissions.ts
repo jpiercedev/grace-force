@@ -16,12 +16,6 @@ export function canWrite(profile: Pick<ProfileRow, 'role' | 'is_active'> | null)
   return !!profile && profile.is_active && (profile.role === 'admin' || profile.role === 'staff')
 }
 
-export function canViewGiving(
-  profile: Pick<ProfileRow, 'role' | 'is_active' | 'can_view_giving'> | null,
-): boolean {
-  return !!profile && profile.is_active && (profile.role === 'admin' || profile.can_view_giving)
-}
-
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Administrator',
   staff: 'Staff',
@@ -29,7 +23,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
-  admin: 'Full access, including team management, giving records and integrations.',
-  staff: 'Can create and edit contacts, engagements, follow-ups and pipelines.',
-  viewer: 'Read-only access to contacts and activity. Cannot see leads or giving.',
+  admin: 'Full access, including team management, security settings and integrations.',
+  staff: 'Can create and edit people, opportunities, pipelines, follow-ups and leads.',
+  viewer: 'Read-only access to the shared workspace. Cannot change anything.',
 }

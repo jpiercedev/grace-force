@@ -62,6 +62,8 @@ describe('addPipelineCardSchema', () => {
     value_cents: '',
     owner_id: '',
     expected_close_on: '',
+    organization_name: '',
+    next_step: '',
   }
 
   it('accepts the minimum and nulls the blanks', () => {
@@ -70,6 +72,8 @@ describe('addPipelineCardSchema', () => {
     expect(parsed.value_cents).toBeNull()
     expect(parsed.owner_id).toBeNull()
     expect(parsed.expected_close_on).toBeNull()
+    expect(parsed.organization_name).toBeNull()
+    expect(parsed.next_step).toBeNull()
   })
 
   it('reads money as integer cents, however it was typed', () => {
@@ -96,7 +100,7 @@ describe('addPipelineCardSchema', () => {
     if (result.success) return
     const errors = fieldErrorsFrom(result.error)
     expect(errors.contact_id).toBe('Choose a contact to add')
-    expect(errors.title).toBe('Give this card a title')
+    expect(errors.title).toBe('Give this opportunity a title')
   })
 
   it('takes a close date only in the form Postgres stores it', () => {

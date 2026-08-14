@@ -1,10 +1,9 @@
-import { redirect } from 'next/navigation'
 import { createProposal } from '@/app/(app)/proposals/actions'
 import { ProposalForm } from '@/components/domain/proposal-form'
 import { PersonPicker } from '@/components/domain/person-picker'
 import { PageHeader } from '@/components/ui/display'
 import { LinkButton } from '@/components/ui/button'
-import { canViewGiving, requireWriteAccess } from '@/lib/auth'
+import { requireWriteAccess } from '@/lib/auth'
 import { contactName, getContact, listTeamMembers } from '@/lib/queries/contacts'
 
 export const metadata = { title: 'New proposal' }
@@ -21,7 +20,6 @@ export default async function NewProposalPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const profile = await requireWriteAccess()
-  if (!canViewGiving(profile)) redirect('/dashboard?denied=giving')
 
   const params = await searchParams
   const raw = Array.isArray(params.contact) ? params.contact[0] : params.contact

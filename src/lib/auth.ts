@@ -9,13 +9,7 @@ import type { ProfileRow } from '@/types/database'
 
 // Capability predicates live in `@/lib/permissions` so client components can
 // use them too; re-exported here so server code has a single import.
-export {
-  canViewGiving,
-  canWrite,
-  isAdmin,
-  ROLE_DESCRIPTIONS,
-  ROLE_LABELS,
-} from '@/lib/permissions'
+export { canWrite, isAdmin, ROLE_DESCRIPTIONS, ROLE_LABELS } from '@/lib/permissions'
 
 /**
  * Session and permission helpers for server code.

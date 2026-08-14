@@ -12,13 +12,25 @@ import type { PipelineCardStatus } from '@/types/database'
  * pairing application code has to honour.
  */
 
-export const CLOSE_OUTCOMES = ['won', 'lost'] as const satisfies readonly PipelineCardStatus[]
+export const CLOSE_OUTCOMES = [
+  'won',
+  'lost',
+  'archived',
+] as const satisfies readonly PipelineCardStatus[]
 
 export type CloseOutcome = (typeof CLOSE_OUTCOMES)[number]
 
 export const CLOSE_OUTCOME_LABELS: Record<CloseOutcome, string> = {
   won: 'Won',
   lost: 'Lost',
+  archived: 'Archived',
+}
+
+export const CARD_STATUS_LABELS: Record<PipelineCardStatus, string> = {
+  open: 'Open',
+  won: 'Won',
+  lost: 'Lost',
+  archived: 'Archived',
 }
 
 export const CARD_STATUS_TONES: Record<PipelineCardStatus, BadgeTone> = {
@@ -88,15 +100,33 @@ export const addPipelineCardSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, 'Give this card a title')
+    .min(1, 'Give this opportunity a title')
     .max(200, 'Keep the title under 200 characters'),
   details: optionalText(4000),
   value_cents: optionalCents,
   owner_id: optionalUuid,
   expected_close_on: optionalDate,
+  organization_name: optionalText(200),
+  next_step: optionalText(300),
 })
 
 export type AddPipelineCardInput = z.infer<typeof addPipelineCardSchema>
+
+/** The opportunity edit page — everything but pipeline, person and status. */
+export const updateOpportunitySchema = z.object({
+  id: uuidField('That opportunity could not be found'),
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Give this opportunity a title')
+    .max(200, 'Keep the title under 200 characters'),
+  details: optionalText(4000),
+  value_cents: optionalCents,
+  owner_id: optionalUuid,
+  expected_close_on: optionalDate,
+  organization_name: optionalText(200),
+  next_step: optionalText(300),
+})
 
 export const moveCardSchema = z.object({
   id: uuidField('That card could not be found'),
@@ -109,17 +139,18 @@ export const closeCardSchema = z.object({
 })
 
 /**
- * Won and lost are separate intents because a submit button carries exactly one
- * name/value pair; a shared `close` intent would need a second control to say
- * which outcome, which is one more thing to keep in sync.
+ * Won, lost and archive are separate intents because a submit button carries
+ * exactly one name/value pair; a shared `close` intent would need a second
+ * control to say which outcome, which is one more thing to keep in sync.
  */
-export const PIPELINE_CARD_INTENTS = ['move', 'close_won', 'close_lost'] as const
+export const PIPELINE_CARD_INTENTS = ['move', 'close_won', 'close_lost', 'archive'] as const
 
 export type PipelineCardIntent = (typeof PIPELINE_CARD_INTENTS)[number]
 
 export const CLOSE_ACTIONS = [
   { intent: 'close_won', outcome: 'won', label: 'Mark won' },
   { intent: 'close_lost', outcome: 'lost', label: 'Mark lost' },
+  { intent: 'archive', outcome: 'archived', label: 'Archive' },
 ] as const satisfies readonly { intent: PipelineCardIntent; outcome: CloseOutcome; label: string }[]
 
 export function closeOutcomeFor(intent: PipelineCardIntent): CloseOutcome | null {
@@ -137,4 +168,90 @@ export function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
     if (typeof key === 'string' && !errors[key]) errors[key] = issue.message
   }
   return errors
+}
+
+/* ------------------------------------------------------------------------- */
+/* Pipeline and stage management                                             */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Slugs come from names: lowercase, runs of anything non-alphanumeric become
+ * one underscore. The database constrains slugs to ^[a-z0-9_-]+$, so the form
+ * must never be able to produce one the insert would reject.
+ */
+export function slugifyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+const pipelineName = z
+  .string()
+  .trim()
+  .min(1, 'Give the pipeline a name')
+  .max(80, 'Keep the name under 80 characters')
+  .refine((value) => slugifyName(value).length > 0, 'The name needs at least one letter or number')
+
+export const createPipelineSchema = z.object({
+  name: pipelineName,
+  description: optionalText(300),
+  tracks_value: z.literal('on').nullish(),
+})
+
+export const updatePipelineSchema = z.object({
+  id: uuidField('That pipeline could not be found'),
+  name: pipelineName,
+  description: optionalText(300),
+  tracks_value: z.literal('on').nullish(),
+})
+
+export const pipelineIdSchema = z.object({
+  id: uuidField('That pipeline could not be found'),
+})
+
+const stageName = z
+  .string()
+  .trim()
+  .min(1, 'Give the stage a name')
+  .max(60, 'Keep the name under 60 characters')
+  .refine((value) => slugifyName(value).length > 0, 'The name needs at least one letter or number')
+
+export const addStageSchema = z.object({
+  pipeline_id: uuidField('That pipeline could not be found'),
+  name: stageName,
+  outcome: z.enum(['none', 'won', 'lost']).catch('none'),
+})
+
+export const renameStageSchema = z.object({
+  id: uuidField('That stage could not be found'),
+  name: stageName,
+})
+
+export const stageIdSchema = z.object({
+  id: uuidField('That stage could not be found'),
+})
+
+/** One dispatch per management surface, mirroring the card-intent pattern. */
+export const PIPELINE_MANAGE_INTENTS = ['update', 'archive', 'restore', 'delete'] as const
+export type PipelineManageIntent = (typeof PIPELINE_MANAGE_INTENTS)[number]
+
+export function parsePipelineManageIntent(
+  value: string | undefined | null,
+): PipelineManageIntent | null {
+  return PIPELINE_MANAGE_INTENTS.find((intent) => intent === value) ?? null
+}
+
+export const STAGE_INTENTS = [
+  'rename',
+  'move_up',
+  'move_down',
+  'archive',
+  'restore',
+  'delete',
+] as const
+export type StageIntent = (typeof STAGE_INTENTS)[number]
+
+export function parseStageIntent(value: string | undefined | null): StageIntent | null {
+  return STAGE_INTENTS.find((intent) => intent === value) ?? null
 }

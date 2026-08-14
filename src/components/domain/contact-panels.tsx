@@ -210,7 +210,7 @@ export function ContactFollowUpsPanel({
 }
 
 /**
- * Rendered only when the viewer holds `can_view_giving`. Row Level Security
+ * Giving context, shared with the whole active team. Row Level Security
  * would return nothing regardless, but an empty panel reads as "they have never
  * given" rather than "you cannot see this", which is a worse lie.
  *

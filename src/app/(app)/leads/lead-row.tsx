@@ -24,6 +24,8 @@ type Panel = 'assign' | 'convert' | null
 export interface LeadRowProps {
   lead: LeadQueueItem
   team: TeamProfile[]
+  /** Viewers read the row; only staff see the triage controls. */
+  canEdit: boolean
   /** The queue's active status filter, so a row can skip repeating it. */
   statusFilter: LeadStatusFilter
   /** Rendered once on the server so the relative age matches on hydration. */
@@ -61,7 +63,15 @@ function utmSummary(utm: Json): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSignal }: LeadRowProps) {
+export function LeadRow({
+  lead,
+  team,
+  canEdit,
+  statusFilter,
+  nowIso,
+  formAction,
+  resetSignal,
+}: LeadRowProps) {
   const [panel, setPanel] = useState<Panel>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -196,7 +206,7 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
               </p>
             ) : null}
 
-            {converted ? null : (
+            {converted || !canEdit ? null : (
               <div className="flex flex-wrap items-center gap-2 pt-1.5">
                 <Button
                   type="button"

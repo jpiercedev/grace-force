@@ -38,11 +38,21 @@ export interface PipelineSummary {
   open_value_cents: number | null
 }
 
-const STAGE_FIELDS = 'id, pipeline_id, slug, name, description, position, is_won, is_lost, color'
+const STAGE_FIELDS =
+  'id, pipeline_id, slug, name, description, position, is_won, is_lost, color, archived_at'
 
 type StageRow = Pick<
   PipelineStageRow,
-  'id' | 'pipeline_id' | 'slug' | 'name' | 'description' | 'position' | 'is_won' | 'is_lost' | 'color'
+  | 'id'
+  | 'pipeline_id'
+  | 'slug'
+  | 'name'
+  | 'description'
+  | 'position'
+  | 'is_won'
+  | 'is_lost'
+  | 'color'
+  | 'archived_at'
 >
 
 type OpenCardTotals = { pipeline_id: string; stage_id: string; value_cents: number | null }
@@ -77,7 +87,11 @@ export async function listPipelineSummaries(): Promise<PipelineSummary[]> {
         .eq('is_active', true)
         .order('sort_order', { ascending: true })
         .order('name', { ascending: true }),
-      supabase.from('pipeline_stages').select(STAGE_FIELDS).order('position', { ascending: true }),
+      supabase
+        .from('pipeline_stages')
+        .select(STAGE_FIELDS)
+        .is('archived_at', null)
+        .order('position', { ascending: true }),
     ])
 
   if (pipelineError) throw pipelineError
@@ -152,6 +166,8 @@ export interface BoardCard {
   status: PipelineCardStatus
   owner_id: string | null
   expected_close_on: string | null
+  organization_name: string | null
+  next_step: string | null
   position: number
   created_at: string
   contact: ContactSummary | null
@@ -175,7 +191,7 @@ export interface PipelineBoard {
 // the embed names the constraint it means.
 const BOARD_CARD_SELECT = `
   id, pipeline_id, stage_id, contact_id, title, details, value_cents, currency,
-  status, owner_id, expected_close_on, position, created_at,
+  status, owner_id, expected_close_on, organization_name, next_step, position, created_at,
   contact:contacts!inner(
     id, full_name, preferred_name, first_name, last_name, organization_name, email
   ),
@@ -199,6 +215,7 @@ export async function getPipelineBoard(slug: string): Promise<PipelineBoard | nu
       .from('pipeline_stages')
       .select(STAGE_FIELDS)
       .eq('pipeline_id', pipeline.id)
+      .is('archived_at', null)
       .order('position', { ascending: true }),
     supabase
       .from('pipeline_cards')
@@ -282,4 +299,347 @@ export async function searchContactsForPipeline(
   const taken = new Set((openCards ?? []).map((card) => card.contact_id))
 
   return contacts.map((contact) => ({ ...contact, has_open_card: taken.has(contact.id) }))
+}
+
+/* ------------------------------------------------------------------------- */
+/* Sales                                                                     */
+/* ------------------------------------------------------------------------- */
+
+/** One opportunity row for the Sales list — the card plus everything a table
+ *  column needs, so the page renders from a single query. */
+export interface OpportunityListItem extends BoardCard {
+  closed_at: string | null
+  close_reason: string | null
+  updated_at: string
+  pipeline: { id: string; slug: string; name: string; tracks_value: boolean } | null
+  stage: { id: string; name: string; color: string; is_won: boolean; is_lost: boolean } | null
+  creator: TeamProfile | null
+}
+
+const OPPORTUNITY_SELECT = `
+  id, pipeline_id, stage_id, contact_id, title, details, value_cents, currency,
+  status, owner_id, expected_close_on, organization_name, next_step, position,
+  created_at, closed_at, close_reason, updated_at,
+  pipeline:pipelines!inner(id, slug, name, tracks_value),
+  stage:pipeline_stages!pipeline_cards_stage_id_pipeline_id_fkey(id, name, color, is_won, is_lost),
+  contact:contacts!inner(
+    id, full_name, preferred_name, first_name, last_name, organization_name, email
+  ),
+  owner:profiles!pipeline_cards_owner_id_fkey(id, full_name, email),
+  creator:profiles!pipeline_cards_created_by_fkey(id, full_name, email)
+`
+
+export interface OpportunityFilters {
+  pipelineId?: string
+  stageId?: string
+  /** A profile id, or the literal 'unassigned'. */
+  ownerId?: string
+  status?: PipelineCardStatus | 'all'
+  /** Expected-close window, days from now; 0 means "already overdue". */
+  closeWithinDays?: number
+  /** Matches title, organization, or the person's name/email. */
+  q?: string
+}
+
+export const OPPORTUNITY_LIST_LIMIT = 100
+
+/**
+ * The filterable opportunity list behind /sales/opportunities.
+ *
+ * The person-name half of `q` cannot ride the same OR as the card columns —
+ * PostgREST's or= filter only sees the parent row — so matching contacts are
+ * resolved first and their ids joined into the OR.
+ */
+export async function listOpportunities(
+  filters: OpportunityFilters,
+  now = new Date(),
+): Promise<OpportunityListItem[]> {
+  const supabase = await createClient()
+
+  let contactIds: string[] | null = null
+  const cleaned = filters.q ? sanitizeSearchTerm(filters.q) : ''
+  if (cleaned.length >= 2) {
+    const { data: matches, error } = await supabase
+      .from('contacts')
+      .select('id')
+      .is('deleted_at', null)
+      .or(`full_name.ilike.%${cleaned}%,email.ilike.%${cleaned}%,organization_name.ilike.%${cleaned}%`)
+      .limit(200)
+    if (error) throw error
+    contactIds = (matches ?? []).map((row) => row.id)
+  }
+
+  let query = supabase
+    .from('pipeline_cards')
+    .select(OPPORTUNITY_SELECT)
+    .is('contact.deleted_at', null)
+    .limit(OPPORTUNITY_LIST_LIMIT)
+
+  const status = filters.status ?? 'open'
+  if (status !== 'all') query = query.eq('status', status)
+  if (filters.pipelineId) query = query.eq('pipeline_id', filters.pipelineId)
+  if (filters.stageId) query = query.eq('stage_id', filters.stageId)
+  if (filters.ownerId === 'unassigned') query = query.is('owner_id', null)
+  else if (filters.ownerId) query = query.eq('owner_id', filters.ownerId)
+
+  if (filters.closeWithinDays !== undefined) {
+    const today = now.toISOString().slice(0, 10)
+    if (filters.closeWithinDays === 0) {
+      query = query.lt('expected_close_on', today)
+    } else {
+      const until = new Date(now.getTime() + filters.closeWithinDays * 86_400_000)
+      query = query
+        .gte('expected_close_on', today)
+        .lte('expected_close_on', until.toISOString().slice(0, 10))
+    }
+  }
+
+  if (cleaned.length >= 2) {
+    const parts = [`title.ilike.%${cleaned}%`, `organization_name.ilike.%${cleaned}%`]
+    if (contactIds && contactIds.length > 0) {
+      parts.push(`contact_id.in.(${contactIds.join(',')})`)
+    }
+    query = query.or(parts.join(','))
+  }
+
+  // Open work sorts by the nearest expected close; closed work by recency.
+  query =
+    status === 'open'
+      ? query
+          .order('expected_close_on', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: true })
+      : query.order('closed_at', { ascending: false, nullsFirst: false })
+
+  const { data, error } = await query.overrideTypes<OpportunityListItem[], { merge: false }>()
+  if (error) throw error
+  return data ?? []
+}
+
+/** The figures band and closing-soon list on the Sales overview. */
+export interface SalesOverview {
+  open_count: number
+  open_value_cents: number
+  closing_soon: OpportunityListItem[]
+  won_this_quarter: number
+}
+
+export async function getSalesOverview(now = new Date()): Promise<SalesOverview> {
+  const supabase = await createClient()
+  const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1)
+
+  const [openResult, closingSoon, wonResult] = await Promise.all([
+    supabase
+      .from('pipeline_cards')
+      .select('value_cents, pipeline:pipelines!inner(tracks_value), contact:contacts!inner(id)')
+      .eq('status', 'open')
+      .is('contact.deleted_at', null)
+      .overrideTypes<
+        { value_cents: number | null; pipeline: { tracks_value: boolean } | null }[],
+        { merge: false }
+      >(),
+    listOpportunities({ status: 'open', closeWithinDays: 30 }, now),
+    supabase
+      .from('pipeline_cards')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'won')
+      .gte('closed_at', quarterStart.toISOString()),
+  ])
+
+  if (openResult.error) throw openResult.error
+  if (wonResult.error) throw wonResult.error
+
+  const open = openResult.data ?? []
+  return {
+    open_count: open.length,
+    open_value_cents: open.reduce(
+      (total, card) => total + (card.pipeline?.tracks_value ? (card.value_cents ?? 0) : 0),
+      0,
+    ),
+    closing_soon: closingSoon.slice(0, 6),
+    won_this_quarter: wonResult.count ?? 0,
+  }
+}
+
+/** A person's opportunities, open first, for the record's Sales section. */
+export async function getContactOpportunities(contactId: string): Promise<OpportunityListItem[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('pipeline_cards')
+    .select(OPPORTUNITY_SELECT)
+    .eq('contact_id', contactId)
+    .order('status', { ascending: true })
+    .order('created_at', { ascending: false })
+    .overrideTypes<OpportunityListItem[], { merge: false }>()
+
+  if (error) throw error
+  // Postgres enum order is declaration order (open < won < lost < archived),
+  // which happens to be exactly the display order wanted here.
+  return data ?? []
+}
+
+/** One opportunity with its joins, for the detail/edit page. */
+export async function getOpportunity(id: string): Promise<OpportunityListItem | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('pipeline_cards')
+    .select(OPPORTUNITY_SELECT)
+    .eq('id', id)
+    .maybeSingle()
+    .overrideTypes<OpportunityListItem, { merge: false }>()
+
+  if (error) throw error
+  return data
+}
+
+/* ------------------------------------------------------------------------- */
+/* Pipeline management                                                       */
+/* ------------------------------------------------------------------------- */
+
+export interface ManagedPipeline {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  tracks_value: boolean
+  is_default: boolean
+  is_active: boolean
+  sort_order: number
+  stage_count: number
+  open_count: number
+  /** Any card at all — the delete guard triggers on these, not just open ones. */
+  card_count: number
+}
+
+/** Every pipeline, live and archived alike, with the counts the editor needs. */
+export async function listPipelinesForManage(): Promise<ManagedPipeline[]> {
+  const supabase = await createClient()
+
+  const [pipelinesResult, stagesResult, cardsResult] = await Promise.all([
+    supabase
+      .from('pipelines')
+      .select('id, slug, name, description, tracks_value, is_default, is_active, sort_order')
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
+    supabase.from('pipeline_stages').select('id, pipeline_id').is('archived_at', null),
+    supabase.from('pipeline_cards').select('id, pipeline_id, status'),
+  ])
+
+  if (pipelinesResult.error) throw pipelinesResult.error
+  if (stagesResult.error) throw stagesResult.error
+  if (cardsResult.error) throw cardsResult.error
+
+  const stageCounts = new Map<string, number>()
+  for (const stage of stagesResult.data ?? []) {
+    stageCounts.set(stage.pipeline_id, (stageCounts.get(stage.pipeline_id) ?? 0) + 1)
+  }
+  const cardCounts = new Map<string, { open: number; total: number }>()
+  for (const card of cardsResult.data ?? []) {
+    const counts = cardCounts.get(card.pipeline_id) ?? { open: 0, total: 0 }
+    counts.total += 1
+    if (card.status === 'open') counts.open += 1
+    cardCounts.set(card.pipeline_id, counts)
+  }
+
+  return (pipelinesResult.data ?? []).map((pipeline) => ({
+    ...pipeline,
+    stage_count: stageCounts.get(pipeline.id) ?? 0,
+    open_count: cardCounts.get(pipeline.id)?.open ?? 0,
+    card_count: cardCounts.get(pipeline.id)?.total ?? 0,
+  }))
+}
+
+export interface ManagedStage extends StageRow {
+  open_count: number
+  card_count: number
+}
+
+export interface PipelineForManage {
+  id: string
+  slug: string
+  name: string
+  description: string | null
+  tracks_value: boolean
+  is_default: boolean
+  is_active: boolean
+  stages: ManagedStage[]
+  archived_stages: ManagedStage[]
+  card_count: number
+}
+
+export async function getPipelineForManage(slug: string): Promise<PipelineForManage | null> {
+  const supabase = await createClient()
+
+  const { data: pipeline, error: pipelineError } = await supabase
+    .from('pipelines')
+    .select('id, slug, name, description, tracks_value, is_default, is_active')
+    .eq('slug', slug)
+    .maybeSingle()
+
+  if (pipelineError) throw pipelineError
+  if (!pipeline) return null
+
+  const [stagesResult, cardsResult] = await Promise.all([
+    supabase
+      .from('pipeline_stages')
+      .select(STAGE_FIELDS)
+      .eq('pipeline_id', pipeline.id)
+      .order('position', { ascending: true }),
+    supabase.from('pipeline_cards').select('id, stage_id, status').eq('pipeline_id', pipeline.id),
+  ])
+
+  if (stagesResult.error) throw stagesResult.error
+  if (cardsResult.error) throw cardsResult.error
+
+  const cards = cardsResult.data ?? []
+  const counts = new Map<string, { open: number; total: number }>()
+  for (const card of cards) {
+    const entry = counts.get(card.stage_id) ?? { open: 0, total: 0 }
+    entry.total += 1
+    if (card.status === 'open') entry.open += 1
+    counts.set(card.stage_id, entry)
+  }
+
+  const withCounts = (stagesResult.data ?? []).map((stage) => ({
+    ...stage,
+    open_count: counts.get(stage.id)?.open ?? 0,
+    card_count: counts.get(stage.id)?.total ?? 0,
+  }))
+
+  return {
+    ...pipeline,
+    stages: withCounts.filter((stage) => stage.archived_at === null),
+    archived_stages: withCounts.filter((stage) => stage.archived_at !== null),
+    card_count: cards.length,
+  }
+}
+
+/** Active pipelines with their live stages — pickers on the create forms. */
+export interface PipelineOption {
+  id: string
+  slug: string
+  name: string
+  tracks_value: boolean
+  has_stages: boolean
+}
+
+export async function listPipelineOptions(): Promise<PipelineOption[]> {
+  const supabase = await createClient()
+  const [pipelinesResult, stagesResult] = await Promise.all([
+    supabase
+      .from('pipelines')
+      .select('id, slug, name, tracks_value')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
+    supabase.from('pipeline_stages').select('pipeline_id').is('archived_at', null),
+  ])
+
+  if (pipelinesResult.error) throw pipelinesResult.error
+  if (stagesResult.error) throw stagesResult.error
+
+  const withStages = new Set((stagesResult.data ?? []).map((stage) => stage.pipeline_id))
+  return (pipelinesResult.data ?? []).map((pipeline) => ({
+    ...pipeline,
+    has_stages: withStages.has(pipeline.id),
+  }))
 }
