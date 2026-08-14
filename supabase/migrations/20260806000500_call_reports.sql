@@ -34,7 +34,7 @@ create table if not exists public.call_reports (
   -- its own policies and its own UI for a field that is edited as one control
   -- and read as one line. Ids that no longer resolve to a profile are simply
   -- not rendered, which is the same outcome an `on delete set null` would give.
-  author_id          uuid references public.profiles (id) on delete set null,
+  author_id          uuid default auth.uid() references public.profiles (id) on delete set null,
   staff_attendee_ids uuid[] not null default '{}',
   external_attendees text,
 
@@ -123,6 +123,9 @@ begin
 end;
 $$;
 
+revoke all on function public.log_call_report_activity()
+  from public, anon, authenticated;
+
 create trigger call_reports_log_activity
   after insert or update of status on public.call_reports
   for each row execute function public.log_call_report_activity();
@@ -148,12 +151,15 @@ create policy call_reports_select on public.call_reports
 
 create policy call_reports_insert on public.call_reports
   for insert to authenticated
-  with check (public.can_write());
+  with check (public.can_write() and author_id = (select auth.uid()));
 
 create policy call_reports_update on public.call_reports
   for update to authenticated
   using (public.can_write() and (author_id = (select auth.uid()) or public.is_admin()))
-  with check (public.can_write());
+  with check (
+    public.can_write()
+    and (author_id = (select auth.uid()) or public.is_admin())
+  );
 
 create policy call_reports_delete on public.call_reports
   for delete to authenticated

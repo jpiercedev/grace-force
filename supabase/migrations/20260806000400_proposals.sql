@@ -90,6 +90,28 @@ alter table public.activities
 create index if not exists activities_proposal_idx
   on public.activities (proposal_id) where proposal_id is not null;
 
+-- The ordinary timeline is visible to every active team member, but proposal
+-- activities carry planned-gift titles and amounts. Gift activities already
+-- carry the same class of sensitive data in metadata, so keep all dedicated
+-- giving events behind the same capability as the source tables. This policy
+-- protects historical rows as well as everything the trigger writes below.
+drop policy if exists activities_select on public.activities;
+
+create policy activities_select on public.activities
+  for select to authenticated
+  using (
+    public.is_active_user()
+    and (
+      public.can_view_giving()
+      or type not in (
+        'gift_recorded',
+        'proposal_created',
+        'proposal_stage_changed',
+        'proposal_closed'
+      )
+    )
+  );
+
 /**
  * Proposals post their own history, so a proposal that moves stage is visible
  * on the donor's timeline without any caller remembering to log it — the same
@@ -143,6 +165,9 @@ begin
   return null;
 end;
 $$;
+
+revoke all on function public.log_proposal_activity()
+  from public, anon, authenticated;
 
 create trigger proposals_log_activity
   after insert or update of status on public.proposals

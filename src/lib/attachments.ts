@@ -30,29 +30,55 @@ export const MAX_FILE_BYTES = 20 * 1024 * 1024
 export const MAX_TOTAL_BYTES = 20 * 1024 * 1024
 
 /**
- * Extension allowlist, deliberately not a MIME allowlist.
+ * Extension allowlist and the canonical MIME type stored for each extension.
  *
  * Browsers report MIME types inconsistently — an empty string, or
  * `application/octet-stream`, is common for perfectly ordinary files — so
  * gating on MIME rejects real documents and accepts nothing extra. The
  * extension comes from the filename, which is what gets stored and shown, so
- * it is the honest thing to check. MIME is recorded as metadata.
+ * it is the honest thing to check. The browser-provided MIME type is not
+ * trusted as metadata either: an allowed extension determines the MIME type
+ * used for both Storage and the attachment row.
  *
  * Archives are absent on purpose: a zip is an envelope, and allowing one means
  * allowing whatever is inside it. So are `.svg` and `.html`, which can carry
  * script — the bucket is private and downloads are forced rather than
  * rendered, but there is no reason to hold the risk at all.
  */
-export const ALLOWED_EXTENSIONS = [
+export const MIME_TYPE_BY_EXTENSION = {
   // Documents
-  'pdf', 'doc', 'docx', 'rtf', 'txt', 'md', 'pages',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  rtf: 'application/rtf',
+  txt: 'text/plain',
+  md: 'text/markdown',
+  pages: 'application/vnd.apple.pages',
   // Spreadsheets
-  'xls', 'xlsx', 'csv', 'numbers',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  csv: 'text/csv',
+  numbers: 'application/vnd.apple.numbers',
   // Presentations
-  'ppt', 'pptx', 'key',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  key: 'application/vnd.apple.keynote',
   // Images and scans
-  'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'tif', 'tiff', 'bmp',
-] as const
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  tif: 'image/tiff',
+  tiff: 'image/tiff',
+  bmp: 'image/bmp',
+} as const
+
+export type AllowedExtension = keyof typeof MIME_TYPE_BY_EXTENSION
+
+export const ALLOWED_EXTENSIONS = Object.keys(MIME_TYPE_BY_EXTENSION) as AllowedExtension[]
 
 /** For the file input's `accept`, so the picker offers the right files first. */
 export const ACCEPT_ATTRIBUTE = ALLOWED_EXTENSIONS.map((ext) => `.${ext}`).join(',')
@@ -62,8 +88,13 @@ export function fileExtension(fileName: string): string {
   return dot === -1 ? '' : fileName.slice(dot + 1).toLowerCase()
 }
 
+export function canonicalMimeType(fileName: string): string | null {
+  const extension = fileExtension(fileName) as AllowedExtension
+  return MIME_TYPE_BY_EXTENSION[extension] ?? null
+}
+
 export function isAllowedFileName(fileName: string): boolean {
-  return (ALLOWED_EXTENSIONS as readonly string[]).includes(fileExtension(fileName))
+  return canonicalMimeType(fileName) !== null
 }
 
 export function formatBytes(bytes: number): string {

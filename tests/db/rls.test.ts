@@ -248,6 +248,23 @@ describe('row level security', () => {
       expect(rows.length).toBeGreaterThan(0)
     })
 
+    it('applies the giving gate to gift activity metadata too', async () => {
+      const blocked = await db.asUser(staff.id, (sql) =>
+        sql.query<{ metadata: Record<string, unknown> }>(
+          `select metadata from public.activities where type = 'gift_recorded'`,
+        ),
+      )
+      expect(blocked.rows).toEqual([])
+
+      const allowed = await db.asUser(giftViewer.id, (sql) =>
+        sql.query<{ metadata: Record<string, unknown> }>(
+          `select metadata from public.activities where type = 'gift_recorded'`,
+        ),
+      )
+      expect(allowed.rows).toHaveLength(1)
+      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000)
+    })
+
     it('applies the same gate to the giving summary view', async () => {
       // security_invoker=on means the view cannot become a side door.
       const blocked = await db.asUser(staff.id, (sql) =>

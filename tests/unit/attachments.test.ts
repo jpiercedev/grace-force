@@ -92,6 +92,7 @@ function makeClient() {
       },
     },
     from(table: string) {
+      let operation: 'select' | 'delete' | null = null
       const builder = {
         async insert(payload: Record<string, unknown>) {
           tableCalls.push({ op: 'insert', table, payload })
@@ -101,17 +102,22 @@ function makeClient() {
         select() {
           tableCalls.push({ op: 'select', table })
           sequence.push('table:select')
+          if (operation !== 'delete') operation = 'select'
           return builder
         },
         delete() {
           tableCalls.push({ op: 'delete', table })
           sequence.push('table:delete')
+          operation = 'delete'
           return builder
         },
         eq() {
           return builder
         },
         async maybeSingle() {
+          if (operation === 'delete') {
+            return { data: fail.del ? null : existingRow, error: fail.del ?? null }
+          }
           return { data: existingRow, error: null }
         },
         // `delete().eq()` is awaited directly rather than via maybeSingle.
@@ -127,6 +133,7 @@ function makeClient() {
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => makeClient() }))
 
 const {
+  canonicalMimeType,
   MAX_FILE_BYTES,
   MAX_TOTAL_BYTES,
   isAllowedFileName,
@@ -195,6 +202,14 @@ describe('what may be attached', () => {
 
   it('refuses a file with no extension at all', () => {
     expect(isAllowedFileName('README')).toBe(false)
+  })
+
+  it('derives canonical MIME types from extensions rather than browser metadata', () => {
+    expect(canonicalMimeType('scan.JPEG')).toBe('image/jpeg')
+    expect(canonicalMimeType('brief.docx')).toBe(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    expect(canonicalMimeType('payload.exe')).toBeNull()
   })
 
   it('accepts a file of exactly the limit, and refuses one byte more', () => {
@@ -284,6 +299,21 @@ describe('uploadAttachment', () => {
     )
     const insert = tableCalls.find((call) => call.op === 'insert')
     expect(insert?.payload).toMatchObject({ contact_id: CONTACT, call_report_id: ATTACHMENT })
+  })
+
+  it('ignores a misleading browser MIME type for Storage and metadata', async () => {
+    await uploadAttachment({}, uploadForm([file('scan.jpeg', 512, 'application/pdf')]))
+
+    expect(storageCalls.find((call) => call.op === 'upload')?.contentType).toBe('image/jpeg')
+    expect(tableCalls.find((call) => call.op === 'insert')?.payload?.mime_type).toBe('image/jpeg')
+  })
+
+  it('uses the canonical MIME type when the browser supplies none', async () => {
+    const expected = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    await uploadAttachment({}, uploadForm([file('brief.docx', 512, '')]))
+
+    expect(storageCalls.find((call) => call.op === 'upload')?.contentType).toBe(expected)
+    expect(tableCalls.find((call) => call.op === 'insert')?.payload?.mime_type).toBe(expected)
   })
 
   it('refuses an oversized file without touching storage', async () => {
@@ -406,10 +436,11 @@ describe('removeAttachment', () => {
     expect(storageCalls.some((call) => call.op === 'remove')).toBe(false)
   })
 
-  it('handles a row that has already been deleted by someone else', async () => {
+  it('does not report success when no row was deleted', async () => {
     existingRow = null
     const state = await removeAttachment({}, removeForm())
-    expect(state.ok).toBe(true)
+    expect(state.ok).toBeUndefined()
+    expect(state.error).toMatch(/no longer exist|permission/)
     expect(storageCalls.some((call) => call.op === 'remove')).toBe(false)
   })
 })

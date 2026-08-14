@@ -103,9 +103,7 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
 
   return (
     <li className={cn('px-5 py-5', settled && 'bg-slate-50/60')}>
-      <form action={formAction} className="space-y-3">
-        <input type="hidden" name="id" value={lead.id} />
-
+      <div className="space-y-3">
         <div className="flex gap-3.5 sm:gap-4">
           <Avatar
             name={name}
@@ -211,10 +209,14 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                   <Subject name={name} />
                 </Button>
 
-                <SubmitButton name="intent" value="assign_to_me" variant="secondary" size="sm">
-                  Assign to me
-                  <Subject name={name} />
-                </SubmitButton>
+                <form action={formAction} className="flex">
+                  <input type="hidden" name="id" value={lead.id} />
+                  <input type="hidden" name="intent" value="assign_to_me" />
+                  <SubmitButton variant="secondary" size="sm">
+                    Assign to me
+                    <Subject name={name} />
+                  </SubmitButton>
+                </form>
 
                 <Button
                   type="button"
@@ -229,28 +231,44 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                 </Button>
 
                 {lead.status === 'new' ? (
-                  <SubmitButton name="intent" value="mark_in_review" variant="secondary" size="sm">
-                    In review
-                    <Subject name={name} />
-                  </SubmitButton>
+                  <form action={formAction} className="flex">
+                    <input type="hidden" name="id" value={lead.id} />
+                    <input type="hidden" name="intent" value="mark_in_review" />
+                    <SubmitButton variant="secondary" size="sm">
+                      In review
+                      <Subject name={name} />
+                    </SubmitButton>
+                  </form>
                 ) : null}
 
                 {lead.status === 'spam' || lead.status === 'archived' ? (
-                  <SubmitButton name="intent" value="reopen" variant="secondary" size="sm">
-                    Reopen
-                    <Subject name={name} />
-                  </SubmitButton>
+                  <form action={formAction} className="flex">
+                    <input type="hidden" name="id" value={lead.id} />
+                    <input type="hidden" name="intent" value="reopen" />
+                    <SubmitButton variant="secondary" size="sm">
+                      Reopen
+                      <Subject name={name} />
+                    </SubmitButton>
+                  </form>
                 ) : (
-                  <span className="flex items-center gap-1 sm:ml-auto">
-                    <SubmitButton name="intent" value="mark_spam" variant="ghost" size="sm">
-                      Spam
-                      <Subject name={name} />
-                    </SubmitButton>
-                    <SubmitButton name="intent" value="archive" variant="ghost" size="sm">
-                      Archive
-                      <Subject name={name} />
-                    </SubmitButton>
-                  </span>
+                  <div className="flex items-center gap-1 sm:ml-auto">
+                    <form action={formAction} className="flex">
+                      <input type="hidden" name="id" value={lead.id} />
+                      <input type="hidden" name="intent" value="mark_spam" />
+                      <SubmitButton variant="ghost" size="sm">
+                        Spam
+                        <Subject name={name} />
+                      </SubmitButton>
+                    </form>
+                    <form action={formAction} className="flex">
+                      <input type="hidden" name="id" value={lead.id} />
+                      <input type="hidden" name="intent" value="archive" />
+                      <SubmitButton variant="ghost" size="sm">
+                        Archive
+                        <Subject name={name} />
+                      </SubmitButton>
+                    </form>
+                  </div>
                 )}
               </div>
             )}
@@ -264,7 +282,9 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
             className="space-y-3 rounded-lg bg-slate-100/80 p-4 sm:ml-[3.75rem]"
           >
             {panel === 'assign' ? (
-              <>
+              <form action={formAction} className="space-y-3">
+                <input type="hidden" name="id" value={lead.id} />
+                <input type="hidden" name="intent" value="assign" />
                 <Field label="Assign to" className="max-w-sm">
                   {(props) => (
                     <Select {...props} name="assigned_to" defaultValue={lead.assigned_to ?? ''}>
@@ -278,7 +298,7 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="assign" size="sm">
+                  <SubmitButton size="sm">
                     Save assignee
                     <Subject name={name} />
                   </SubmitButton>
@@ -286,11 +306,13 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                     Discard
                   </Button>
                 </div>
-              </>
+              </form>
             ) : null}
 
             {panel === 'convert' ? (
-              <>
+              <form action={formAction} className="space-y-3">
+                <input type="hidden" name="id" value={lead.id} />
+                <input type="hidden" name="intent" value="convert" />
                 <p className="text-sm text-slate-700">
                   Convert {name} into a contact? An existing contact with the same email is
                   reused rather than duplicated
@@ -298,7 +320,7 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                   You will be taken to the contact.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="convert" size="sm">
+                  <SubmitButton size="sm">
                     Convert to contact
                     <Subject name={name} />
                   </SubmitButton>
@@ -306,11 +328,11 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
                     Not yet
                   </Button>
                 </div>
-              </>
+              </form>
             ) : null}
           </div>
         ) : null}
-      </form>
+      </div>
     </li>
   )
 }

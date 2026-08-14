@@ -7,7 +7,7 @@ import { getRelatedPeople, relationshipExists } from '@/lib/queries/relationship
 import { parseRelationshipKind } from '@/lib/relationships'
 import { createClient } from '@/lib/supabase/server'
 import { ATTACHMENTS_BUCKET } from '@/lib/queries/attachments'
-import { rejectionReason, storagePathFor } from '@/lib/attachments'
+import { canonicalMimeType, rejectionReason, storagePathFor } from '@/lib/attachments'
 import { pluralize } from '@/lib/utils'
 import type { ContactActionState } from '@/lib/validation/contact'
 import {
@@ -440,10 +440,17 @@ export async function uploadAttachment(
 
   for (const file of present) {
     const path = storagePathFor(parsed.data.contact_id, file.name, crypto.randomUUID())
+    const mimeType = canonicalMimeType(file.name)
+    // `rejectionReason` has already refused every extension outside the same
+    // canonical map. Keep this guard here so a future rules change cannot
+    // accidentally make the upload fall back to client-controlled metadata.
+    if (!mimeType) {
+      return { error: `Could not attach “${file.name}”: its file type is not supported.` }
+    }
 
     const { error: uploadError } = await supabase.storage
       .from(ATTACHMENTS_BUCKET)
-      .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false })
+      .upload(path, file, { contentType: mimeType, upsert: false })
     if (uploadError) {
       return { error: partialFailure(attached, file.name, uploadError.message) }
     }
@@ -454,7 +461,7 @@ export async function uploadAttachment(
       proposal_id: parsed.data.proposal_id ?? null,
       storage_path: path,
       file_name: file.name.slice(0, 200),
-      mime_type: file.type || null,
+      mime_type: mimeType,
       size_bytes: file.size,
       uploaded_by: profile.id,
     })
@@ -507,27 +514,28 @@ export async function removeAttachment(
   if (!parsed.success) return invalid(parsed.error)
 
   const supabase = await createClient()
-  const { data: row } = await supabase
-    .from('attachments')
-    .select('storage_path, call_report_id, proposal_id')
-    .eq('id', parsed.data.attachment_id)
-    .maybeSingle()
-
-  const { error } = await supabase
+  const { data: row, error } = await supabase
     .from('attachments')
     .delete()
     .eq('id', parsed.data.attachment_id)
+    .select('storage_path, call_report_id, proposal_id')
+    .maybeSingle()
   if (error) return { error: writeFailed(error, 'Could not remove that file.') }
+  if (!row) {
+    return {
+      error: 'Could not remove that file. It may no longer exist, or you may not have permission.',
+    }
+  }
 
   // Row first, bytes second: if the object removal fails the record is already
   // gone, which is the safe direction — an unreferenced object is tidy-up, a
   // row pointing at deleted bytes is a broken download.
-  if (row?.storage_path) {
+  if (row.storage_path) {
     await supabase.storage.from(ATTACHMENTS_BUCKET).remove([row.storage_path])
   }
 
   revalidatePath(contactPath(parsed.data.contact_id))
-  if (row?.call_report_id) revalidatePath(`/reports/${row.call_report_id}`)
-  if (row?.proposal_id) revalidatePath(`/proposals/${row.proposal_id}`)
+  if (row.call_report_id) revalidatePath(`/reports/${row.call_report_id}`)
+  if (row.proposal_id) revalidatePath(`/proposals/${row.proposal_id}`)
   return { ok: true }
 }

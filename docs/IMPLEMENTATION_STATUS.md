@@ -3,15 +3,15 @@
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-13
+**Last updated:** 2026-08-14
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | HubSpot-style visual redesign complete on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`, the verified simplification state); awaiting review/merge |
-| Overall status | Feature-complete. Same 24 migrations and 45 routes as `4ecde3d` — this pass changed presentation only: no schema, env, route or permission changes |
-| Tests | 570 Vitest (30 files) + 28 browser `@public` passing; 8 `@authed` skipped (egress) |
+| Current phase | Production-ready HubSpot-style redesign and rollout hardening on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`); production rollout in progress |
+| Overall status | Feature-complete. 24 migrations and 45 routes; pending migrations, attachment actions, and multi-action forms hardened before first production application |
+| Tests | 587 Vitest (31 files) + 28 browser `@public` passing; production `@authed` pass follows deployment |
 | Build | `next build` succeeds — 45 routes |
 | Deployment | `grace-force` on Vercel, production target, git-connected. **Production still runs the 20-table schema; see `docs/ROLLOUT.md` for the ordered plan** |
 
@@ -67,16 +67,41 @@ clamp to two lines behind a native show-more, system entries stay a register
 quieter. Timeline filters keep the active tab across GET submits via hidden
 fields (a GET submit replaces the action's query string).
 
-**Verification.** 570 Vitest + 28 `@public` Playwright green; typecheck,
+**Verification.** 587 Vitest + 28 `@public` Playwright green; typecheck,
 lint and `next build` clean. Visually QA'd via screenshots: public pages
 against the real built app; the donor record (both tabs) and People index
 via a static-render harness (mocked query layer, real components + built
 CSS) at 1440–1600px. axe issues: none observed on public pages; the authed
 axe pass should be repeated against a live backend when available.
 
-No schema, routes, queries, actions, permissions or env changed. The
-production rollout (the 8 pending migrations + this build) is
-`docs/ROLLOUT.md`.
+The redesign commits themselves did not change schema, routes, queries,
+actions, permissions or environment variables. The release hardening below
+does intentionally tighten pending policies and repair broken action form
+mechanics. The ordered rollout is `docs/ROLLOUT.md`.
+
+## Pre-production hardening (2026-08-14)
+
+The release audit found and fixed issues that were not safe to ship with the
+otherwise complete redesign:
+
+- gift and planned-gift activity metadata now follows the same giving-access
+  gate as its source tables, closing an existing export/timeline side channel;
+- late `SECURITY DEFINER` trigger functions are not callable as RPCs, and new
+  functions no longer inherit `PUBLIC EXECUTE` by default;
+- call-report authors and attachment uploaders default to the signed-in user
+  and cannot be spoofed or reassigned by ordinary staff;
+- attachment metadata is immutable, Storage objects enforce a 20 MiB ceiling,
+  a strict canonical MIME/extension allowlist, and uploader/admin ownership for
+  deletion; the app derives MIME from the accepted extension rather than
+  browser-controlled metadata;
+- attachment deletion now requires an actually returned deleted row, so an RLS
+  zero-row denial cannot report success or continue to byte deletion;
+- follow-up, pipeline, and lead actions each submit a dedicated form with
+  hidden `id` and `intent` fields, fixing the real-browser server-action defect.
+
+Regression coverage was added at the database, action, and UI layers. The full
+release gate is 587 Vitest tests, 28 public Playwright tests, lint, typecheck,
+and a 45-route production build.
 
 ## The simplification redesign (2026-08-12)
 
@@ -224,9 +249,9 @@ PDF is ideal).
 
 ## Next task
 
-Review of the redesign, then — with explicit approval — the production
-rollout in `docs/ROLLOUT.md`: apply the eight `20260806…` migrations, verify,
-deploy this build, run the smoke/authed/attachment passes. The manual
+Complete the authorized production rollout in `docs/ROLLOUT.md`: reconcile
+the two historical migration versions, apply the eight `20260806…` migrations,
+verify, deploy this build, then run the smoke/authed/attachment passes. The manual
 attachment script below and the `@authed` browser suite both run after that
 deploy, from a network with normal egress:
 
@@ -250,7 +275,7 @@ split-panel brand login. No routes, queries, actions, permissions or schema
 changed; axe-core reports zero WCAG 2.1 AA violations across all 27 routes;
 unit/UI suites and the public browser suite pass.
 
-**Known pre-existing fault (production-affecting, found during browser QA):**
+**Pre-existing fault fixed before this rollout (found during browser QA):**
 multi-intent server-action forms lose the submit button's `name`/`value` in
 real browsers — the POST body carries the action ref and hidden fields but no
 `intent`, so handlers reply "That action is not available." This hits every
@@ -258,11 +283,11 @@ multi-button form (follow-up Complete/snooze/Reassign/Cancel, pipeline
 Move/Close, lead triage, engagement Edit/End). Verified on the pre-polish
 baseline commit (42e6fb7) in dev AND production builds via the local harness
 (next 15.5.22 / react 19.2.8), so it predates all visual work; the jsdom
-suite passes because the test renderer injects the submitter, and the hosted
-`@authed` browser suite has never run in CI sandboxes (skipped — no egress).
-Not fixed here: repairing it means changing form mechanics (per-button bound
-`formAction`s or hidden-field dispatch), which is behavior work outside a
-visual branch. It should be the very next engineering task.
+suite previously passed because the test renderer injected the submitter.
+Fixed on 2026-08-14 by giving every mutating action a dedicated form with
+hidden `id` and `intent` fields; pipeline close actions also carry a controlled
+hidden close reason. UI regressions assert the button no longer owns
+`name`/`value` and its closest form carries the complete payload.
 
 ## Visual polish pass (2026-08-06)
 

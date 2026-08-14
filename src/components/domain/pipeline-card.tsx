@@ -60,6 +60,7 @@ export function PipelineCard({
   stageOutcome = null,
 }: PipelineCardProps) {
   const [closing, setClosing] = useState(false)
+  const [closeReason, setCloseReason] = useState('')
   const stageSelectId = useId()
   const panelId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -67,7 +68,10 @@ export function PipelineCard({
   useEffect(() => {
     if (!closing) return
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') setClosing(false)
+      if (event.key === 'Escape') {
+        setClosing(false)
+        setCloseReason('')
+      }
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
@@ -88,8 +92,7 @@ export function PipelineCard({
 
   return (
     <li>
-      <form
-        action={formAction}
+      <div
         className={cn(
           'space-y-2.5 rounded-lg border p-3 shadow-card',
           !settled &&
@@ -97,8 +100,6 @@ export function PipelineCard({
           settled && (wonish ? 'border-emerald-200/70 bg-emerald-50/60' : 'border-slate-200/60 bg-white/60'),
         )}
       >
-        <input type="hidden" name="id" value={card.id} />
-
         <div className="flex min-w-0 items-center gap-2.5">
           <Avatar
             name={contactName}
@@ -155,7 +156,9 @@ export function PipelineCard({
 
         {canEdit ? (
           <div className="space-y-1 border-t border-slate-200/60 pt-2.5">
-            <div className="flex items-center gap-1.5">
+            <form action={formAction} className="flex items-center gap-1.5">
+              <input type="hidden" name="id" value={card.id} />
+              <input type="hidden" name="intent" value="move" />
               <label htmlFor={stageSelectId} className="sr-only">
                 Move “{card.title}” to a different stage
               </label>
@@ -171,11 +174,11 @@ export function PipelineCard({
                   </option>
                 ))}
               </Select>
-              <SubmitButton name="intent" value="move" variant="secondary" size="sm">
+              <SubmitButton variant="secondary" size="sm">
                 Move
                 <Subject title={card.title} />
               </SubmitButton>
-            </div>
+            </form>
 
             <Button
               type="button"
@@ -184,7 +187,10 @@ export function PipelineCard({
               className="w-full justify-start px-1.5 text-slate-500 hover:text-slate-800"
               aria-expanded={closing}
               aria-controls={closing ? panelId : undefined}
-              onClick={() => setClosing((open) => !open)}
+              onClick={() => {
+                if (closing) setCloseReason('')
+                setClosing((open) => !open)
+              }}
             >
               {/* The flipping chevron is what marks this quiet ghost button as
                   a disclosure rather than inert muted text. */}
@@ -201,23 +207,39 @@ export function PipelineCard({
               <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-100/80 p-2.5">
                 <Field label="Reason" hint="Optional — why did it land this way?">
                   {(props) => (
-                    <Textarea {...props} name="close_reason" rows={2} maxLength={500} />
+                    <Textarea
+                      {...props}
+                      value={closeReason}
+                      onChange={(event) => setCloseReason(event.currentTarget.value)}
+                      rows={2}
+                      maxLength={500}
+                    />
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">
                   {CLOSE_ACTIONS.map((close) => (
-                    <SubmitButton
-                      key={close.intent}
-                      name="intent"
-                      value={close.intent}
-                      size="sm"
-                      variant={close.outcome === 'won' ? 'primary' : 'secondary'}
-                    >
-                      {close.label}
-                      <Subject title={card.title} />
-                    </SubmitButton>
+                    <form key={close.intent} action={formAction} className="flex">
+                      <input type="hidden" name="id" value={card.id} />
+                      <input type="hidden" name="intent" value={close.intent} />
+                      <input type="hidden" name="close_reason" value={closeReason} />
+                      <SubmitButton
+                        size="sm"
+                        variant={close.outcome === 'won' ? 'primary' : 'secondary'}
+                      >
+                        {close.label}
+                        <Subject title={card.title} />
+                      </SubmitButton>
+                    </form>
                   ))}
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setClosing(false)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setClosing(false)
+                      setCloseReason('')
+                    }}
+                  >
                     Keep open
                   </Button>
                 </div>
@@ -225,7 +247,7 @@ export function PipelineCard({
             ) : null}
           </div>
         ) : null}
-      </form>
+      </div>
     </li>
   )
 }

@@ -67,3 +67,8 @@ begin
   return null;
 end;
 $$;
+
+-- CREATE OR REPLACE preserves the earlier ACL, but repeat the revocation next
+-- to the final body so future edits cannot accidentally reopen the RPC path.
+revoke all on function public.log_call_report_activity()
+  from public, anon, authenticated;

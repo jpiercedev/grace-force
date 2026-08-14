@@ -34,6 +34,14 @@ const MIGRATIONS_DIR = join(process.cwd(), 'supabase', 'migrations')
 const STORAGE_SCHEMA = `
   create schema if not exists storage;
 
+  create function storage.extension(object_name text)
+  returns text language sql immutable as $fn$
+    select case
+      when strpos(object_name, '.') = 0 then ''
+      else reverse(split_part(reverse(object_name), '.', 1))
+    end;
+  $fn$;
+
   create table storage.buckets (
     id                 text primary key,
     name               text not null unique,
@@ -50,6 +58,7 @@ const STORAGE_SCHEMA = `
     bucket_id        text references storage.buckets (id),
     name             text,
     owner            uuid,
+    owner_id         text,
     metadata         jsonb,
     path_tokens      text[],
     created_at       timestamptz default now(),
@@ -96,7 +105,9 @@ const SUPABASE_BOOTSTRAP = `
 
 describe('attachments storage bucket', () => {
   let db: PGlite
+  let adminId: string
   let staffId: string
+  let otherStaffId: string
   let viewerId: string
 
   beforeAll(async () => {
@@ -119,13 +130,22 @@ describe('attachments storage bucket', () => {
     // The first profile is promoted to administrator by trigger, and a
     // protection trigger refuses demoting the last one — so create the admin
     // first and leave it alone.
-    await db.query(`insert into auth.users (email) values ('storage-admin@graceforce.test')`)
+    const admin = await db.query<{ id: string }>(
+      `insert into auth.users (email) values ('storage-admin@graceforce.test') returning id`,
+    )
+    adminId = admin.rows[0]!.id
 
     const staff = await db.query<{ id: string }>(
       `insert into auth.users (email) values ('storage-staff@graceforce.test') returning id`,
     )
     staffId = staff.rows[0]!.id
     await db.query(`update public.profiles set role = 'staff' where id = $1`, [staffId])
+
+    const otherStaff = await db.query<{ id: string }>(
+      `insert into auth.users (email) values ('storage-other@graceforce.test') returning id`,
+    )
+    otherStaffId = otherStaff.rows[0]!.id
+    await db.query(`update public.profiles set role = 'staff' where id = $1`, [otherStaffId])
 
     const viewer = await db.query<{ id: string }>(
       `insert into auth.users (email) values ('storage-viewer@graceforce.test') returning id`,
@@ -138,13 +158,45 @@ describe('attachments storage bucket', () => {
     await db?.close()
   })
 
-  it('creates the bucket, and keeps it private', async () => {
-    const { rows } = await db.query<{ id: string; public: boolean }>(
-      `select id, public from storage.buckets where id = 'attachments'`,
+  it('creates a private bucket with platform-enforced upload limits', async () => {
+    const { rows } = await db.query<{
+      id: string
+      public: boolean
+      file_size_limit: number
+      allowed_mime_types: string[]
+    }>(
+      `select id, public, file_size_limit, allowed_mime_types
+         from storage.buckets where id = 'attachments'`,
     )
     expect(rows).toHaveLength(1)
     // Public would make every estate document world-readable by URL.
     expect(rows[0]!.public).toBe(false)
+    expect(Number(rows[0]!.file_size_limit)).toBe(20 * 1024 * 1024)
+    expect(rows[0]!.allowed_mime_types).toEqual([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/rtf',
+      'text/plain',
+      'text/markdown',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.apple.pages',
+      'application/vnd.apple.numbers',
+      'application/vnd.apple.keynote',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'image/tiff',
+      'image/bmp',
+    ])
+    expect(rows[0]!.allowed_mime_types).not.toContain('application/octet-stream')
   })
 
   it('creates exactly the three policies the table policies mirror', async () => {
@@ -182,6 +234,11 @@ describe('attachments storage bucket', () => {
     expect(byName.get('attachments_read')).toContain('is_active_user')
     expect(byName.get('attachments_write')).toContain('can_write')
     expect(byName.get('attachments_remove')).toContain('can_write')
+    expect(byName.get('attachments_write')).toContain('extension')
+    expect(byName.get('attachments_write')).toContain('pdf')
+    expect(byName.get('attachments_write')).toContain('owner_id')
+    expect(byName.get('attachments_remove')).toContain('owner_id')
+    expect(byName.get('attachments_remove')).toContain('is_admin')
   })
 
   /**
@@ -197,7 +254,9 @@ describe('attachments storage bucket', () => {
         JSON.stringify({ sub: staffId, role: 'authenticated' }),
       ])
       return tx.query(
-        `insert into storage.objects (bucket_id, name) values ('attachments', 'c/1.pdf') returning id`,
+        `insert into storage.objects (bucket_id, name, owner_id)
+         values ('attachments', 'c/1.pdf', $1) returning id`,
+        [staffId],
       )
     })
     expect(asStaff.rows).toHaveLength(1)
@@ -214,6 +273,92 @@ describe('attachments storage bucket', () => {
         )
       }),
     ).rejects.toThrow(/row-level security|violates/i)
+  })
+
+  it('refuses an object whose extension the application does not accept', async () => {
+    await expect(
+      db.transaction(async (tx) => {
+        await tx.exec(`set local role authenticated;`)
+        await tx.query('select set_config($1, $2, true)', [
+          'request.jwt.claims',
+          JSON.stringify({ sub: staffId, role: 'authenticated' }),
+        ])
+        return tx.query(
+          `insert into storage.objects (bucket_id, name, owner_id)
+           values ('attachments', 'c/archive.zip', $1)`,
+          [staffId],
+        )
+      }),
+    ).rejects.toThrow(/row-level security|violates/i)
+  })
+
+  it('refuses a caller who forges the Storage object owner', async () => {
+    await expect(
+      db.transaction(async (tx) => {
+        await tx.exec(`set local role authenticated;`)
+        await tx.query('select set_config($1, $2, true)', [
+          'request.jwt.claims',
+          JSON.stringify({ sub: staffId, role: 'authenticated' }),
+        ])
+        return tx.query(
+          `insert into storage.objects (bucket_id, name, owner_id)
+           values ('attachments', 'c/forged-owner.pdf', $1)`,
+          [otherStaffId],
+        )
+      }),
+    ).rejects.toThrow(/row-level security|violates/i)
+  })
+
+  it('lets only the object owner or an administrator delete bytes', async () => {
+    await db.transaction(async (tx) => {
+      await tx.exec(`set local role authenticated;`)
+      await tx.query('select set_config($1, $2, true)', [
+        'request.jwt.claims',
+        JSON.stringify({ sub: staffId, role: 'authenticated' }),
+      ])
+      return tx.query(
+        `insert into storage.objects (bucket_id, name, owner_id)
+         values ('attachments', 'c/owned.pdf', $1),
+                ('attachments', 'c/admin-cleanup.pdf', $1)`,
+        [staffId],
+      )
+    })
+
+    const byOtherStaff = await db.transaction(async (tx) => {
+      await tx.exec(`set local role authenticated;`)
+      await tx.query('select set_config($1, $2, true)', [
+        'request.jwt.claims',
+        JSON.stringify({ sub: otherStaffId, role: 'authenticated' }),
+      ])
+      return tx.query(
+        `delete from storage.objects where name = 'c/owned.pdf' returning id`,
+      )
+    })
+    expect(byOtherStaff.rows).toHaveLength(0)
+
+    const byOwner = await db.transaction(async (tx) => {
+      await tx.exec(`set local role authenticated;`)
+      await tx.query('select set_config($1, $2, true)', [
+        'request.jwt.claims',
+        JSON.stringify({ sub: staffId, role: 'authenticated' }),
+      ])
+      return tx.query(
+        `delete from storage.objects where name = 'c/owned.pdf' returning id`,
+      )
+    })
+    expect(byOwner.rows).toHaveLength(1)
+
+    const byAdmin = await db.transaction(async (tx) => {
+      await tx.exec(`set local role authenticated;`)
+      await tx.query('select set_config($1, $2, true)', [
+        'request.jwt.claims',
+        JSON.stringify({ sub: adminId, role: 'authenticated' }),
+      ])
+      return tx.query(
+        `delete from storage.objects where name = 'c/admin-cleanup.pdf' returning id`,
+      )
+    })
+    expect(byAdmin.rows).toHaveLength(1)
   })
 
   it('lets a viewer read an object, matching the attachments table policy', async () => {

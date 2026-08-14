@@ -101,9 +101,7 @@ export function FollowUpRow({
 
   return (
     <li className="px-4 py-4 sm:px-5">
-      <form action={formAction} className="space-y-3">
-        <input type="hidden" name="id" value={item.id} />
-
+      <div className="space-y-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
           {/* The person anchors the row; the task is the loudest line in it. */}
           <div className="flex min-w-0 flex-1 gap-3">
@@ -190,21 +188,22 @@ export function FollowUpRow({
               </Button>
               <div className="flex max-w-full flex-wrap items-stretch divide-x divide-slate-200/80 overflow-hidden rounded-lg bg-slate-100">
                 {SNOOZE_ACTIONS.map((snooze) => (
-                  <SubmitButton
-                    key={snooze.intent}
-                    name="intent"
-                    value={snooze.intent}
-                    variant="ghost"
-                    size="sm"
-                    className={GROUP_BUTTON}
-                    // "+1 day" means nothing on its own, and a hidden "Snooze "
-                    // fragment would be concatenated without its trailing space
-                    // by the accessible-name algorithm ("Snooze+1 day"). The
-                    // whole label is stated instead, visible text included.
-                    aria-label={`Snooze ${snooze.label}: ${item.title}`}
-                  >
-                    {snooze.label}
-                  </SubmitButton>
+                  <form key={snooze.intent} action={formAction} className="flex">
+                    <input type="hidden" name="id" value={item.id} />
+                    <input type="hidden" name="intent" value={snooze.intent} />
+                    <SubmitButton
+                      variant="ghost"
+                      size="sm"
+                      className={GROUP_BUTTON}
+                      // "+1 day" means nothing on its own, and a hidden "Snooze "
+                      // fragment would be concatenated without its trailing space
+                      // by the accessible-name algorithm ("Snooze+1 day"). The
+                      // whole label is stated instead, visible text included.
+                      aria-label={`Snooze ${snooze.label}: ${item.title}`}
+                    >
+                      {snooze.label}
+                    </SubmitButton>
+                  </form>
                 ))}
                 <Button
                   type="button"
@@ -245,12 +244,14 @@ export function FollowUpRow({
             className="space-y-3 rounded-lg border border-slate-200 bg-slate-100/60 p-4 sm:ml-11"
           >
             {panel === 'complete' ? (
-              <>
+              <form action={formAction} className="space-y-3">
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="intent" value="complete" />
                 <Field label="Outcome note" hint="Optional — what came of it?">
                   {(props) => <Textarea {...props} name="outcome_note" rows={2} maxLength={2000} />}
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="complete">
+                  <SubmitButton>
                     Mark complete
                     <Subject title={item.title} />
                   </SubmitButton>
@@ -258,11 +259,13 @@ export function FollowUpRow({
                     Not yet
                   </Button>
                 </div>
-              </>
+              </form>
             ) : null}
 
             {panel === 'reassign' ? (
-              <>
+              <form action={formAction} className="space-y-3">
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="intent" value="reassign" />
                 <Field label="Assign to">
                   {(props) => (
                     <Select {...props} name="assigned_to" defaultValue={item.assigned_to ?? ''}>
@@ -276,7 +279,7 @@ export function FollowUpRow({
                   )}
                 </Field>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="reassign">
+                  <SubmitButton>
                     Save assignee
                     <Subject title={item.title} />
                   </SubmitButton>
@@ -284,17 +287,19 @@ export function FollowUpRow({
                     Discard
                   </Button>
                 </div>
-              </>
+              </form>
             ) : null}
 
             {panel === 'cancel' ? (
-              <>
+              <form action={formAction} className="space-y-3">
+                <input type="hidden" name="id" value={item.id} />
+                <input type="hidden" name="intent" value="cancel" />
                 <p className="text-sm text-slate-700">
                   Cancel this follow-up? It leaves the queue but stays on the contact&rsquo;s
                   history.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <SubmitButton name="intent" value="cancel" variant="danger">
+                  <SubmitButton variant="danger">
                     Yes, cancel it
                     <Subject title={item.title} />
                   </SubmitButton>
@@ -302,11 +307,11 @@ export function FollowUpRow({
                     Keep it
                   </Button>
                 </div>
-              </>
+              </form>
             ) : null}
           </div>
         ) : null}
-      </form>
+      </div>
     </li>
   )
 }

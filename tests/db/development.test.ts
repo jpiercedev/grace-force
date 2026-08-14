@@ -19,6 +19,7 @@ describe('relationship development schema', () => {
   let viewer: TestUser
   let ada: string
   let grace: string
+  let proposalId: string
 
   beforeAll(async () => {
     db = await createTestDb()
@@ -332,8 +333,6 @@ describe('relationship development schema', () => {
   // --- Proposals ------------------------------------------------------------
 
   describe('proposals', () => {
-    let proposalId: string
-
     beforeAll(async () => {
       const proposal = await db.asUser(fundraiser.id, (sql) =>
         sql.query<{ id: string }>(
@@ -411,6 +410,28 @@ describe('relationship development schema', () => {
       expect(rows).toHaveLength(0)
     })
 
+    it('also hides its title and amount on the shared timeline', async () => {
+      const blocked = await db.asUser(staff.id, (sql) =>
+        sql.query<{ subject: string; metadata: Record<string, unknown> }>(
+          `select subject, metadata from public.activities
+            where proposal_id = $1 and type = 'proposal_created'`,
+          [proposalId],
+        ),
+      )
+      expect(blocked.rows).toHaveLength(0)
+
+      const allowed = await db.asUser(fundraiser.id, (sql) =>
+        sql.query<{ subject: string; metadata: Record<string, unknown> }>(
+          `select subject, metadata from public.activities
+            where proposal_id = $1 and type = 'proposal_created'`,
+          [proposalId],
+        ),
+      )
+      expect(allowed.rows).toHaveLength(1)
+      expect(allowed.rows[0]!.subject).toContain('Charitable remainder trust')
+      expect(allowed.rows[0]!.metadata.amount_cents).toBe(25000000)
+    })
+
     it('cannot be written by staff without giving access', async () => {
       const message = await expectRejected(
         db.asUser(staff.id, (sql) =>
@@ -440,6 +461,39 @@ describe('relationship development schema', () => {
 
     it('keeps a draft off the timeline', async () => {
       expect(await activitiesFor(ada, 'call_report')).toHaveLength(0)
+    })
+
+    it('attributes an omitted author to the caller and rejects spoofing', async () => {
+      const attributed = await db.asUser(staff.id, (sql) =>
+        sql.query<{ id: string; author_id: string }>(
+          `insert into public.call_reports (contact_id, met_on, summary)
+           values ($1, current_date, 'Attributed by the database')
+           returning id, author_id`,
+          [ada],
+        ),
+      )
+      expect(attributed.rows[0]!.author_id).toBe(staff.id)
+
+      const spoof = await expectRejected(
+        db.asUser(staff.id, (sql) =>
+          sql.query(
+            `insert into public.call_reports (contact_id, author_id, met_on)
+             values ($1, $2, current_date)`,
+            [ada, fundraiser.id],
+          ),
+        ),
+      )
+      expect(spoof).toMatch(/row-level security|violates/i)
+
+      const reassign = await expectRejected(
+        db.asUser(staff.id, (sql) =>
+          sql.query(`update public.call_reports set author_id = $2 where id = $1`, [
+            attributed.rows[0]!.id,
+            fundraiser.id,
+          ]),
+        ),
+      )
+      expect(reassign).toMatch(/row-level security|violates/i)
     })
 
     it('hides a draft from everyone but its author and administrators', async () => {
@@ -524,6 +578,27 @@ describe('relationship development schema', () => {
       )
       expect(rows).toHaveLength(1)
     })
+
+    it('keeps a filed call report shared when it references a proposal', async () => {
+      const report = await db.asUser(fundraiser.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.call_reports
+             (contact_id, proposal_id, status, met_on, summary, filed_at)
+           values ($1, $2, 'filed', current_date, 'Shared filed report', now())
+           returning id`,
+          [ada, proposalId],
+        ),
+      )
+
+      const visible = await db.asUser(staff.id, (sql) =>
+        sql.query<{ call_report_id: string }>(
+          `select call_report_id from public.activities
+            where call_report_id = $1 and type = 'call_report'`,
+          [report.rows[0]!.id],
+        ),
+      )
+      expect(visible.rows).toHaveLength(1)
+    })
   })
 
   // --- Attachments ----------------------------------------------------------
@@ -554,6 +629,40 @@ describe('relationship development schema', () => {
         ),
       )
       expect(message).toMatch(/attachments_storage_path_key/)
+    })
+
+    it('attributes an omitted uploader to the caller and rejects spoofing', async () => {
+      const attributed = await db.asUser(staff.id, (sql) =>
+        sql.query<{ id: string; uploaded_by: string }>(
+          `insert into public.attachments (contact_id, storage_path, file_name)
+           values ($1, $2, 'attributed.pdf') returning id, uploaded_by`,
+          [ada, `${ada}/attributed.pdf`],
+        ),
+      )
+      expect(attributed.rows[0]!.uploaded_by).toBe(staff.id)
+
+      const spoof = await expectRejected(
+        db.asUser(staff.id, (sql) =>
+          sql.query(
+            `insert into public.attachments
+               (contact_id, storage_path, file_name, uploaded_by)
+             values ($1, $2, 'spoofed.pdf', $3)`,
+            [ada, `${ada}/spoofed.pdf`, fundraiser.id],
+          ),
+        ),
+      )
+      expect(spoof).toMatch(/row-level security|violates/i)
+    })
+
+    it('does not allow attachment metadata to be rewritten', async () => {
+      const byUploader = await db.asUser(staff.id, (sql) =>
+        sql.query(
+          `update public.attachments set file_name = 'rewritten.pdf'
+            where id = $1 returning id`,
+          [attachmentId],
+        ),
+      )
+      expect(byUploader.rows).toHaveLength(0)
     })
 
     it('is readable by any active user, including a viewer', async () => {

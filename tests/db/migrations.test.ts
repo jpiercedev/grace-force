@@ -131,6 +131,52 @@ describe('migrations', () => {
     }
   })
 
+  it('does not expose SECURITY DEFINER trigger functions as RPCs', async () => {
+    const { rows } = await db.asPostgres((sql) =>
+      sql.query<{
+        proname: string
+        anon_execute: boolean
+        authenticated_execute: boolean
+      }>(
+        `select p.proname,
+                has_function_privilege('anon', p.oid, 'execute') as anon_execute,
+                has_function_privilege('authenticated', p.oid, 'execute') as authenticated_execute
+           from pg_proc p
+           join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public'
+            and p.prosecdef
+            and p.prorettype = 'pg_catalog.trigger'::regtype
+          order by p.proname`,
+      ),
+    )
+
+    expect(rows.length).toBeGreaterThan(0)
+    for (const fn of rows) {
+      expect(fn.anon_execute, `${fn.proname} is executable by anon`).toBe(false)
+      expect(fn.authenticated_execute, `${fn.proname} is executable by authenticated`).toBe(false)
+    }
+  })
+
+  it('revokes PUBLIC execute from functions created by future migrations', async () => {
+    await db.asPostgres((sql) =>
+      sql.exec(`
+        create function public.default_execute_probe()
+        returns integer language sql as 'select 1';
+      `),
+    )
+
+    const { rows } = await db.asPostgres((sql) =>
+      sql.query<{ anon_execute: boolean; authenticated_execute: boolean }>(
+        `select
+           has_function_privilege('anon', 'public.default_execute_probe()', 'execute') as anon_execute,
+           has_function_privilege('authenticated', 'public.default_execute_probe()', 'execute') as authenticated_execute`,
+      ),
+    )
+
+    expect(rows[0]).toEqual({ anon_execute: false, authenticated_execute: false })
+    await db.asPostgres((sql) => sql.exec('drop function public.default_execute_probe()'))
+  })
+
   it('carries a unique idempotency key on every externally-synced table', async () => {
     const expectations: Array<[string, string]> = [
       ['activities', 'activities_dedupe_key_uniq'],

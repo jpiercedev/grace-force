@@ -66,6 +66,26 @@ function renderQueue(items: FollowUpQueueItem[], canEdit = true, result?: Follow
   return { calls }
 }
 
+function expectDedicatedActionForm(
+  button: HTMLElement,
+  expected: { id: string; intent: string },
+) {
+  expect(button).not.toHaveAttribute('name')
+  expect(button).not.toHaveAttribute('value')
+
+  const form = button.closest('form')
+  if (!form) throw new Error('Expected the action button to belong to a form')
+
+  const id = form.querySelector<HTMLInputElement>('input[type="hidden"][name="id"]')
+  const intent = form.querySelector<HTMLInputElement>('input[type="hidden"][name="intent"]')
+  expect(id).toHaveValue(expected.id)
+  expect(intent).toHaveValue(expected.intent)
+
+  const submitted = new FormData(form)
+  expect(submitted.get('id')).toBe(expected.id)
+  expect(submitted.get('intent')).toBe(expected.intent)
+}
+
 describe('FollowUpQueue', () => {
   it('signals overdue in text, not only in colour', () => {
     renderQueue([makeItem()])
@@ -94,7 +114,12 @@ describe('FollowUpQueue', () => {
 
     await user.click(screen.getByRole('button', { name: /^complete/i }))
     await user.type(screen.getByLabelText('Outcome note'), 'Posted it today')
-    await user.click(screen.getByRole('button', { name: /mark complete/i }))
+    const submit = screen.getByRole('button', { name: /mark complete/i })
+    expectDedicatedActionForm(submit, {
+      id: 'ffffffff-1111-4111-8111-111111111111',
+      intent: 'complete',
+    })
+    await user.click(submit)
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({
@@ -108,7 +133,12 @@ describe('FollowUpQueue', () => {
     const user = userEvent.setup()
     const { calls } = renderQueue([makeItem()])
 
-    await user.click(screen.getByRole('button', { name: /snooze \+1 week/i }))
+    const submit = screen.getByRole('button', { name: /snooze \+1 week/i })
+    expectDedicatedActionForm(submit, {
+      id: 'ffffffff-1111-4111-8111-111111111111',
+      intent: 'snooze_week',
+    })
+    await user.click(submit)
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({ intent: 'snooze_week' })
@@ -120,7 +150,12 @@ describe('FollowUpQueue', () => {
 
     await user.click(screen.getByRole('button', { name: /^reassign/i }))
     await user.selectOptions(screen.getByLabelText('Assign to'), TEAM[1]!.id)
-    await user.click(screen.getByRole('button', { name: /save assignee/i }))
+    const submit = screen.getByRole('button', { name: /save assignee/i })
+    expectDedicatedActionForm(submit, {
+      id: 'ffffffff-1111-4111-8111-111111111111',
+      intent: 'reassign',
+    })
+    await user.click(submit)
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({ intent: 'reassign', assigned_to: TEAM[1]!.id })
@@ -133,7 +168,12 @@ describe('FollowUpQueue', () => {
     await user.click(screen.getByRole('button', { name: /^cancel/i }))
     expect(screen.getByText(/cancel this follow-up\?/i)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /yes, cancel it/i }))
+    const submit = screen.getByRole('button', { name: /yes, cancel it/i })
+    expectDedicatedActionForm(submit, {
+      id: 'ffffffff-1111-4111-8111-111111111111',
+      intent: 'cancel',
+    })
+    await user.click(submit)
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({ intent: 'cancel' })

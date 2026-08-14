@@ -98,6 +98,26 @@ function recordingAction() {
   return { action, calls }
 }
 
+function expectDedicatedActionForm(
+  button: HTMLElement,
+  expected: { id: string; intent: string },
+) {
+  expect(button).not.toHaveAttribute('name')
+  expect(button).not.toHaveAttribute('value')
+
+  const form = button.closest('form')
+  if (!form) throw new Error('Expected the action button to belong to a form')
+
+  const id = form.querySelector<HTMLInputElement>('input[type="hidden"][name="id"]')
+  const intent = form.querySelector<HTMLInputElement>('input[type="hidden"][name="intent"]')
+  expect(id).toHaveValue(expected.id)
+  expect(intent).toHaveValue(expected.intent)
+
+  const submitted = new FormData(form)
+  expect(submitted.get('id')).toBe(expected.id)
+  expect(submitted.get('intent')).toBe(expected.intent)
+}
+
 describe('PipelineBoard', () => {
   it('moves a card to another stage using only the keyboard', async () => {
     const user = userEvent.setup()
@@ -109,7 +129,12 @@ describe('PipelineBoard', () => {
 
     // Tab from the select lands on the Move button; Enter submits the form.
     await user.tab()
-    expect(screen.getByRole('button', { name: /^move/i })).toHaveFocus()
+    const submit = screen.getByRole('button', { name: /^move/i })
+    expect(submit).toHaveFocus()
+    expectDedicatedActionForm(submit, {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'move',
+    })
     await user.keyboard('{Enter}')
 
     await waitFor(() => expect(calls).toHaveLength(1))
@@ -155,7 +180,15 @@ describe('PipelineBoard', () => {
 
     await user.click(screen.getByRole('button', { name: /close card/i }))
     await user.type(screen.getByLabelText('Reason'), 'Gift received')
-    await user.click(screen.getByRole('button', { name: /mark won/i }))
+    const submit = screen.getByRole('button', { name: /mark won/i })
+    expectDedicatedActionForm(submit, {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'close_won',
+    })
+    const form = submit.closest('form')
+    if (!form) throw new Error('Expected the close action button to belong to a form')
+    expect(new FormData(form).get('close_reason')).toBe('Gift received')
+    await user.click(submit)
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({ intent: 'close_won', close_reason: 'Gift received' })

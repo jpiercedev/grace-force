@@ -65,6 +65,12 @@ create trigger event_attendees_set_updated_at
 
 -- --- Timeline --------------------------------------------------------------
 
+-- Postgres grants EXECUTE on new functions to PUBLIC unless the creating
+-- role's defaults say otherwise. Trigger functions are internal machinery,
+-- not RPC endpoints, so close that default before this release adds any.
+alter default privileges
+  revoke execute on functions from public;
+
 alter table public.activities
   add column if not exists event_id uuid references public.events (id) on delete set null;
 
@@ -118,6 +124,9 @@ begin
   return null;
 end;
 $$;
+
+revoke all on function public.log_event_attendance_activity()
+  from public, anon, authenticated;
 
 create trigger event_attendees_log_activity
   after insert or update of status on public.event_attendees
