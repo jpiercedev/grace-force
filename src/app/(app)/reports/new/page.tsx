@@ -3,7 +3,7 @@ import { CallReportForm } from '@/components/domain/call-report-form'
 import { PersonPicker } from '@/components/domain/person-picker'
 import { LinkButton } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/display'
-import { canViewGiving, requireWriteAccess } from '@/lib/auth'
+import { requireWriteAccess } from '@/lib/auth'
 import { contactName, getContact, listTeamMembers } from '@/lib/queries/contacts'
 import { listProposalOptions } from '@/lib/queries/proposals'
 
@@ -53,7 +53,7 @@ export default async function NewReportPage({
 
   const [team, proposals] = await Promise.all([
     listTeamMembers(),
-    canViewGiving(profile) ? listProposalOptions(contact.id) : Promise.resolve([]),
+    listProposalOptions(contact.id),
   ])
   const name = contactName(contact)
 

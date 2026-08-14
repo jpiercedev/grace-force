@@ -27,7 +27,6 @@ describe('memberAccessSchema', () => {
     const parsed = memberAccessSchema.parse({
       id: UUID,
       role: 'staff',
-      can_view_giving: 'on',
       // An unchecked box is absent from the payload entirely.
       is_active: null,
     })
@@ -35,7 +34,6 @@ describe('memberAccessSchema', () => {
     expect(parsed).toEqual({
       id: UUID,
       role: 'staff',
-      can_view_giving: true,
       is_active: false,
     })
   })
@@ -44,7 +42,6 @@ describe('memberAccessSchema', () => {
     const result = memberAccessSchema.safeParse({
       id: UUID,
       role: 'superuser',
-      can_view_giving: null,
       is_active: 'on',
     })
 
@@ -55,7 +52,6 @@ describe('memberAccessSchema', () => {
     const result = memberAccessSchema.safeParse({
       id: 'me',
       role: 'admin',
-      can_view_giving: 'on',
       is_active: 'on',
     })
 

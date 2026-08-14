@@ -41,21 +41,19 @@ export const MANIFEST_LABEL = 'Manifest'
 export const MANIFEST_DESCRIPTION =
   'One row per dataset: how many records it holds, what its columns are, and which datasets it points at.'
 
-export interface ExportAccess {
-  canViewGiving: boolean
-}
-
 /**
  * Already in dependency order — `EXPORT_DATASETS` is defined that way, and
  * this is the assertion that keeps it honest.
  */
 export const BUNDLE_DATASETS: readonly ExportDataset[] = EXPORT_DATASETS
 
-/** Datasets this person may actually download; the rest would return nothing. */
-export function availableDatasets(access: ExportAccess): ExportDataset[] {
-  return BUNDLE_DATASETS.filter(
-    (dataset) => dataset.requires !== 'giving' || access.canViewGiving,
-  )
+/**
+ * Every dataset, for everyone who can export at all. Giving became shared
+ * workspace data in migration 20260814000400, so the `requires` flag on the
+ * gifts dataset no longer filters anything here.
+ */
+export function availableDatasets(): ExportDataset[] {
+  return [...BUNDLE_DATASETS]
 }
 
 export function exportEndpoint(key: string): string {

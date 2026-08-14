@@ -108,7 +108,6 @@ const ACTIVE_PROFILE = {
   email: 'staff@graceforce.test',
   role: 'staff',
   is_active: true,
-  can_view_giving: false,
 }
 
 beforeEach(() => {

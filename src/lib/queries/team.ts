@@ -35,14 +35,13 @@ export interface TeamMemberDetail {
   full_name: string | null
   title: string | null
   role: UserRole
-  can_view_giving: boolean
   is_active: boolean
   last_seen_at: string | null
   created_at: string
 }
 
 const ROSTER_FIELDS =
-  'id, email, full_name, title, role, can_view_giving, is_active, last_seen_at, created_at'
+  'id, email, full_name, title, role, is_active, last_seen_at, created_at'
 
 export async function listTeamRoster(): Promise<TeamMemberDetail[]> {
   const supabase = await createClient()

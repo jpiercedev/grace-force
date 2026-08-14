@@ -8,7 +8,7 @@ import { TeamRoster } from './team-roster'
 export const metadata = { title: 'Team' }
 
 /**
- * Who has access to the CRM, and what each of them can see.
+ * Who has access to the workspace, and what each of them may do.
  *
  * Accounts are created by signing in, not from here — `handle_new_user` writes
  * the profile row — so this screen only ever adjusts access. There is no
@@ -20,18 +20,15 @@ export default async function TeamPage() {
   const [members, activeAdminCount] = await Promise.all([listTeamRoster(), countActiveAdmins()])
 
   const active = members.filter((member) => member.is_active)
-  const givingAccess = active.filter(
-    (member) => member.role === 'admin' || member.can_view_giving,
-  )
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Team"
-        description="Who can sign in to the CRM, what each of them may do, and who can see giving."
+        description="Who can sign in to Grace Lead Management, and what each of them may do."
       />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <StatTile
           label="Active members"
           value={active.length}
@@ -50,11 +47,6 @@ export default async function TeamPage() {
               : 'Can manage the team and integrations'
           }
           tone={activeAdminCount <= 1 ? 'amber' : 'slate'}
-        />
-        <StatTile
-          label="Can see giving"
-          value={givingAccess.length}
-          hint="Administrators, plus anyone granted access"
         />
       </div>
 

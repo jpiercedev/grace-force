@@ -49,6 +49,7 @@ function profile(overrides: Partial<ProfileRow> = {}): ProfileRow {
     title: null,
     phone: null,
     role: 'staff',
+    // The column survives in the schema for rollback; nothing branches on it.
     can_view_giving: false,
     is_active: true,
     last_seen_at: null,
@@ -60,13 +61,10 @@ function profile(overrides: Partial<ProfileRow> = {}): ProfileRow {
 
 /** Every capability combination the navigation branches on. */
 const PROFILES: Array<[string, ProfileRow]> = [
-  ['admin', profile({ role: 'admin', can_view_giving: true })],
-  ['admin without giving', profile({ role: 'admin', can_view_giving: false })],
+  ['admin', profile({ role: 'admin' })],
   ['staff', profile({ role: 'staff' })],
-  ['staff with giving', profile({ role: 'staff', can_view_giving: true })],
   ['viewer', profile({ role: 'viewer' })],
-  ['viewer with giving', profile({ role: 'viewer', can_view_giving: true })],
-  ['inactive admin', profile({ role: 'admin', is_active: false, can_view_giving: true })],
+  ['inactive admin', profile({ role: 'admin', is_active: false })],
 ]
 
 describe('findFunctionPaths', () => {
@@ -108,7 +106,7 @@ describe('navigation crossing to the client', () => {
   }
 
   it('emits exactly the wire fields, so nothing can ride along unnoticed', () => {
-    const navigation = visibleNavigation(profile({ role: 'admin', can_view_giving: true }))
+    const navigation = visibleNavigation(profile({ role: 'admin' }))
     expect(Object.keys(navigation).sort()).toEqual(['more', 'primary', 'settings'])
     for (const item of [...navigation.primary, ...navigation.more, navigation.settings]) {
       expect(item).not.toBeNull()
@@ -144,25 +142,42 @@ describe('navigation still filters correctly after the refactor', () => {
   }
 
   it('shows the settings entry to admins only', () => {
-    expect(hrefs(profile({ role: 'admin', can_view_giving: true }))).toContain('/settings/team')
+    expect(hrefs(profile({ role: 'admin' }))).toContain('/settings/team')
     expect(hrefs(profile({ role: 'staff' }))).not.toContain('/settings/team')
   })
 
-  it('hides write destinations from viewers', () => {
-    const visible = hrefs(profile({ role: 'viewer' }))
-    expect(visible).not.toContain('/leads')
-    expect(visible).not.toContain('/import')
-    expect(visible).not.toContain('/export')
-    // Read-only destinations remain.
-    expect(visible).toEqual(expect.arrayContaining(['/dashboard', '/contacts', '/events']))
+  it('leads every role through the same six everyday destinations', () => {
+    // One shared workspace: the rail does not reshape itself per person.
+    for (const [label, row] of PROFILES) {
+      expect(
+        visibleNavigation(row).primary.map((item) => [item.href, item.label]),
+        label,
+      ).toEqual([
+        ['/dashboard', 'Dashboard'],
+        ['/contacts', 'People'],
+        ['/sales', 'Sales'],
+        ['/follow-ups', 'Follow-ups'],
+        ['/events', 'Events'],
+        ['/reports', 'Call reports'],
+      ])
+    }
   })
 
-  it('gates giving and proposals on the flag rather than the role', () => {
-    const withGiving = hrefs(profile({ role: 'staff', can_view_giving: true }))
-    const without = hrefs(profile({ role: 'staff', can_view_giving: false }))
-    expect(withGiving).toEqual(expect.arrayContaining(['/giving', '/proposals']))
-    expect(without).not.toContain('/giving')
-    expect(without).not.toContain('/proposals')
+  it('keeps leads, proposals, giving and marketing visible to everyone', () => {
+    // Reads are shared workspace-wide now — nothing hangs on a giving flag.
+    for (const [label, row] of PROFILES) {
+      expect(hrefs(row), label).toEqual(
+        expect.arrayContaining(['/leads', '/proposals', '/giving', '/mailchimp']),
+      )
+    }
+  })
+
+  it('hides the data tools from viewers, who cannot write', () => {
+    const visible = hrefs(profile({ role: 'viewer' }))
+    expect(visible).not.toContain('/import')
+    expect(visible).not.toContain('/export')
+    // Read destinations remain.
+    expect(visible).toEqual(expect.arrayContaining(['/dashboard', '/contacts', '/events', '/leads']))
   })
 
   it('keeps the primary rail to six destinations at most', () => {
@@ -174,12 +189,12 @@ describe('navigation still filters correctly after the refactor', () => {
   })
 
   it('never puts search in the rail — it is a field in the header', () => {
-    expect(hrefs(profile({ role: 'admin', can_view_giving: true }))).not.toContain('/search')
+    expect(hrefs(profile({ role: 'admin' }))).not.toContain('/search')
   })
 
   it('shows nothing capability-gated to an inactive profile', () => {
-    const visible = hrefs(profile({ role: 'admin', is_active: false, can_view_giving: true }))
-    for (const gated of ['/leads', '/giving', '/proposals', '/import', '/export', '/settings/team']) {
+    const visible = hrefs(profile({ role: 'admin', is_active: false }))
+    for (const gated of ['/import', '/export', '/settings/team']) {
       expect(visible).not.toContain(gated)
     }
   })

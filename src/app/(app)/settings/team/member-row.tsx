@@ -80,7 +80,6 @@ export function MemberRow({
               <h3 className="text-[15px] font-semibold tracking-tight text-slate-900">{name}</h3>
               {isSelf ? <Badge tone="slate">You</Badge> : null}
               <Badge tone={ROLE_TONES[member.role]}>{ROLE_LABELS[member.role]}</Badge>
-              {member.can_view_giving ? <Badge tone="emerald">Giving access</Badge> : null}
               {member.is_active ? null : <Badge tone="amber">Deactivated</Badge>}
             </div>
 
@@ -162,13 +161,6 @@ export function MemberRow({
                 </Select>
               )}
             </Field>
-
-            <Checkbox
-              name="can_view_giving"
-              label={`${name} can see giving records`}
-              hint="Administrators always see giving, whatever this is set to."
-              defaultChecked={member.can_view_giving}
-            />
 
             {/* Removing sign-in is the roster's most consequential action, so
                 it gets its own section rather than blending into routine edits. */}

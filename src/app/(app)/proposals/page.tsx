@@ -3,10 +3,9 @@ import { PROPOSAL_STATUS_LABELS } from '@/components/domain/development-badges'
 import { ProposalList } from '@/components/domain/proposal-list'
 import { LinkButton } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/display'
-import { canViewGiving, canWrite, requireProfile } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import { listProposals, parseProposalFilters } from '@/lib/queries/proposals'
 import { cn, formatCurrency, pluralize } from '@/lib/utils'
-import { redirect } from 'next/navigation'
 
 export const metadata = { title: 'Proposals' }
 
@@ -33,10 +32,6 @@ export default async function ProposalsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const profile = await requireProfile()
-  // Proposals carry gift amounts, so they follow the giving permission. The
-  // dashboard explains the redirect on arrival.
-  if (!canViewGiving(profile)) redirect('/dashboard?denied=giving')
-
   const params = await searchParams
   const filters = parseProposalFilters(params)
   const proposals = await listProposals(filters)

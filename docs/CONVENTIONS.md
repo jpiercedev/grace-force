@@ -20,9 +20,8 @@ decides which rows come back.
 - `@/lib/supabase/server` — request-scoped, runs as the user. Default choice.
 - `@/lib/supabase/admin` — service role, **bypasses RLS**. Only for the public
   lead-intake route, integration sync jobs, and the notification outbox.
-- `@/lib/permissions` — pure predicates (`canWrite`, `isAdmin`,
-  `canViewGiving`). Safe in client components. These hide UI; they do not
-  secure anything.
+- `@/lib/permissions` — pure predicates (`canWrite`, `isAdmin`). Safe in
+  client components. These hide UI; they do not secure anything.
 - `@/lib/auth` — server-only guards (`requireProfile`, `requireAdmin`,
   `requireWriteAccess`) plus re-exports of the predicates.
 

@@ -6,7 +6,7 @@ import {
   LifecycleStageBadge,
 } from '@/components/domain/contact-badges'
 import { Avatar, Badge, Card, EmptyState, PageHeader } from '@/components/ui/display'
-import { canWrite, requireProfile } from '@/lib/auth'
+import { requireProfile } from '@/lib/auth'
 import { LEAD_STATUS_LABELS, LEAD_STATUS_TONES, interestLabel } from '@/lib/leads/triage'
 import { searchEverything, type SearchResults } from '@/lib/queries/search'
 import { formatDate, formatDateTime, formatRelative, pluralize } from '@/lib/utils'
@@ -25,13 +25,13 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const profile = await requireProfile()
+  await requireProfile()
   const params = await searchParams
   const q = (single(params.q) ?? '').trim()
 
-  // Viewers cannot read leads at all, so the group is not requested for them.
+  // Leads are readable by every active user, so the group is always requested.
   const results: SearchResults | null =
-    q === '' ? null : await searchEverything(q, { includeLeads: canWrite(profile) })
+    q === '' ? null : await searchEverything(q, { includeLeads: true })
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

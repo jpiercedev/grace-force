@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { removeAttachment, uploadAttachment } from '@/app/(app)/contacts/donor-actions'
 import { moveProposalStage, updateProposal } from '@/app/(app)/proposals/actions'
 import { AttachmentsPanel } from '@/components/domain/attachments-panel'
@@ -14,7 +14,7 @@ import { ProposalStage } from '@/components/domain/proposal-stage'
 import { LinkButton } from '@/components/ui/button'
 import { Avatar, EmptyState } from '@/components/ui/display'
 import { SectionHeading } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, isAdmin, requireProfile } from '@/lib/auth'
+import { canWrite, isAdmin, requireProfile } from '@/lib/auth'
 import { getContactAttachments, withDownloadUrls } from '@/lib/queries/attachments'
 import { listCallReports } from '@/lib/queries/call-reports'
 import { listTeamMembers } from '@/lib/queries/contacts'
@@ -47,8 +47,6 @@ export default async function ProposalPage({
   searchParams: SearchParams
 }) {
   const profile = await requireProfile()
-  if (!canViewGiving(profile)) redirect('/dashboard?denied=giving')
-
   const [{ id }, query] = await Promise.all([params, searchParams])
   const detail = await getProposal(id)
   if (!detail) notFound()

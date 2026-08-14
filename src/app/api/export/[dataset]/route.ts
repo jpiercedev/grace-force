@@ -7,7 +7,7 @@ import {
 } from '@/lib/export/bundle'
 import { createCsvStream, exportFilename } from '@/lib/export/csv'
 import { findExportDataset, type ExportPageReader } from '@/lib/export/datasets'
-import { canViewGiving, canWrite, getCurrentProfile } from '@/lib/auth'
+import { canWrite, getCurrentProfile } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 
 /**
@@ -39,20 +39,16 @@ export async function GET(
 
   const { dataset: key } = await params
   const supabase = await createClient()
-  const access = { canViewGiving: canViewGiving(profile) }
 
   let columns: readonly string[]
   let read: ExportPageReader
 
   if (key === MANIFEST_KEY) {
     columns = MANIFEST_COLUMNS
-    read = await createManifestReader(supabase, availableDatasets(access))
+    read = await createManifestReader(supabase, availableDatasets())
   } else {
     const dataset = findExportDataset(key)
     if (!dataset) return refuse(404, 'There is no dataset by that name.')
-    if (dataset.requires === 'giving' && !access.canViewGiving) {
-      return refuse(403, 'Giving records need the giving permission.')
-    }
     columns = dataset.columns
     read = await dataset.createReader(supabase)
   }

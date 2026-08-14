@@ -15,20 +15,28 @@ list, not a data leak.
 
 ## Roles
 
+This is one shared workspace: **every active, authenticated team member reads
+the same business records** — people, opportunities, pipelines, leads,
+activities, follow-ups, events, proposals, giving, attachments and call
+reports (drafts included). Ownership and attribution columns record
+responsibility; none of them is a visibility boundary. Roles gate *writes*:
+
 | Role | Capabilities |
 | --- | --- |
-| `admin` | Everything: team management, giving, integrations, deletes |
-| `staff` | Create/edit contacts, engagements, activities, follow-ups, pipelines, leads |
-| `viewer` | Read contacts and activity. No leads, no giving, no writes |
+| `admin` | Everything: team management, gift records, integrations, deletes |
+| `staff` | Create/edit contacts, engagements, activities, follow-ups, pipelines and stages, opportunities, proposals, capability, leads |
+| `viewer` | Read the shared workspace. No writes |
 
-Two orthogonal flags sharpen this:
+One flag sharpens this:
 
-- `can_view_giving` — grants read access to `gifts`. Admins always have it.
-  Staff do not, unless an admin turns it on. Giving is the most sensitive data
-  in the system and the smallest audience should see it.
 - `is_active` — a deactivated profile authenticates successfully but every
   policy fails, so it sees nothing. The app routes them to `/no-access` with an
   explanation instead of the login screen.
+
+`profiles.can_view_giving` still exists but is referenced by **no policy and
+no UI** since `20260814000400_shared_team_visibility` — it is retained only so
+the previous giving partition can be restored without data work (the rollback
+in `docs/ROLLOUT.md`).
 
 ## Database roles
 

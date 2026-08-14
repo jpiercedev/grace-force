@@ -601,9 +601,8 @@ export async function getContactFollowUps(contactId: string): Promise<ContactFol
 }
 
 /**
- * Giving is gated by `can_view_giving()` in the database, so a staff member
- * without it reads nothing here rather than being refused. Callers still check
- * the capability first, so the panel is absent rather than empty-and-broken.
+ * Gifts are readable by every active user — giving became shared workspace
+ * data in migration 20260814000400 — so this loads unconditionally.
  */
 export async function getContactGiving(contactId: string): Promise<ContactGiving> {
   const supabase = await createClient()

@@ -10,7 +10,7 @@ import { MEETING_KIND_LABELS } from '@/components/domain/development-badges'
 import { LinkButton } from '@/components/ui/button'
 import { Avatar, Badge } from '@/components/ui/display'
 import { SectionHeading } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, isAdmin, requireProfile } from '@/lib/auth'
+import { canWrite, isAdmin, requireProfile } from '@/lib/auth'
 import { withDownloadUrls } from '@/lib/queries/attachments'
 import { getCallReport } from '@/lib/queries/call-reports'
 import { listTeamMembers } from '@/lib/queries/contacts'
@@ -55,10 +55,8 @@ export default async function CallReportPage({
 
   const [team, proposals, proposal] = await Promise.all([
     listTeamMembers(),
-    contact && canViewGiving(profile) ? listProposalOptions(contact.id) : Promise.resolve([]),
-    report.proposal_id && canViewGiving(profile)
-      ? getProposal(report.proposal_id)
-      : Promise.resolve(null),
+    contact ? listProposalOptions(contact.id) : Promise.resolve([]),
+    report.proposal_id ? getProposal(report.proposal_id) : Promise.resolve(null),
   ])
 
   if (editing && contact) {
