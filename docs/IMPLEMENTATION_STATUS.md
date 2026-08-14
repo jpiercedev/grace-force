@@ -1,19 +1,70 @@
-# Implementation Status — Grace Force CRM
+# Implementation Status — Grace Lead Management
 
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-14
+**Last updated:** 2026-08-14 (Grace Lead Management release)
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | Production-ready HubSpot-style redesign and rollout hardening on `claude/donor-crm-hubspot-redesign-smpmo4` (from `4ecde3d`); production rollout in progress |
-| Overall status | Feature-complete. 25 migrations and 45 routes; pending migrations, attachment actions, and multi-action forms hardened before first production application |
-| Tests | 588 Vitest (31 files) + 28 browser `@public` passing; production `@authed` pass follows deployment |
-| Build | `next build` succeeds — 45 routes |
-| Deployment | `grace-force` on Vercel, production target, git-connected. **The first eight release migrations are applied; the privilege lockdown and application deploy remain. See `docs/ROLLOUT.md`.** |
+| Current phase | Grace Lead Management on `claude/grace-lead-management-rebrand-f86mf8` (from the deployed `0e078c9`): rename, Sales section, staff-managed pipelines, one shared workspace. Verified preview; **production migrations and deploy await authorization** |
+| Overall status | Feature-complete. 29 migrations and 49 routes |
+| Tests | 626 Vitest (34 files) passing; `@public` browser suite per the release notes below; production `@authed` pass follows deployment |
+| Build | `next build` succeeds — 49 routes, `/sales` family included |
+| Deployment | `grace-force` on Vercel, git-connected. Production still runs `0e078c9` (donor-crm branch). Branch previews build per push. **The four `20260814` migrations (plus the still-pending `20260806000900`) must be applied before this build is promoted. See `docs/ROLLOUT.md`.** |
+
+## The Grace Lead Management release (2026-08-14)
+
+Product rename plus a rebalance from donation-heavy CRM to people-first
+relationship and lead management, on top of the deployed HubSpot-style
+redesign. Four areas, each documented in the files it changed:
+
+**Rename.** "Grace Force CRM" → **Grace Lead Management** everywhere the
+product speaks for itself (metadata/title template, shell wordmark, auth and
+standalone screens, notification footer, export filename prefix
+`grace-lead-management-*`, machine-actor timeline label, operator examples,
+package identity, docs). "Grace Force" remains wherever it names the
+organization. The Grace “G” emblem (sourced from the grace.tv brand assets,
+stored at `public/brand/grace-g.webp`, 196×198 webp) anchors the shell and
+auth lockups; `src/app/icon.png` / `apple-icon.png` are derived from it.
+
+**Sales.** A primary Sales destination: `/sales` (cross-pipeline opportunity
+list with pipeline/stage/owner/close-window/status filters and person/org/title
+search; table on wide screens, stacked cards on phones), `/sales/new` (create
+an opportunity from anywhere — a person's record links in with `?contact=`),
+`/sales/pipelines` (+`/[slug]`) — the team pipeline manager. Opportunities ARE
+`pipeline_cards` (no second table): they gained `organization_name` and
+`next_step`, and an `archived` status that frees the one-open-per-contact
+slot. Boards show org + next step, reorder within a stage, and archive from
+the close panel. `/pipelines` redirects to `/sales`; board URLs unchanged.
+
+**Pipelines are team structure now.** Active staff create, rename, describe,
+reorder, archive/restore and (only when empty) delete pipelines and stages.
+Three SECURITY DEFINER guard triggers make destructive deletes impossible for
+every role while cards remain, and archiving a stage with open cards is
+refused. Seeds add General Sales and Relationship Development as editable
+shared templates (`on conflict do nothing`, duplicate-proof).
+
+**One shared workspace.** `20260814000400` opens SELECT on gifts, capability,
+proposals, activities, leads and call-report drafts to every active user;
+writes keep role gates (viewer read-only, staff writes shared records without
+any flag, gift writes/deletes stay admin). `profiles.can_view_giving` and
+`can_view_giving()` remain defined but unreferenced — the rollback in
+`docs/ROLLOUT.md` restores the partition without data work. The application
+layer lost every giving gate (nav, dashboard, person record, proposals,
+giving, reports, export, team settings toggle), and the dashboard/person
+record were rebalanced: closing-soon opportunities on the dashboard, a Sales
+section + opportunity glance/rail on the person record, giving present but
+secondary.
+
+**Typography note.** The requested Proxima Nova swap is prepared but not
+applied: grace.tv licenses Proxima Nova through Adobe Fonts (CDN-only — not
+self-hostable), and no licensed `.woff2` exists in the repo or environment.
+The interface uses weights 400 (+italic), 500, 600, 700; licensed woff2 files
+for exactly those cuts are what the swap needs. Source Sans 3 remains until
+they are provided.
 
 ## The HubSpot-style redesign (2026-08-13)
 
