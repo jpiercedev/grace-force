@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PipelineBoard } from '@/components/domain/pipeline-board'
 import { LinkButton } from '@/components/ui/button'
@@ -52,14 +53,20 @@ export default async function PipelineBoardPage({ params }: { params: RouteParam
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Pipeline"
+        eyebrow={
+          <Link href="/sales" className="hover:text-brand-700 hover:underline">
+            Sales
+          </Link>
+        }
         title={board.pipeline.name}
         description={board.pipeline.description}
         action={
           <>
-            <LinkButton href="/pipelines" variant="secondary">
-              All pipelines
-            </LinkButton>
+            {canWrite(profile) ? (
+              <LinkButton href={`/sales/pipelines/${board.pipeline.slug}`} variant="secondary">
+                Edit pipeline
+              </LinkButton>
+            ) : null}
             {editable ? (
               <LinkButton href={`/pipelines/${board.pipeline.slug}/add`}>Add a contact</LinkButton>
             ) : null}

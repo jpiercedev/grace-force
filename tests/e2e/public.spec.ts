@@ -17,6 +17,7 @@ const PROTECTED_ROUTES = [
   '/import',
   '/export',
   '/settings/team',
+  '/sales',
 ]
 
 test.describe('@public route protection', () => {

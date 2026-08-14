@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
@@ -106,15 +106,20 @@ export function PipelineCard({
             size="sm"
             className={cn(settled && 'opacity-70 saturate-50')}
           />
-          <Link
-            href={`/contacts/${card.contact_id}`}
-            className={cn(
-              'min-w-0 truncate text-sm font-semibold underline-offset-2 hover:text-brand-700 hover:underline',
-              settled ? 'text-slate-600' : 'text-slate-900',
-            )}
-          >
-            {contactName}
-          </Link>
+          <div className="min-w-0">
+            <Link
+              href={`/contacts/${card.contact_id}`}
+              className={cn(
+                'block max-w-full truncate text-sm font-semibold underline-offset-2 hover:text-brand-700 hover:underline',
+                settled ? 'text-slate-600' : 'text-slate-900',
+              )}
+            >
+              {contactName}
+            </Link>
+            {card.organization_name ? (
+              <p className="truncate text-xs text-slate-500">{card.organization_name}</p>
+            ) : null}
+          </div>
         </div>
 
         {/* Clamped so one wordy title cannot bury the value and owner facts
@@ -154,6 +159,12 @@ export function PipelineCard({
           ) : null}
         </dl>
 
+        {card.next_step ? (
+          <p className="truncate text-xs text-slate-600" title={card.next_step}>
+            <span aria-hidden="true">→ </span>Next: {card.next_step}
+          </p>
+        ) : null}
+
         {canEdit ? (
           <div className="space-y-1 border-t border-slate-200/60 pt-2.5">
             <form action={formAction} className="flex items-center gap-1.5">
@@ -180,28 +191,57 @@ export function PipelineCard({
               </SubmitButton>
             </form>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start px-1.5 text-slate-500 hover:text-slate-800"
-              aria-expanded={closing}
-              aria-controls={closing ? panelId : undefined}
-              onClick={() => {
-                if (closing) setCloseReason('')
-                setClosing((open) => !open)
-              }}
-            >
-              {/* The flipping chevron is what marks this quiet ghost button as
-                  a disclosure rather than inert muted text. */}
-              {closing ? (
-                <ChevronDown className="h-4 w-4" aria-hidden="true" />
-              ) : (
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              )}
-              Close card…
-              <Subject title={card.title} />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-w-0 flex-1 justify-start px-1.5 text-slate-500 hover:text-slate-800"
+                aria-expanded={closing}
+                aria-controls={closing ? panelId : undefined}
+                onClick={() => {
+                  if (closing) setCloseReason('')
+                  setClosing((open) => !open)
+                }}
+              >
+                {/* The flipping chevron is what marks this quiet ghost button as
+                    a disclosure rather than inert muted text. */}
+                {closing ? (
+                  <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                )}
+                Close card…
+                <Subject title={card.title} />
+              </Button>
+
+              {/* Reordering swaps neighbours within the stage, so the two
+                  directions are two dedicated forms like every other intent. */}
+              <form action={formAction} className="flex">
+                <input type="hidden" name="id" value={card.id} />
+                <input type="hidden" name="intent" value="move_up" />
+                <SubmitButton
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-slate-500 hover:text-slate-800"
+                  aria-label={`Move “${card.title}” up`}
+                >
+                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                </SubmitButton>
+              </form>
+              <form action={formAction} className="flex">
+                <input type="hidden" name="id" value={card.id} />
+                <input type="hidden" name="intent" value="move_down" />
+                <SubmitButton
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-slate-500 hover:text-slate-800"
+                  aria-label={`Move “${card.title}” down`}
+                >
+                  <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                </SubmitButton>
+              </form>
+            </div>
 
             {closing ? (
               <div ref={panelRef} id={panelId} className="space-y-2 rounded-md bg-slate-100/80 p-2.5">
@@ -231,6 +271,17 @@ export function PipelineCard({
                       </SubmitButton>
                     </form>
                   ))}
+                  {/* The third way out: off the board without counting as a
+                      win or a loss — a dead deal, a duplicate, a wrong entry. */}
+                  <form action={formAction} className="flex">
+                    <input type="hidden" name="id" value={card.id} />
+                    <input type="hidden" name="intent" value="archive" />
+                    <input type="hidden" name="close_reason" value={closeReason} />
+                    <SubmitButton size="sm" variant="secondary">
+                      Archive
+                      <Subject title={card.title} />
+                    </SubmitButton>
+                  </form>
                   <Button
                     type="button"
                     variant="ghost"

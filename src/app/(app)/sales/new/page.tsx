@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { PipelineAddForm } from '@/components/domain/pipeline-add-form'
 import { Button, LinkButton } from '@/components/ui/button'
 import {
@@ -12,57 +12,83 @@ import {
   PageHeader,
 } from '@/components/ui/display'
 import { Input, Label } from '@/components/ui/form'
-import { requireWriteAccess } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import { getContactForFollowUp } from '@/lib/queries/follow-ups'
 import {
   listAssignableProfiles,
   listSalesPipelineOptions,
   searchContactsForPipeline,
 } from '@/lib/queries/pipelines'
+import { addContactToPipeline } from '@/app/(app)/pipelines/actions'
 import { contactDisplayName } from '@/lib/utils'
-import { addContactToPipeline } from '../../actions'
 
-export const metadata = { title: 'Add to pipeline' }
+export const metadata = { title: 'New opportunity' }
 
-type RouteParams = Promise<{ slug: string }>
 type SearchParams = Promise<Record<string, string | string[] | undefined>>
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 function single(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value
+  const raw = Array.isArray(value) ? value[0] : value
+  return raw?.trim() || undefined
 }
 
-export default async function AddToPipelinePage({
-  params,
+export default async function NewOpportunityPage({
   searchParams,
 }: {
-  params: RouteParams
   searchParams: SearchParams
 }) {
-  const profile = await requireWriteAccess()
-  const { slug } = await params
-  const query = await searchParams
+  const profile = await requireProfile()
+  // Readers land back on the overview rather than the generic denied screen —
+  // they were one click away from it and lose nothing.
+  if (!canWrite(profile)) redirect('/sales')
 
-  // The options list carries the live stages the form's stage select needs,
-  // and only active pipelines appear in it — so one lookup covers both checks.
-  const pipeline = (await listSalesPipelineOptions()).find((option) => option.slug === slug)
-  if (!pipeline) notFound()
+  const params = await searchParams
+  const contactParam = single(params.contact)
+  const contactId = contactParam && UUID_PATTERN.test(contactParam) ? contactParam : undefined
+  const pipelineSlug = single(params.pipeline)
+  const term = single(params.q) ?? ''
 
-  const contactId = single(query.contact)
-  const term = single(query.q) ?? ''
-  const contact = contactId ? await getContactForFollowUp(contactId) : null
+  const pipelines = await listSalesPipelineOptions()
+  const chosen = pipelines.find((option) => option.slug === pipelineSlug) ?? pipelines[0]
 
   const header = (
     <PageHeader
-      eyebrow="Pipeline"
-      title={`Add to ${pipeline.name}`}
-      description="One open card per contact per pipeline — close the old one before starting another."
+      eyebrow={
+        <Link href="/sales" className="hover:text-brand-700 hover:underline">
+          Sales
+        </Link>
+      }
+      title="New opportunity"
+      description="One open opportunity per person per pipeline — close the old one before starting another."
       action={
-        <LinkButton href={`/pipelines/${pipeline.slug}`} variant="secondary">
-          Back to board
+        <LinkButton href="/sales" variant="secondary">
+          Back to Sales
         </LinkButton>
       }
     />
   )
+
+  if (!chosen) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-5">
+        {header}
+        <Card>
+          <EmptyState
+            title="No active pipelines"
+            description="An opportunity needs a pipeline to live on. Create one first."
+            action={
+              <LinkButton href="/sales/pipelines" variant="secondary">
+                Manage pipelines
+              </LinkButton>
+            }
+          />
+        </Card>
+      </div>
+    )
+  }
+
+  const contact = contactId ? await getContactForFollowUp(contactId) : null
 
   if (contact) {
     const team = await listAssignableProfiles()
@@ -73,10 +99,12 @@ export default async function AddToPipelinePage({
           <CardBody className="py-5">
             <PipelineAddForm
               action={addContactToPipeline}
-              pipelines={[pipeline]}
+              pipelines={pipelines}
+              defaultPipelineId={chosen.id}
               contact={contact}
               team={team}
               defaultOwnerId={profile.id}
+              submitLabel="Create opportunity"
             />
           </CardBody>
         </Card>
@@ -84,30 +112,30 @@ export default async function AddToPipelinePage({
     )
   }
 
-  const matches = term ? await searchContactsForPipeline(pipeline.id, term) : []
+  const matches = term ? await searchContactsForPipeline(chosen.id, term) : []
+  // Search links keep the pipeline choice so it survives the two-phase flow.
+  const pipelineQuery = pipelineSlug ? `&pipeline=${encodeURIComponent(pipelineSlug)}` : ''
 
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       {header}
 
-      {contactId && !contact ? (
+      {contactParam && !contact ? (
         <Callout tone="danger" role="alert">
           That contact could not be found. Search for someone else below.
         </Callout>
       ) : null}
 
       <Card>
-        <CardHeader title="Find a contact" description="Search by name, email or organisation." />
+        <CardHeader
+          title="Who is this opportunity with?"
+          description="Search by name, email or organisation."
+        />
         <CardBody className="space-y-4">
           {/* Label and Input rather than Field: this page stays a Server
-              Component, and Field's render prop is a function, which cannot
-              cross into a Client Component. There is one search box, so a
-              fixed id is unambiguous. */}
-          <form
-            method="get"
-            action={`/pipelines/${pipeline.slug}/add`}
-            className="flex flex-wrap items-end gap-3"
-          >
+              Component, and Field's render prop cannot cross into one. */}
+          <form method="get" action="/sales/new" className="flex flex-wrap items-end gap-3">
+            {pipelineSlug ? <input type="hidden" name="pipeline" value={pipelineSlug} /> : null}
             <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="contact-search">Search</Label>
               <Input
@@ -144,12 +172,12 @@ export default async function AddToPipelinePage({
                           <span className="block truncate font-medium text-slate-500">{name}</span>
                         </span>
                         <span className="shrink-0 text-xs text-slate-500">
-                          Already on this pipeline
+                          Already on {chosen.name}
                         </span>
                       </div>
                     ) : (
                       <Link
-                        href={`/pipelines/${pipeline.slug}/add?contact=${match.id}`}
+                        href={`/sales/new?contact=${match.id}${pipelineQuery}`}
                         className="group flex items-center gap-3 px-3.5 py-3 text-sm transition-colors duration-150 hover:bg-slate-100/70"
                       >
                         <Avatar name={name} size="md" />

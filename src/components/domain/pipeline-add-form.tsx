@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import type { PipelineActionState } from '@/app/(app)/pipelines/actions'
 import { Button } from '@/components/ui/button'
@@ -9,21 +9,30 @@ import { Field, Input, Select, Textarea } from '@/components/ui/form'
 import type { ContactSummary, TeamProfile } from '@/lib/queries/pipelines'
 import { contactDisplayName } from '@/lib/utils'
 
-export interface PipelineAddFormProps {
-  action: (prev: PipelineActionState, formData: FormData) => Promise<PipelineActionState>
-  pipelineId: string
-  pipelineName: string
-  contact: ContactSummary
-  team: TeamProfile[]
-  tracksValue: boolean
-  defaultOwnerId: string
+/** What the form needs to know about a pipeline it could create the card in. */
+export interface PipelineFormChoice {
+  id: string
+  name: string
+  tracks_value: boolean
+  stages: { id: string; name: string }[]
 }
 
-function SubmitButton() {
+export interface PipelineAddFormProps {
+  action: (prev: PipelineActionState, formData: FormData) => Promise<PipelineActionState>
+  /** One entry pins the pipeline; several render a choice. Never empty. */
+  pipelines: PipelineFormChoice[]
+  defaultPipelineId?: string
+  contact: ContactSummary
+  team: TeamProfile[]
+  defaultOwnerId: string
+  submitLabel?: string
+}
+
+function SubmitButton({ label }: { label: string }) {
   const { pending } = useFormStatus()
   return (
     <Button type="submit" disabled={pending}>
-      {pending ? 'Adding…' : 'Add to pipeline'}
+      {pending ? 'Saving…' : label}
     </Button>
   )
 }
@@ -39,20 +48,32 @@ function SectionLegend({ children }: { children: string }) {
 
 export function PipelineAddForm({
   action,
-  pipelineId,
-  pipelineName,
+  pipelines,
+  defaultPipelineId,
   contact,
   team,
-  tracksValue,
   defaultOwnerId,
+  submitLabel = 'Add to pipeline',
 }: PipelineAddFormProps) {
   const [state, formAction] = useActionState<PipelineActionState, FormData>(action, {})
+  // The stage list and the value field follow the chosen pipeline, so the
+  // choice is client state rather than an uncontrolled select.
+  const [pipelineId, setPipelineId] = useState(() =>
+    defaultPipelineId && pipelines.some((option) => option.id === defaultPipelineId)
+      ? defaultPipelineId
+      : (pipelines[0]?.id ?? ''),
+  )
   const fieldErrors = state.fieldErrors ?? {}
   const displayName = contactDisplayName(contact)
 
+  const pipeline = pipelines.find((option) => option.id === pipelineId) ?? pipelines[0]
+  if (!pipeline) return null
+
   return (
     <form action={formAction} className="space-y-6" noValidate>
-      <input type="hidden" name="pipeline_id" value={pipelineId} />
+      {pipelines.length === 1 ? (
+        <input type="hidden" name="pipeline_id" value={pipeline.id} />
+      ) : null}
       <input type="hidden" name="contact_id" value={contact.id} />
 
       {state.error ? (
@@ -66,19 +87,45 @@ export function PipelineAddForm({
         <Avatar name={displayName} size="md" />
         <div className="min-w-0">
           <p className="text-xs font-medium text-slate-500">
-            Adding to {pipelineName}
+            Adding to {pipeline.name}
           </p>
           <p className="truncate text-sm font-semibold text-slate-900">
             {displayName}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">The card starts in the first stage.</p>
         </div>
       </div>
 
       <fieldset className="space-y-4">
-        <SectionLegend>The card</SectionLegend>
+        <SectionLegend>The opportunity</SectionLegend>
 
-        <Field label="Card title" required error={fieldErrors.title}>
+        {pipelines.length > 1 ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Pipeline" error={fieldErrors.pipeline_id}>
+              {(props) => (
+                <Select
+                  {...props}
+                  name="pipeline_id"
+                  value={pipelineId}
+                  onChange={(event) => setPipelineId(event.currentTarget.value)}
+                >
+                  {pipelines.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
+
+            <StageField pipeline={pipeline} error={fieldErrors.stage_id} />
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StageField pipeline={pipeline} error={fieldErrors.stage_id} />
+          </div>
+        )}
+
+        <Field label="Title" required error={fieldErrors.title}>
           {(props) => (
             <Input
               {...props}
@@ -87,6 +134,37 @@ export function PipelineAddForm({
               maxLength={200}
               defaultValue={displayName}
               invalid={!!fieldErrors.title}
+            />
+          )}
+        </Field>
+
+        <Field
+          label="Organization"
+          hint="Optional — who the opportunity is with, when it isn't just the person."
+          error={fieldErrors.organization_name}
+        >
+          {(props) => (
+            <Input
+              {...props}
+              name="organization_name"
+              maxLength={200}
+              defaultValue={contact.organization_name ?? ''}
+              invalid={!!fieldErrors.organization_name}
+            />
+          )}
+        </Field>
+
+        <Field
+          label="Next step"
+          hint="The one concrete thing that moves this forward."
+          error={fieldErrors.next_step}
+        >
+          {(props) => (
+            <Input
+              {...props}
+              name="next_step"
+              maxLength={300}
+              invalid={!!fieldErrors.next_step}
             />
           )}
         </Field>
@@ -103,7 +181,7 @@ export function PipelineAddForm({
           <SectionLegend>Forecast</SectionLegend>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {tracksValue ? (
+            {pipeline.tracks_value ? (
               <Field
                 label="Expected value"
                 hint="Dollar amount — enter it like 1,500 or $1,500.50."
@@ -157,8 +235,41 @@ export function PipelineAddForm({
       </div>
 
       <div className="border-t border-slate-200 pt-5">
-        <SubmitButton />
+        <SubmitButton label={submitLabel} />
       </div>
     </form>
+  )
+}
+
+/**
+ * Keyed by pipeline so switching pipelines re-seats the default on the new
+ * first stage instead of holding a stale selection from the previous list.
+ */
+function StageField({
+  pipeline,
+  error,
+}: {
+  pipeline: PipelineFormChoice
+  error?: string
+}) {
+  if (pipeline.stages.length === 0) {
+    return (
+      <p className="self-end text-sm text-slate-500">
+        This pipeline has no stages yet, so nothing can be added to it.
+      </p>
+    )
+  }
+  return (
+    <Field key={pipeline.id} label="Stage" error={error}>
+      {(props) => (
+        <Select {...props} name="stage_id" defaultValue={pipeline.stages[0]?.id}>
+          {pipeline.stages.map((stage) => (
+            <option key={stage.id} value={stage.id}>
+              {stage.name}
+            </option>
+          ))}
+        </Select>
+      )}
+    </Field>
   )
 }

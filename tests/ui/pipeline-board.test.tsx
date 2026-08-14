@@ -133,7 +133,7 @@ describe('PipelineBoard', () => {
 
     // Tab from the select lands on the Move button; Enter submits the form.
     await user.tab()
-    const submit = screen.getByRole('button', { name: /^move/i })
+    const submit = screen.getByRole('button', { name: /^move:/i })
     expect(submit).toHaveFocus()
     expectDedicatedActionForm(submit, {
       id: '11111111-1111-4111-8111-111111111111',
@@ -154,7 +154,7 @@ describe('PipelineBoard', () => {
     const { action } = recordingAction()
     render(<PipelineBoard board={makeBoard()} canEdit action={action} />)
 
-    await user.click(screen.getByRole('button', { name: /^move/i }))
+    await user.click(screen.getByRole('button', { name: /^move:/i }))
 
     const status = await screen.findByRole('status')
     expect(status).toHaveTextContent('Moved “Spring appeal ask” to Cultivation.')
@@ -166,7 +166,7 @@ describe('PipelineBoard', () => {
     const action = vi.fn(async () => ({ error: 'That card is no longer open, so it could not be changed.' }))
     render(<PipelineBoard board={makeBoard()} canEdit action={action} />)
 
-    await user.click(screen.getByRole('button', { name: /^move/i }))
+    await user.click(screen.getByRole('button', { name: /^move:/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('no longer open')
   })
@@ -196,6 +196,61 @@ describe('PipelineBoard', () => {
 
     await waitFor(() => expect(calls).toHaveLength(1))
     expect(calls[0]).toMatchObject({ intent: 'close_won', close_reason: 'Gift received' })
+  })
+
+  it('shows the next step and the organization when the card carries them', () => {
+    const { action } = recordingAction()
+    const card = makeCard({ next_step: 'Book the site visit', organization_name: 'Alvarez Trust' })
+    render(<PipelineBoard board={makeBoard([card])} canEdit={false} action={action} />)
+
+    expect(screen.getByText(/next: book the site visit/i)).toBeInTheDocument()
+    expect(screen.getByText('Alvarez Trust')).toBeInTheDocument()
+  })
+
+  it('archives a card with the reason, leaving the board without a win or a loss', async () => {
+    const user = userEvent.setup()
+    const { action, calls } = recordingAction()
+    render(<PipelineBoard board={makeBoard()} canEdit action={action} />)
+
+    await user.click(screen.getByRole('button', { name: /close card/i }))
+    await user.type(screen.getByLabelText('Reason'), 'Duplicate entry')
+
+    const archive = screen.getByRole('button', { name: /^archive/i })
+    expectDedicatedActionForm(archive, {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'archive',
+    })
+    const form = archive.closest('form')
+    if (!form) throw new Error('Expected the archive button to belong to a form')
+    expect(new FormData(form).get('close_reason')).toBe('Duplicate entry')
+
+    await user.click(archive)
+    await waitFor(() => expect(calls).toHaveLength(1))
+    expect(calls[0]).toMatchObject({ intent: 'archive', close_reason: 'Duplicate entry' })
+  })
+
+  it('reorders within the stage through dedicated forms that name the card', async () => {
+    const user = userEvent.setup()
+    const { action, calls } = recordingAction()
+    render(<PipelineBoard board={makeBoard()} canEdit action={action} />)
+
+    const up = screen.getByRole('button', { name: /move .*spring appeal ask.* up/i })
+    const down = screen.getByRole('button', { name: /move .*spring appeal ask.* down/i })
+    expectDedicatedActionForm(up, {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'move_up',
+    })
+    expectDedicatedActionForm(down, {
+      id: '11111111-1111-4111-8111-111111111111',
+      intent: 'move_down',
+    })
+
+    await user.click(up)
+    await waitFor(() => expect(calls).toHaveLength(1))
+    expect(calls[0]).toMatchObject({
+      intent: 'move_up',
+      id: '11111111-1111-4111-8111-111111111111',
+    })
   })
 
   it('names the card in every control, so a column of buttons is distinguishable', () => {
