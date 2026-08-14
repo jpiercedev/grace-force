@@ -5,6 +5,7 @@ import { Input, Label, Select } from '@/components/ui/form'
 import { canWrite, requireProfile } from '@/lib/auth'
 import {
   OPPORTUNITY_LIST_LIMIT,
+  getOpportunityStats,
   listAssignableProfiles,
   listOpportunities,
   listPipelineSummaries,
@@ -88,30 +89,22 @@ export default async function SalesPage({ searchParams }: { searchParams: Search
     q || pipelineId || stageId || ownerId || closeWithin !== undefined || (status && status !== 'open'),
   )
 
-  // The headline figures always describe the open book, so a narrowed list
-  // needs a second unfiltered read; the default view reuses one round trip.
-  const listPromise = listOpportunities(filters)
-  const [opportunities, statsSource, summaries, pipelineOptions, team] = await Promise.all([
-    listPromise,
-    filtered ? listOpportunities() : listPromise,
+  // The headline figures always describe the whole open book. They come from
+  // exact count/aggregate queries rather than the list, which is capped at
+  // OPPORTUNITY_LIST_LIMIT rows and would silently undercount past the cap.
+  const [opportunities, stats, summaries, pipelineOptions, team] = await Promise.all([
+    listOpportunities(filters),
+    getOpportunityStats(),
     listPipelineSummaries(),
     listSalesPipelineOptions(),
     listAssignableProfiles(),
   ])
 
   const today = new Date().toISOString().slice(0, 10)
-  const horizonDate = new Date()
-  horizonDate.setDate(horizonDate.getDate() + 30)
-  const horizon = horizonDate.toISOString().slice(0, 10)
 
-  const openCount = statsSource.length
-  const openValueCents = statsSource.reduce(
-    (total, item) => total + (item.pipeline?.tracks_value ? (item.value_cents ?? 0) : 0),
-    0,
-  )
-  const closingSoon = statsSource.filter(
-    (item) => item.expected_close_on !== null && item.expected_close_on <= horizon,
-  ).length
+  const openCount = stats.open_count
+  const openValueCents = stats.open_value_cents
+  const closingSoon = stats.closing_soon_count
 
   const pipelineChoice = pipelineOptions.find((option) => option.id === pipelineId)
 

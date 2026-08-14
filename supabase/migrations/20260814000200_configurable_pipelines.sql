@@ -120,6 +120,35 @@ create trigger pipeline_stages_prevent_archive_with_open_cards
   before update of archived_at on public.pipeline_stages
   for each row execute function public.prevent_stage_archive_with_open_cards();
 
+-- The mirror image of the guard above: an archived stage may not *receive* an
+-- open opportunity either — otherwise a stale board form (or a raw PostgREST
+-- write) could strand a live card in a column no board renders.
+create or replace function public.prevent_open_card_in_archived_stage()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.status = 'open' and exists (
+    select 1 from public.pipeline_stages s
+    where s.id = new.stage_id and s.archived_at is not null
+  )
+  then
+    raise exception 'That stage has been archived. Choose a live stage.'
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_open_card_in_archived_stage() from public, anon, authenticated;
+
+drop trigger if exists pipeline_cards_prevent_archived_stage on public.pipeline_cards;
+create trigger pipeline_cards_prevent_archived_stage
+  before insert or update of stage_id, status on public.pipeline_cards
+  for each row execute function public.prevent_open_card_in_archived_stage();
+
 -- --- Staff management of pipelines and stages --------------------------------
 --
 -- Pipelines were admin-only reference data; they are now shared working

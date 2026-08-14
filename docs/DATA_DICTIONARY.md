@@ -100,8 +100,9 @@ Money on a card is `value_cents` — integer minor units, never floating point.
 
 ### Gift
 
-Giving history, mirrored from the giving platform. Visible only to admins and
-staff explicitly granted `can_view_giving`.
+Giving history, mirrored from the giving platform. Readable by every active
+team member since the shared-visibility migration (`20260814000400`); writes
+remain admin-only. `profiles.can_view_giving` still exists but gates nothing.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -122,14 +123,15 @@ Client IPs are stored only as a salted hash, never in the raw.
 ### Profile
 
 A team member, mirroring `auth.users`. Carries `role`
-(`admin` / `staff` / `viewer`), `can_view_giving` and `is_active`.
+(`admin` / `staff` / `viewer`) and `is_active`. (`can_view_giving` remains as
+a column for rollback of `20260814000400`, referenced by no policy or UI.)
 
 ## Exports
 
 Every export runs as the signed-in user, so Row Level Security applies exactly
 as it does in the interface. An export can never contain rows the person could
-not already see: viewers get no leads, staff without giving access get no gifts,
-and soft-deleted contacts are excluded.
+not already see; since `20260814000400` every active team member reads the same
+shared records, and soft-deleted contacts are excluded.
 
 ### Stable identifiers
 

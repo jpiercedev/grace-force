@@ -157,18 +157,24 @@ export async function updatePipelineCard(
     }
 
     // The board announces the move to anyone who cannot see the card change
-    // column, so the message names where it landed.
+    // column, so the message names where it landed. The archived check covers
+    // a stale board: a colleague may have archived the stage since it loaded
+    // (the pipeline_cards_prevent_archived_stage trigger backstops the race).
     const supabase = await createClient()
     const { data: stage } = await supabase
       .from('pipeline_stages')
-      .select('name')
+      .select('name, archived_at')
       .eq('id', parsed.data.stage_id)
       .maybeSingle()
+
+    if (!stage || stage.archived_at !== null) {
+      return { error: 'That stage has been archived. Refresh the board and choose a live stage.' }
+    }
 
     return applyCardUpdate(
       parsed.data.id,
       { stage_id: parsed.data.stage_id },
-      (title) => (stage ? `Moved ${title} to ${stage.name}.` : `Moved ${title}.`),
+      (title) => `Moved ${title} to ${stage.name}.`,
       'That stage is not part of this pipeline.',
     )
   }

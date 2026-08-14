@@ -11,7 +11,7 @@ import {
   EmptyState,
   PageHeader,
 } from '@/components/ui/display'
-import { Input, Label } from '@/components/ui/form'
+import { Input, Label, Select } from '@/components/ui/form'
 import { canWrite, requireProfile } from '@/lib/auth'
 import { getContactForFollowUp } from '@/lib/queries/follow-ups'
 import {
@@ -135,7 +135,6 @@ export default async function NewOpportunityPage({
           {/* Label and Input rather than Field: this page stays a Server
               Component, and Field's render prop cannot cross into one. */}
           <form method="get" action="/sales/new" className="flex flex-wrap items-end gap-3">
-            {pipelineSlug ? <input type="hidden" name="pipeline" value={pipelineSlug} /> : null}
             <div className="min-w-0 flex-1 space-y-1.5">
               <Label htmlFor="contact-search">Search</Label>
               <Input
@@ -146,6 +145,18 @@ export default async function NewOpportunityPage({
                 autoFocus
                 placeholder="e.g. Ruth Alvarez"
               />
+            </div>
+            {/* The pipeline is chooseable here because the search's
+                "already on this pipeline" flags depend on it. */}
+            <div className="space-y-1.5">
+              <Label htmlFor="pipeline-choice">Pipeline</Label>
+              <Select id="pipeline-choice" name="pipeline" defaultValue={chosen.slug}>
+                {pipelines.map((option) => (
+                  <option key={option.id} value={option.slug}>
+                    {option.name}
+                  </option>
+                ))}
+              </Select>
             </div>
             <Button type="submit" variant="secondary">
               Search

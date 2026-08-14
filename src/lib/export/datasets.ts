@@ -290,6 +290,8 @@ export const PIPELINE_CARD_EXPORT_COLUMNS = [
   'stage',
   'title',
   'details',
+  'organization_name',
+  'next_step',
   'value_cents',
   'currency',
   'status',
@@ -302,7 +304,7 @@ export const PIPELINE_CARD_EXPORT_COLUMNS = [
   'updated_at',
 ] as const
 
-const PIPELINE_CARD_SELECT = 'id, contact_id, engagement_id, pipeline_id, stage_id, title, details, value_cents, currency, status, owner_id, expected_close_on, closed_at, close_reason, position, created_at, updated_at'
+const PIPELINE_CARD_SELECT = 'id, contact_id, engagement_id, pipeline_id, stage_id, title, details, organization_name, next_step, value_cents, currency, status, owner_id, expected_close_on, closed_at, close_reason, position, created_at, updated_at'
 
 export type PipelineCardExportRecord = Pick<
   PipelineCardRow,
@@ -313,6 +315,8 @@ export type PipelineCardExportRecord = Pick<
   | 'stage_id'
   | 'title'
   | 'details'
+  | 'organization_name'
+  | 'next_step'
   | 'value_cents'
   | 'currency'
   | 'status'

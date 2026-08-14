@@ -73,7 +73,13 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
   const [state, formAction] = useActionState<PipelineEditorState, FormData>(action, {})
   const statusRef = useRef<HTMLDivElement>(null)
   const message = state.error ?? state.notice
-  const fieldErrors = state.fieldErrors ?? {}
+  // One action state serves every form on the screen, so field errors carry
+  // the intent that produced them — a rename failure must not light up the
+  // add-stage form's identically named fields.
+  const errorsFor = (intent: string): Record<string, string> =>
+    state.intent === intent ? (state.fieldErrors ?? {}) : {}
+  const renameErrors = errorsFor('rename')
+  const addStageErrors = errorsFor('add_stage')
 
   useEffect(() => {
     if (message) statusRef.current?.focus()
@@ -100,7 +106,7 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
               <input type="hidden" name="id" value={pipeline.id} />
               <input type="hidden" name="intent" value="rename" />
 
-              <Field label="Name" required error={fieldErrors.name}>
+              <Field label="Name" required error={renameErrors.name}>
                 {(props) => (
                   <Input
                     {...props}
@@ -108,12 +114,12 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
                     required
                     maxLength={80}
                     defaultValue={pipeline.name}
-                    invalid={!!fieldErrors.name}
+                    invalid={!!renameErrors.name}
                   />
                 )}
               </Field>
 
-              <Field label="Description" error={fieldErrors.description}>
+              <Field label="Description" error={renameErrors.description}>
                 {(props) => (
                   <Textarea
                     {...props}
@@ -121,7 +127,7 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
                     rows={2}
                     maxLength={500}
                     defaultValue={pipeline.description ?? ''}
-                    invalid={!!fieldErrors.description}
+                    invalid={!!renameErrors.description}
                   />
                 )}
               </Field>
@@ -213,7 +219,7 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
               <input type="hidden" name="intent" value="add_stage" />
 
               <div className="grid gap-4 sm:grid-cols-3">
-                <Field label="Name" required error={fieldErrors.name}>
+                <Field label="Name" required error={addStageErrors.name}>
                   {(props) => (
                     <Input
                       {...props}
@@ -221,12 +227,12 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
                       required
                       maxLength={60}
                       placeholder="e.g. Proposal sent"
-                      invalid={!!fieldErrors.name}
+                      invalid={!!addStageErrors.name}
                     />
                   )}
                 </Field>
 
-                <Field label="Color" error={fieldErrors.color}>
+                <Field label="Color" error={addStageErrors.color}>
                   {(props) => (
                     <Select {...props} name="color" defaultValue="slate">
                       {STAGE_COLORS.map((color) => (
@@ -238,7 +244,7 @@ export function PipelineEditor({ pipeline, canEdit, action }: PipelineEditorProp
                   )}
                 </Field>
 
-                <Field label="Outcome" error={fieldErrors.outcome}>
+                <Field label="Outcome" error={addStageErrors.outcome}>
                   {(props) => (
                     <Select {...props} name="outcome" defaultValue="none">
                       {STAGE_OUTCOMES.map((outcome) => (

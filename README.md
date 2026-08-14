@@ -17,12 +17,13 @@ person on one timeline.
   follow-ups, lead submissions and Mailchimp opens/clicks in one chronological
   view per contact.
 - **Follow-ups** with an overdue/today/this-week queue and reminder emails.
-- **Pipelines** — configurable staged processes (supporter journey, major-gift
-  cultivation, volunteer onboarding) with a keyboard-operable board.
+- **Sales & pipelines** — team-editable staged processes (General Sales,
+  Relationship Development, major-gift cultivation, …) with a cross-pipeline
+  opportunity list and a keyboard-operable board.
 - **Dashboard** of what needs attention today.
 - **Search** across contacts, activity and leads.
-- **Giving context** — giving history beside the relationship, visible only to
-  those explicitly granted it.
+- **Giving context** — giving history beside the relationship, readable by
+  every active team member; gift records are written only by admins.
 - **Lead intake** — a hardened public endpoint feeding a triage queue.
 - **Mailchimp** — audiences, campaigns and per-contact email engagement,
   synchronised idempotently.
@@ -74,7 +75,8 @@ Application code filters for relevance, never for safety.
 
 - `anon` has **no table privileges at all**. Public traffic reaches the database
   only through the service-role lead-intake route.
-- Giving data is gated separately from the rest of the app.
+- Every active, authenticated team member reads the same shared business
+  records; roles gate writes, and ownership never hides a record.
 - The service-role key is server-only and used in exactly three places: lead
   intake, integration sync, and the notification outbox.
 

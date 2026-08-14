@@ -26,6 +26,8 @@ import {
 export interface PipelineEditorState {
   error?: string
   fieldErrors?: Record<string, string>
+  /** Which form the fieldErrors belong to — the editor shares one action state. */
+  intent?: string
   notice?: string
 }
 
@@ -140,7 +142,11 @@ export async function managePipeline(
         tracks_value: text(formData, 'tracks_value') || undefined,
       })
       if (!parsed.success) {
-        return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
+        return {
+          error: 'Check the highlighted fields.',
+          fieldErrors: fieldErrorsFrom(parsed.error),
+          intent,
+        }
       }
       const { data, error } = await supabase
         .from('pipelines')
@@ -200,7 +206,11 @@ export async function managePipeline(
         outcome: text(formData, 'outcome'),
       })
       if (!parsed.success) {
-        return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
+        return {
+          error: 'Check the highlighted fields.',
+          fieldErrors: fieldErrorsFrom(parsed.error),
+          intent,
+        }
       }
 
       const { data: existing } = await supabase
@@ -235,7 +245,11 @@ export async function managePipeline(
         outcome: text(formData, 'outcome'),
       })
       if (!parsed.success) {
-        return { error: 'Check the highlighted fields.', fieldErrors: fieldErrorsFrom(parsed.error) }
+        return {
+          error: 'Check the highlighted fields.',
+          fieldErrors: fieldErrorsFrom(parsed.error),
+          intent,
+        }
       }
       const { data, error } = await supabase
         .from('pipeline_stages')

@@ -42,7 +42,7 @@ supabase db push --linked
 | --- | --- |
 | `20260806000900_anon_privilege_lockdown` | strips hosted `anon` grants, seals postgres-owned default ACLs (previous release's pending tail) |
 | `20260814000100_sales_enums` | `pipeline_card_status` gains `archived` — pure enum addition |
-| `20260814000200_configurable_pipelines` | adds `pipeline_cards.organization_name`/`next_step` and `pipeline_stages.archived_at` (all nullable, no rewrite); replaces pipeline/stage write policies (admin → staff); installs the three delete/archive guard triggers |
+| `20260814000200_configurable_pipelines` | adds `pipeline_cards.organization_name`/`next_step` and `pipeline_stages.archived_at` (all nullable, no rewrite); replaces pipeline/stage write policies (admin → staff); installs the four delete/archive guard triggers (non-empty pipelines/stages refuse deletion, stages with open cards refuse archiving, archived stages refuse receiving open cards) |
 | `20260814000300_sales_reference_data` | seeds the General Sales and Relationship Development pipelines + stages; `on conflict do nothing`, so re-runs and re-deploys cannot duplicate |
 | `20260814000400_shared_team_visibility` | replaces SELECT policies on gifts, contact_capability, proposals, activities, leads and call_reports with `is_active_user()`; drops the giving-flag condition from capability/proposal writes |
 
@@ -70,7 +70,7 @@ select count(*) from public.pipelines where is_default;                       --
 -- Guard triggers present
 select tgname from pg_trigger where tgname like '%prevent%';
 -- pipelines_prevent_delete_with_cards, pipeline_stages_prevent_delete_with_cards,
--- pipeline_stages_prevent_archive_with_open_cards
+-- pipeline_stages_prevent_archive_with_open_cards, pipeline_cards_prevent_archived_stage
 
 -- Shared visibility: policies now use is_active_user()
 select tablename, policyname from pg_policies

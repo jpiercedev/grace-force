@@ -140,13 +140,15 @@ card always records when it was won (and an archived one when it was shelved).
 
 **Pipelines are team-editable structure, not fixtures.** Active staff may
 create, rename, reorder, archive and (when empty) delete pipelines and stages
-from Sales → Manage pipelines. Three guard triggers make the destructive paths
+from Sales → Manage pipelines. Four guard triggers make the destructive paths
 safe at the database rather than in the application, because the FK from cards
 is `on delete cascade` and a buggy DELETE must not take opportunities with it:
 
 - a pipeline that still holds any card refuses deletion, for every role;
 - a stage that still holds any card refuses deletion;
-- a stage with *open* cards refuses archiving (`pipeline_stages.archived_at`).
+- a stage with *open* cards refuses archiving (`pipeline_stages.archived_at`);
+- an archived stage refuses *receiving* an open card — the mirror image, so a
+  stale board form cannot strand a live opportunity in a hidden column.
 
 Archiving is therefore the safe default everywhere; deletion is only reachable
 once a pipeline or stage is genuinely empty.

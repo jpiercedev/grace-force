@@ -382,6 +382,63 @@ export async function listOpportunities(
   return data ?? []
 }
 
+export interface OpportunityStats {
+  open_count: number
+  /** Cents across open cards in value-tracking pipelines only. */
+  open_value_cents: number
+  closing_soon_count: number
+}
+
+/**
+ * Exact headline figures for /sales. The list view is capped at
+ * OPPORTUNITY_LIST_LIMIT rows, so the figures must not be derived from it —
+ * counts come from head queries and the value from a slim unlimited select.
+ * The closing-soon predicate mirrors the dashboard's, so the two agree.
+ */
+export async function getOpportunityStats(closeWithinDays = 30): Promise<OpportunityStats> {
+  const supabase = await createClient()
+  const horizon = new Date()
+  horizon.setDate(horizon.getDate() + closeWithinDays)
+
+  const [openResult, closingResult, valueResult] = await Promise.all([
+    supabase
+      .from('pipeline_cards')
+      .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+      .eq('status', 'open')
+      .is('contact.deleted_at', null),
+    supabase
+      .from('pipeline_cards')
+      .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+      .eq('status', 'open')
+      .is('contact.deleted_at', null)
+      .not('expected_close_on', 'is', null)
+      .lte('expected_close_on', horizon.toISOString().slice(0, 10)),
+    supabase
+      .from('pipeline_cards')
+      .select('value_cents, contact:contacts!inner(id), pipeline:pipelines!inner(tracks_value)')
+      .eq('status', 'open')
+      .is('contact.deleted_at', null)
+      .not('value_cents', 'is', null)
+      .eq('pipeline.tracks_value', true)
+      .overrideTypes<{ value_cents: number | null }[], { merge: false }>(),
+  ])
+
+  if (openResult.error) throw openResult.error
+  if (closingResult.error) throw closingResult.error
+  if (valueResult.error) throw valueResult.error
+
+  const openValue = (valueResult.data ?? []).reduce(
+    (total, card) => total + (card.value_cents ?? 0),
+    0,
+  )
+
+  return {
+    open_count: openResult.count ?? 0,
+    open_value_cents: openValue,
+    closing_soon_count: closingResult.count ?? 0,
+  }
+}
+
 export interface SalesPipelineOption {
   id: string
   slug: string

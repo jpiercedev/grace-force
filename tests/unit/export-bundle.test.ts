@@ -178,6 +178,8 @@ function pipelineCardRecord(): PipelineCardExportRecord {
     stage_id: 'stage-1',
     title: 'Spring appeal ask',
     details: null,
+    organization_name: 'Alvarez Trust',
+    next_step: 'Send the revised quote',
     value_cents: 500000,
     currency: 'USD',
     status: 'open',

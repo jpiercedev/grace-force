@@ -390,6 +390,61 @@ describe('shared sales pipelines', () => {
     })
   })
 
+  describe('archived stages refuse open opportunities', () => {
+    it('blocks inserting into or moving an open card onto an archived stage', async () => {
+      const pipeline = await db.asUser(alice.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.pipelines (slug, name) values ('cold_storage', 'Cold Storage') returning id`,
+        ),
+      )
+      const pipelineId = pipeline.rows[0]!.id
+      const stages = await db.asUser(alice.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.pipeline_stages (pipeline_id, slug, name, position)
+           values ($1, 'live', 'Live', 10), ($1, 'retired', 'Retired', 20)
+           returning id`,
+          [pipelineId],
+        ),
+      )
+      const liveStage = stages.rows[0]!.id
+      const retiredStage = stages.rows[1]!.id
+
+      await db.asUser(alice.id, (sql) =>
+        sql.query('update public.pipeline_stages set archived_at = now() where id = $1', [
+          retiredStage,
+        ]),
+      )
+
+      const insert = await expectRejected(
+        db.asUser(alice.id, (sql) =>
+          sql.query(
+            `insert into public.pipeline_cards (pipeline_id, stage_id, contact_id, title)
+             values ($1, $2, $3, 'Straight into the archive')`,
+            [pipelineId, retiredStage, personId],
+          ),
+        ),
+      )
+      expect(insert).toMatch(/has been archived/i)
+
+      const card = await db.asUser(alice.id, (sql) =>
+        sql.query<{ id: string }>(
+          `insert into public.pipeline_cards (pipeline_id, stage_id, contact_id, title)
+           values ($1, $2, $3, 'Working in the live stage') returning id`,
+          [pipelineId, liveStage, personId],
+        ),
+      )
+      const move = await expectRejected(
+        db.asUser(alice.id, (sql) =>
+          sql.query('update public.pipeline_cards set stage_id = $2 where id = $1', [
+            card.rows[0]!.id,
+            retiredStage,
+          ]),
+        ),
+      )
+      expect(move).toMatch(/has been archived/i)
+    })
+  })
+
   describe('migration safety', () => {
     it('re-applying the pipeline migrations preserves existing opportunities', async () => {
       const survivor = await db.asUser(alice.id, (sql) =>
