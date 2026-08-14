@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { CalendarClock, CircleCheckBig, Sparkles } from 'lucide-react'
 import { ACTIVITY_TYPE_LABELS, FollowUpPriorityBadge } from '@/components/domain/contact-badges'
 import { LinkButton } from '@/components/ui/button'
-import { Avatar, Card, CardHeader, EmptyState } from '@/components/ui/display'
+import { Avatar, Badge, badgeTone, Card, CardHeader, EmptyState } from '@/components/ui/display'
 import type { DashboardActivity, DashboardFollowUp } from '@/lib/queries/dashboard'
-import { cn, formatDateTime, formatRelative, isOverdue } from '@/lib/utils'
+import type { OpportunityListItem } from '@/lib/queries/pipelines'
+import { cn, contactDisplayName, formatCurrency, formatDate, formatDateTime, formatRelative, isOverdue } from '@/lib/utils'
 
 /**
  * Dashboard panels.
@@ -181,6 +182,98 @@ export function FollowUpPanel({
               </p>
             </li>
           ))}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
+/**
+ * Open opportunities expected to close inside the panel's window, soonest
+ * first. No EmptyState treatment when the list is empty: on most mornings
+ * "nothing closing" is one calm line, not an event that needs an icon.
+ */
+export function ClosingSoonPanel({
+  items,
+  today,
+}: {
+  items: OpportunityListItem[]
+  /** ISO date (YYYY-MM-DD) — the page's one clock, so "overdue" matches the queries. */
+  today: string
+}) {
+  return (
+    <Card>
+      <CardHeader
+        title="Closing soon"
+        description="Expected to close in the next 30 days."
+        action={
+          <LinkButton href="/sales" variant="secondary" size="sm">
+            All opportunities
+          </LinkButton>
+        }
+      />
+      {items.length === 0 ? (
+        <p className="px-5 py-4 text-sm text-slate-500">
+          Nothing is scheduled to close in the next 30 days.
+        </p>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {items.map((item) => {
+            // Dates, not timestamps: a card expected to close "today" is on
+            // time all day, so only a strictly earlier date reads as overdue.
+            const overdue = item.expected_close_on !== null && item.expected_close_on < today
+            return (
+              <li key={item.id} className="px-5 py-3">
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                  <p className="min-w-0 text-sm font-medium text-slate-900">
+                    {item.pipeline ? (
+                      <Link
+                        href={`/pipelines/${item.pipeline.slug}`}
+                        className="hover:text-brand-700 hover:underline"
+                      >
+                        {item.title}
+                      </Link>
+                    ) : (
+                      item.title
+                    )}
+                  </p>
+                  {item.stage ? (
+                    <Badge tone={badgeTone(item.stage.color)}>{item.stage.name}</Badge>
+                  ) : null}
+                </div>
+                <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-slate-500">
+                  <ContactLink
+                    contact={
+                      item.contact
+                        ? { id: item.contact.id, name: contactDisplayName(item.contact) }
+                        : null
+                    }
+                  />
+                  {item.pipeline?.tracks_value && item.value_cents !== null ? (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span className="tabular-nums text-slate-600">
+                        {formatCurrency(item.value_cents, item.currency)}
+                      </span>
+                    </>
+                  ) : null}
+                  {item.expected_close_on ? (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      {/* Colour never carries "overdue" on its own; the word is there too. */}
+                      <time
+                        dateTime={item.expected_close_on}
+                        className={overdue ? 'font-medium text-red-700' : undefined}
+                      >
+                        {formatDate(item.expected_close_on)}
+                        {overdue ? ' · overdue' : ''}
+                      </time>
+                    </>
+                  ) : null}
+                </p>
+              </li>
+            )
+          })}
         </ul>
       )}
     </Card>

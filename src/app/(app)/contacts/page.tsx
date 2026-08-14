@@ -7,7 +7,7 @@ import {
 import { ContactTable } from '@/components/domain/contact-table'
 import { LinkButton } from '@/components/ui/button'
 import { Callout, EmptyState, PageHeader } from '@/components/ui/display'
-import { canViewGiving, canWrite, requireProfile } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import {
   contactListSearchParams,
   hasActiveFilters,
@@ -42,7 +42,7 @@ export default async function ContactsPage({
     listEngagementTypes(),
     // A stale or foreign id (a shared link to an archived person) resolves to
     // null and the list simply renders without a panel.
-    previewId ? loadContactPreview(previewId, canViewGiving(profile)) : Promise.resolve(null),
+    previewId ? loadContactPreview(previewId) : Promise.resolve(null),
   ])
 
   const filtered = hasActiveFilters(filters)

@@ -2,21 +2,22 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { CAPABILITY_LEVEL_LABELS, PROPOSAL_STATUS_LABELS } from '@/components/domain/development-badges'
 import type { ContactFollowUp, ContactGiving, TimelineActivity } from '@/lib/queries/contacts'
+import type { ContactOpportunity } from '@/lib/queries/pipelines'
 import type { ContactInterest } from '@/lib/queries/relationships'
 import type { ProposalSummary } from '@/lib/queries/proposals'
 import { cn, formatCurrency, formatDate, formatRelative, isOverdue } from '@/lib/utils'
 import type { ContactCapabilityRow } from '@/types/database'
 
 /**
- * Six answers, at a glance.
+ * Seven answers, at a glance.
  *
- * The brief asks the donor record to answer "what is the state of this
+ * The brief asks the person record to answer "what is the state of this
  * relationship" before it answers anything else. This is that answer: what is
- * owed, when we last spoke, what is in flight, what they have given, what they
- * care about, what they might be capable of.
+ * owed, when we last spoke, what is being pursued, what is in flight, what
+ * they have given, what they care about, what they might be capable of.
  *
- * It is a row of label-and-value pairs on the canvas rather than six KPI
- * cards. Six boxes with borders and shadows read as a dashboard; six quiet
+ * It is a row of label-and-value pairs on the canvas rather than a strip of
+ * KPI cards. Boxes with borders and shadows read as a dashboard; quiet
  * columns read as a summary — and a summary is what this is.
  */
 
@@ -60,6 +61,7 @@ function Item({
 export function DonorGlance({
   followUps,
   lastInteraction,
+  opportunity,
   proposal,
   giving,
   capability,
@@ -69,9 +71,10 @@ export function DonorGlance({
 }: {
   followUps: ContactFollowUp[]
   lastInteraction: TimelineActivity | null
+  /** The person's first open opportunity — the sales conversation in flight. */
+  opportunity: ContactOpportunity | null
   proposal: ProposalSummary | null
-  /** Null when the viewer cannot see giving — the column is omitted, not empty. */
-  giving: ContactGiving | null
+  giving: ContactGiving
   capability: ContactCapabilityRow | null
   interests: ContactInterest[]
   nowIso: string
@@ -80,7 +83,7 @@ export function DonorGlance({
   const now = new Date(nowIso)
   const next = followUps[0] ?? null
   const nextOverdue = next ? isOverdue(next.due_at, now) : false
-  const summary = giving?.summary ?? null
+  const summary = giving.summary
 
   return (
     <dl className="grid grid-cols-2 gap-x-5 gap-y-3.5 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card sm:grid-cols-3">
@@ -118,6 +121,26 @@ export function DonorGlance({
       </Item>
 
       <Item
+        label="Opportunity"
+        tone={opportunity ? 'default' : 'muted'}
+        href={opportunity?.pipeline ? `/pipelines/${opportunity.pipeline.slug}` : undefined}
+      >
+        {opportunity ? (
+          <>
+            <span className="block truncate">{opportunity.title}</span>
+            <span className="mt-0.5 block text-xs font-normal text-slate-500">
+              {opportunity.stage?.name ?? 'Open'}
+              {opportunity.pipeline?.tracks_value && opportunity.value_cents !== null
+                ? ` · ${formatCurrency(opportunity.value_cents, opportunity.currency)}`
+                : ''}
+            </span>
+          </>
+        ) : (
+          'None open'
+        )}
+      </Item>
+
+      <Item
         label="Proposal"
         tone={proposal ? 'default' : 'muted'}
         href={proposal ? `/proposals/${proposal.id}` : undefined}
@@ -137,47 +160,43 @@ export function DonorGlance({
         )}
       </Item>
 
-      {giving ? (
-        <Item
-          label="Given"
-          tone={summary && summary.gift_count > 0 ? 'default' : 'muted'}
-          href={`/contacts/${contactId}?tab=giving`}
-        >
-          {summary && summary.gift_count > 0 ? (
-            <>
-              {formatCurrency(summary.total_cents)}
-              <span className="mt-0.5 block text-xs font-normal text-slate-500">
-                last {formatDate(summary.last_gift_on)}
-              </span>
-            </>
-          ) : (
-            'No gifts yet'
-          )}
-        </Item>
-      ) : null}
+      <Item
+        label="Given"
+        tone={summary && summary.gift_count > 0 ? 'default' : 'muted'}
+        href={`/contacts/${contactId}?tab=giving`}
+      >
+        {summary && summary.gift_count > 0 ? (
+          <>
+            {formatCurrency(summary.total_cents)}
+            <span className="mt-0.5 block text-xs font-normal text-slate-500">
+              last {formatDate(summary.last_gift_on)}
+            </span>
+          </>
+        ) : (
+          'No gifts yet'
+        )}
+      </Item>
 
-      {giving ? (
-        // Capability is a strategy note, so it is stated quietly and never as
-        // a figure on its own: the level leads, the range is a whisper under
-        // it, and an unreviewed record says so rather than implying nothing.
-        <Item label="Capability" tone={capability && capability.level !== 'unrated' ? 'default' : 'muted'}>
-          {capability && capability.level !== 'unrated' ? (
-            <>
-              {CAPABILITY_LEVEL_LABELS[capability.level]}
-              {capability.range_low_cents !== null || capability.range_high_cents !== null ? (
-                <span className="mt-0.5 block text-xs font-normal text-slate-500">
-                  {formatCurrency(capability.range_low_cents ?? 0)}
-                  {capability.range_high_cents !== null
-                    ? `–${formatCurrency(capability.range_high_cents)}`
-                    : '+'}
-                </span>
-              ) : null}
-            </>
-          ) : (
-            'Not assessed'
-          )}
-        </Item>
-      ) : null}
+      {/* Capability is a strategy note, so it is stated quietly and never as
+          a figure on its own: the level leads, the range is a whisper under
+          it, and an unreviewed record says so rather than implying nothing. */}
+      <Item label="Capability" tone={capability && capability.level !== 'unrated' ? 'default' : 'muted'}>
+        {capability && capability.level !== 'unrated' ? (
+          <>
+            {CAPABILITY_LEVEL_LABELS[capability.level]}
+            {capability.range_low_cents !== null || capability.range_high_cents !== null ? (
+              <span className="mt-0.5 block text-xs font-normal text-slate-500">
+                {formatCurrency(capability.range_low_cents ?? 0)}
+                {capability.range_high_cents !== null
+                  ? `–${formatCurrency(capability.range_high_cents)}`
+                  : '+'}
+              </span>
+            ) : null}
+          </>
+        ) : (
+          'Not assessed'
+        )}
+      </Item>
 
       <Item
         label="Cares about"

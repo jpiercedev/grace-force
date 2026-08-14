@@ -3,8 +3,10 @@ import { AttachmentsPanel, type AttachmentWithUrl } from '@/components/domain/at
 import { ProposalStatusBadge } from '@/components/domain/development-badges'
 import { DonorEvents } from '@/components/domain/donor/donor-events'
 import { DonorRelationships } from '@/components/domain/donor/donor-relationships'
+import { Badge, badgeTone } from '@/components/ui/display'
 import { RailSection } from '@/components/ui/rail'
 import type { ContactEventEntry } from '@/lib/queries/events'
+import type { ContactOpportunity } from '@/lib/queries/pipelines'
 import type { ProposalSummary } from '@/lib/queries/proposals'
 import type { RelatedPerson } from '@/lib/queries/relationships'
 import { formatCurrency } from '@/lib/utils'
@@ -12,20 +14,20 @@ import type { ContactActionState } from '@/lib/validation/contact'
 import type { EventRow } from '@/types/database'
 
 /**
- * The association rail of the donor record: the records connected to this
+ * The association rail of the person record: the records connected to this
  * person, each in a collapsible section with a count, a handful of entries,
  * and its own add action. Secondary relationship context lives here so the
  * center workspace stays about working the relationship.
  *
  * Sections with data start open; empty ones start closed but stay visible,
- * because knowing a donor has no linked people is itself information.
+ * because knowing a person has no linked people is itself information.
  */
 export function DonorAssociations({
   contactId,
   contactName,
   related,
+  opportunities,
   proposals,
-  showGiving,
   events,
   eventOptions,
   files,
@@ -37,8 +39,9 @@ export function DonorAssociations({
   contactId: string
   contactName: string
   related: RelatedPerson[]
+  /** Open opportunities only — settled history belongs to the workspace, not the rail. */
+  opportunities: ContactOpportunity[]
   proposals: ProposalSummary[]
-  showGiving: boolean
   events: ContactEventEntry[]
   eventOptions: Array<Pick<EventRow, 'id' | 'name' | 'event_date'>>
   files: AttachmentWithUrl[]
@@ -72,58 +75,103 @@ export function DonorAssociations({
         />
       </RailSection>
 
-      {showGiving ? (
-        <RailSection
-          title="Planned gifts"
-          count={proposals.length}
-          defaultOpen={proposals.length > 0}
-        >
-          {proposals.length === 0 ? (
-            <p className="text-[13px] leading-relaxed text-slate-500">
-              Nothing under discussion yet.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {proposals.slice(0, 4).map((proposal) => (
-                <li key={proposal.id}>
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                    <Link
-                      href={`/proposals/${proposal.id}`}
-                      className="min-w-0 truncate text-[13px] font-medium text-brand-700 hover:underline"
-                    >
-                      {proposal.title}
-                    </Link>
-                    <ProposalStatusBadge status={proposal.status} />
-                  </div>
-                  {proposal.amountCents !== null ? (
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {formatCurrency(proposal.amountCents, proposal.currency)}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-            {canEdit ? (
-              <Link
-                href={`/proposals/new?contact=${contactId}`}
-                className="text-[13px] font-medium text-brand-700 hover:underline"
+      <RailSection
+        title="Opportunities"
+        count={opportunities.length}
+        defaultOpen={opportunities.length > 0}
+      >
+        {opportunities.length === 0 ? (
+          <p className="text-[13px] leading-relaxed text-slate-500">
+            Not in any pipeline right now.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {opportunities.slice(0, 4).map((opportunity) => (
+              <li
+                key={opportunity.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
               >
-                + Start a planned gift
-              </Link>
-            ) : null}
-            {proposals.length > 4 ? (
-              <Link
-                href={`${basePath}?tab=proposals`}
-                className="text-xs font-medium text-brand-700 hover:underline"
-              >
-                View all {proposals.length}
-              </Link>
-            ) : null}
+                {opportunity.pipeline ? (
+                  <Link
+                    href={`/pipelines/${opportunity.pipeline.slug}`}
+                    className="min-w-0 truncate text-[13px] font-medium text-brand-700 hover:underline"
+                  >
+                    {opportunity.title}
+                  </Link>
+                ) : (
+                  <span className="min-w-0 truncate text-[13px] font-medium text-slate-900">
+                    {opportunity.title}
+                  </span>
+                )}
+                {opportunity.stage ? (
+                  <Badge tone={badgeTone(opportunity.stage.color)}>{opportunity.stage.name}</Badge>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        {canEdit ? (
+          <div className="mt-2">
+            <Link
+              href={`/sales/new?contact=${contactId}`}
+              className="text-[13px] font-medium text-brand-700 hover:underline"
+            >
+              + Add to a pipeline
+            </Link>
           </div>
-        </RailSection>
-      ) : null}
+        ) : null}
+      </RailSection>
+
+      <RailSection
+        title="Planned gifts"
+        count={proposals.length}
+        defaultOpen={proposals.length > 0}
+      >
+        {proposals.length === 0 ? (
+          <p className="text-[13px] leading-relaxed text-slate-500">
+            Nothing under discussion yet.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {proposals.slice(0, 4).map((proposal) => (
+              <li key={proposal.id}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                  <Link
+                    href={`/proposals/${proposal.id}`}
+                    className="min-w-0 truncate text-[13px] font-medium text-brand-700 hover:underline"
+                  >
+                    {proposal.title}
+                  </Link>
+                  <ProposalStatusBadge status={proposal.status} />
+                </div>
+                {proposal.amountCents !== null ? (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {formatCurrency(proposal.amountCents, proposal.currency)}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {canEdit ? (
+            <Link
+              href={`/proposals/new?contact=${contactId}`}
+              className="text-[13px] font-medium text-brand-700 hover:underline"
+            >
+              + Start a planned gift
+            </Link>
+          ) : null}
+          {proposals.length > 4 ? (
+            <Link
+              href={`${basePath}?tab=proposals`}
+              className="text-xs font-medium text-brand-700 hover:underline"
+            >
+              View all {proposals.length}
+            </Link>
+          ) : null}
+        </div>
+      </RailSection>
 
       <RailSection title="Events" count={events.length} defaultOpen={events.length > 0}>
         <DonorEvents

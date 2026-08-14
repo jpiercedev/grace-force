@@ -5,7 +5,7 @@ import { ProposalList } from '@/components/domain/proposal-list'
 import { LinkButton } from '@/components/ui/button'
 import { Callout, PageHeader } from '@/components/ui/display'
 import { SectionHeading } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, requireProfile } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import {
   ATTENTION_LIMIT,
   getDashboardStats,
@@ -15,9 +15,10 @@ import {
   type DashboardStats,
 } from '@/lib/queries/dashboard'
 import { listUpcomingEvents } from '@/lib/queries/events'
+import { listOpportunities } from '@/lib/queries/pipelines'
 import { listMyOpenProposals } from '@/lib/queries/proposals'
 import { formatDate, pluralize } from '@/lib/utils'
-import { ActivityPanel, FollowUpPanel } from './panels'
+import { ActivityPanel, ClosingSoonPanel, FollowUpPanel } from './panels'
 
 export const metadata = { title: 'Dashboard' }
 
@@ -35,7 +36,6 @@ function single(value: string | string[] | undefined): string | undefined {
 const DENIED_MESSAGES: Record<string, string> = {
   write: 'That page is for staff and administrators. Your account has read-only access.',
   admin: 'That page is for administrators only.',
-  giving: 'Giving records and proposals are limited to administrators and staff granted access to them.',
 }
 
 /** "Wednesday, August 5" — the eyebrow above the greeting. Rendered server-side. */
@@ -54,19 +54,29 @@ const EYEBROW_DATE = new Intl.DateTimeFormat('en-US', {
  * queue immediately below is where the number would have sent you anyway.
  */
 function daySummary(stats: DashboardStats, writable: boolean): string {
-  const leads = stats.newLeadsThisWeek ?? 0
-  const leadClause = leads > 0 ? `${pluralize(leads, 'new lead')} came in this week` : null
+  // Each extra clause chains on with ", and" — two of them read as a list, and
+  // the sentence stays a sentence rather than becoming a paragraph.
+  const extras: string[] = []
+  if (stats.newLeadsThisWeek > 0) {
+    extras.push(`${pluralize(stats.newLeadsThisWeek, 'new lead')} came in this week`)
+  }
+  if (stats.closingSoonOpportunities > 0) {
+    extras.push(
+      `${pluralize(stats.closingSoonOpportunities, 'opportunity', 'opportunities')} closing soon`,
+    )
+  }
+  const tail = extras.map((clause) => `, and ${clause}`).join('')
 
   if (stats.overdueFollowUps > 0) {
     const urgent = `${pluralize(stats.overdueFollowUps, 'follow-up is', 'follow-ups are')} overdue`
-    return leadClause ? `${urgent}, and ${leadClause}.` : `${urgent} — start there.`
+    return tail ? `${urgent}${tail}.` : `${urgent} — start there.`
   }
   if (stats.openFollowUps > 0) {
-    return leadClause
-      ? `Nothing is overdue, and ${leadClause}.`
+    return tail
+      ? `Nothing is overdue${tail}.`
       : `Nothing is overdue — ${pluralize(stats.openFollowUps, 'open follow-up is', 'open follow-ups are')} in hand.`
   }
-  if (leadClause) return `Your follow-up list is clear, and ${leadClause}.`
+  if (tail) return `Your follow-up list is clear${tail}.`
   return writable
     ? 'Your follow-up list is clear — a good day to reach out to someone.'
     : 'Nothing needs your attention today. Enjoy the quiet.'
@@ -77,9 +87,9 @@ function daySummary(stats: DashboardStats, writable: boolean): string {
  *
  * The brief was blunt about what it is not: "Do not create a wall of KPI
  * cards. Avoid decorative statistics." So there are no stat tiles at all. The
- * page opens with what is late, then what is due this week, then the three
- * things that need a decision — proposals in flight, gatherings coming up,
- * what the rest of the team has been doing — and stops.
+ * page opens with what is late, then what is due this week, then the things
+ * that need a decision — opportunities about to close, proposals in flight,
+ * gatherings coming up, what the rest of the team has been doing — and stops.
  */
 export default async function DashboardPage({
   searchParams,
@@ -94,14 +104,14 @@ export default async function DashboardPage({
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
   const writable = canWrite(profile)
-  const showGiving = canViewGiving(profile)
 
-  const [stats, overdue, upcoming, activity, proposals, events] = await Promise.all([
-    getDashboardStats(profile.id, { includeLeads: writable }, now),
+  const [stats, overdue, upcoming, activity, closing, proposals, events] = await Promise.all([
+    getDashboardStats(profile.id, now),
     listMyOverdueFollowUps(profile.id, ATTENTION_LIMIT, now),
     listMyUpcomingFollowUps(profile.id, ATTENTION_LIMIT, now),
     listRecentActivity(6),
-    showGiving ? listMyOpenProposals(profile.id, 4) : Promise.resolve([]),
+    listOpportunities({ closeWithin: 30 }),
+    listMyOpenProposals(profile.id, 4),
     listUpcomingEvents(today, 3),
   ])
 
@@ -146,14 +156,14 @@ export default async function DashboardPage({
       {/* New leads are the one inbound thing that goes stale if nobody looks,
           so they get a line of their own rather than only a mention in the
           summary sentence. Absent entirely when there are none. */}
-      {writable && (stats.newLeadsThisWeek ?? 0) > 0 ? (
+      {stats.newLeadsThisWeek > 0 ? (
         <Link
           href="/leads"
           className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-card transition-colors hover:border-slate-300 hover:bg-slate-50"
         >
           <span>
             <span className="block text-[15px] font-medium text-slate-900">
-              {pluralize(stats.newLeadsThisWeek ?? 0, 'new lead')} this week
+              {pluralize(stats.newLeadsThisWeek, 'new lead')} this week
             </span>
             <span className="block text-sm text-slate-600">
               Someone reached out and is waiting to hear back.
@@ -181,7 +191,9 @@ export default async function DashboardPage({
             nowIso={nowIso}
           />
 
-          {showGiving && proposals.length > 0 ? (
+          <ClosingSoonPanel items={closing.slice(0, 5)} today={today} />
+
+          {proposals.length > 0 ? (
             <section className="space-y-3">
               <SectionHeading
                 title="Your proposals"

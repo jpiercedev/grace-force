@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { startOfDay, startOfMonth, subDays } from 'date-fns'
+import { addDays, startOfDay, startOfMonth, subDays } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { segmentWindow } from '@/lib/validation/follow-up'
 import { contactDisplayName } from '@/lib/utils'
@@ -44,7 +44,6 @@ function fail(what: string, error: { message: string }): never {
 
 export const ATTENTION_LIMIT = 5
 export const RECENT_ACTIVITY_LIMIT = 10
-export const MY_PIPELINE_LIMIT = 20
 
 // --- Stat tiles -------------------------------------------------------------
 
@@ -52,18 +51,18 @@ export interface DashboardStats {
   openFollowUps: number
   overdueFollowUps: number
   ownedContacts: number
-  /** Null when the viewer cannot see leads, so the tile is omitted rather than shown as zero. */
-  newLeadsThisWeek: number | null
+  newLeadsThisWeek: number
   newContactsThisMonth: number
+  /** Open opportunities with an expected close date inside the next 30 days. */
+  closingSoonOpportunities: number
 }
 
 /**
- * Five counts in one round of parallel `head` requests — nothing here reads a
- * row body, so the whole strip costs five index scans.
+ * Six counts in one round of parallel `head` requests — nothing here reads a
+ * row body, so the whole strip costs six index scans.
  */
 export async function getDashboardStats(
   userId: string,
-  options: { includeLeads: boolean },
   now: Date = new Date(),
 ): Promise<DashboardStats> {
   const supabase = await createClient()
@@ -72,8 +71,11 @@ export async function getDashboardStats(
   // on a Monday morning a calendar week would report almost nothing.
   const weekStartIso = subDays(startOfDay(now), 6).toISOString()
   const monthStartIso = startOfMonth(now).toISOString()
+  // The same 30-day horizon the "Closing soon" panel queries, so the sentence
+  // and the panel never disagree about how many are on the way.
+  const closeHorizon = addDays(now, 30).toISOString().slice(0, 10)
 
-  const [open, overdue, owned, newContacts, newLeads] = await Promise.all([
+  const [open, overdue, owned, newContacts, newLeads, closingSoon] = await Promise.all([
     supabase
       .from('follow_ups')
       .select('id', { count: 'exact', head: true })
@@ -96,27 +98,36 @@ export async function getDashboardStats(
       .is('deleted_at', null)
       .gte('created_at', monthStartIso),
     // Spam is filtered out: a bot storm would otherwise read as a good week.
-    options.includeLeads
-      ? supabase
-          .from('leads')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', weekStartIso)
-          .neq('status', 'spam')
-      : null,
+    supabase
+      .from('leads')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', weekStartIso)
+      .neq('status', 'spam'),
+    // The inner contact join keeps soft-deleted people out of the count, the
+    // same way the opportunity list itself filters them.
+    supabase
+      .from('pipeline_cards')
+      .select('id, contact:contacts!inner(id)', { count: 'exact', head: true })
+      .eq('status', 'open')
+      .not('expected_close_on', 'is', null)
+      .lte('expected_close_on', closeHorizon)
+      .is('contact.deleted_at', null),
   ])
 
   if (open.error) fail('your follow-up count', open.error)
   if (overdue.error) fail('your overdue count', overdue.error)
   if (owned.error) fail('your contact count', owned.error)
   if (newContacts.error) fail('the new contact count', newContacts.error)
-  if (newLeads?.error) fail('the new lead count', newLeads.error)
+  if (newLeads.error) fail('the new lead count', newLeads.error)
+  if (closingSoon.error) fail('the closing-soon count', closingSoon.error)
 
   return {
     openFollowUps: open.count ?? 0,
     overdueFollowUps: overdue.count ?? 0,
     ownedContacts: owned.count ?? 0,
     newContactsThisMonth: newContacts.count ?? 0,
-    newLeadsThisWeek: newLeads ? (newLeads.count ?? 0) : null,
+    newLeadsThisWeek: newLeads.count ?? 0,
+    closingSoonOpportunities: closingSoon.count ?? 0,
   }
 }
 
@@ -252,110 +263,4 @@ export async function listRecentActivity(
     actor: row.actor?.full_name?.trim() || row.actor?.email || row.actor_label?.trim() || null,
     contact: toContactRef(row.contact),
   }))
-}
-
-// --- My pipeline ------------------------------------------------------------
-
-export interface DashboardPipelineCard {
-  id: string
-  title: string
-  value_cents: number | null
-  expected_close_on: string | null
-  stage_name: string
-  /** Operator-set stage colour, so the badge tone matches the pipeline board. */
-  stage_color: string | null
-  contact: ContactRef | null
-}
-
-export interface DashboardPipelineGroup {
-  id: string
-  slug: string
-  name: string
-  cards: DashboardPipelineCard[]
-  /** Null for pipelines that do not track value, so the UI can omit the total. */
-  value_cents: number | null
-}
-
-interface PipelineCardRowShape {
-  id: string
-  pipeline_id: string
-  stage_id: string
-  title: string
-  value_cents: number | null
-  expected_close_on: string | null
-  contact: ContactRefRow | null
-}
-
-const PIPELINE_CARD_SELECT = `
-  id, pipeline_id, stage_id, title, value_cents, expected_close_on,
-  contact:contacts!inner(${CONTACT_REF_FIELDS})
-`
-
-/**
- * Open cards this user owns, grouped by pipeline.
- *
- * Pipelines and stages are looked up separately rather than embedded: cards
- * reach `pipeline_stages` through a composite `(stage_id, pipeline_id)` key,
- * and a handful of ids resolve in one round trip either way.
- */
-export async function listMyPipelineCards(
-  userId: string,
-  limit: number = MY_PIPELINE_LIMIT,
-): Promise<DashboardPipelineGroup[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('pipeline_cards')
-    .select(PIPELINE_CARD_SELECT)
-    .eq('owner_id', userId)
-    .eq('status', 'open')
-    .is('contact.deleted_at', null)
-    // Soonest expected close first; undated work sits behind it.
-    .order('expected_close_on', { ascending: true, nullsFirst: false })
-    .order('created_at', { ascending: true })
-    .limit(limit)
-    .overrideTypes<PipelineCardRowShape[], { merge: false }>()
-
-  if (error) fail('your pipeline cards', error)
-
-  const cards = data ?? []
-  if (cards.length === 0) return []
-
-  const [pipelines, stages] = await Promise.all([
-    supabase
-      .from('pipelines')
-      .select('id, slug, name, tracks_value, sort_order')
-      .in('id', [...new Set(cards.map((card) => card.pipeline_id))])
-      .order('sort_order', { ascending: true })
-      .order('name', { ascending: true }),
-    supabase
-      .from('pipeline_stages')
-      .select('id, name, color')
-      .in('id', [...new Set(cards.map((card) => card.stage_id))]),
-  ])
-
-  if (pipelines.error) fail('your pipelines', pipelines.error)
-  if (stages.error) fail('pipeline stages', stages.error)
-
-  const stagesById = new Map((stages.data ?? []).map((stage) => [stage.id, stage]))
-
-  return (pipelines.data ?? []).map((pipeline) => {
-    const mine = cards.filter((card) => card.pipeline_id === pipeline.id)
-    return {
-      id: pipeline.id,
-      slug: pipeline.slug,
-      name: pipeline.name,
-      cards: mine.map((card) => ({
-        id: card.id,
-        title: card.title,
-        value_cents: card.value_cents,
-        expected_close_on: card.expected_close_on,
-        stage_name: stagesById.get(card.stage_id)?.name ?? 'Unknown stage',
-        stage_color: stagesById.get(card.stage_id)?.color ?? null,
-        contact: toContactRef(card.contact),
-      })),
-      value_cents: pipeline.tracks_value
-        ? mine.reduce((total, card) => total + (card.value_cents ?? 0), 0)
-        : null,
-    }
-  })
 }

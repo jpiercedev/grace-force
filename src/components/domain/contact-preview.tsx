@@ -14,7 +14,7 @@ import {
 import { LogInteractionDialog } from '@/components/domain/log-interaction'
 import { PreviewShell } from '@/components/domain/preview-shell'
 import { buttonClasses } from '@/components/ui/button'
-import { Avatar, Badge } from '@/components/ui/display'
+import { Avatar, Badge, badgeTone } from '@/components/ui/display'
 import {
   contactName,
   getContact,
@@ -24,6 +24,7 @@ import {
   type ContactFollowUp,
   type TimelineActivity,
 } from '@/lib/queries/contacts'
+import { getContactOpportunities, type ContactOpportunity } from '@/lib/queries/pipelines'
 import { getContactProposals, primaryProposal, type ProposalSummary } from '@/lib/queries/proposals'
 import {
   getContactInterests,
@@ -53,25 +54,25 @@ export interface ContactPreviewData {
   recentActivity: TimelineActivity[]
   interests: ContactInterest[]
   related: RelatedPerson[]
+  opportunity: ContactOpportunity | null
   proposal: ProposalSummary | null
   proposalOptions: Array<{ id: string; title: string; status: ProposalSummary['status'] }>
 }
 
-export async function loadContactPreview(
-  id: string,
-  showGiving: boolean,
-): Promise<ContactPreviewData | null> {
+export async function loadContactPreview(id: string): Promise<ContactPreviewData | null> {
   const contact = await getContact(id)
   if (!contact) return null
 
-  const [members, followUps, timeline, interests, related, proposals] = await Promise.all([
-    teamMemberMap(),
-    getContactFollowUps(contact.id),
-    getContactTimeline(contact.id, { limit: 25 }),
-    getContactInterests(contact.id),
-    getRelatedPeople(contact.id),
-    showGiving ? getContactProposals(contact.id) : Promise.resolve([]),
-  ])
+  const [members, followUps, timeline, interests, related, proposals, opportunities] =
+    await Promise.all([
+      teamMemberMap(),
+      getContactFollowUps(contact.id),
+      getContactTimeline(contact.id, { limit: 25 }),
+      getContactInterests(contact.id),
+      getRelatedPeople(contact.id),
+      getContactProposals(contact.id),
+      getContactOpportunities(contact.id),
+    ])
 
   return {
     contact,
@@ -84,6 +85,9 @@ export async function loadContactPreview(
     recentActivity: timeline.activities.slice(0, 3),
     interests,
     related,
+    // The first open opportunity mirrors the glance on the full record; the
+    // panel is a preview, so one is enough.
+    opportunity: opportunities.open[0] ?? null,
     proposal: primaryProposal(proposals),
     proposalOptions: proposals.map(({ id: proposalId, title, status }) => ({
       id: proposalId,
@@ -262,6 +266,35 @@ export function ContactPreviewPanel({
                 <InterestBadge key={interest.id} label={interest.label} />
               ))}
             </div>
+          </Section>
+        ) : null}
+
+        {data.opportunity ? (
+          <Section title="Opportunity">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {data.opportunity.pipeline ? (
+                <Link
+                  href={`/pipelines/${data.opportunity.pipeline.slug}`}
+                  className="text-[13px] font-medium text-brand-700 hover:underline"
+                >
+                  {data.opportunity.title}
+                </Link>
+              ) : (
+                <span className="text-[13px] font-medium text-slate-800">
+                  {data.opportunity.title}
+                </span>
+              )}
+              {data.opportunity.stage ? (
+                <Badge tone={badgeTone(data.opportunity.stage.color)}>
+                  {data.opportunity.stage.name}
+                </Badge>
+              ) : null}
+            </div>
+            {data.opportunity.pipeline?.tracks_value && data.opportunity.value_cents !== null ? (
+              <p className="mt-0.5 text-xs text-slate-500">
+                {formatCurrency(data.opportunity.value_cents, data.opportunity.currency)}
+              </p>
+            ) : null}
           </Section>
         ) : null}
 

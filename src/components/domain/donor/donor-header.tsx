@@ -110,6 +110,9 @@ export function DonorHeader({
             <ActionMenuLink href={`/follow-ups/new?contact=${contact.id}`}>
               Add a follow-up
             </ActionMenuLink>
+            <ActionMenuLink href={`/sales/new?contact=${contact.id}`}>
+              Add to a pipeline
+            </ActionMenuLink>
             <ActionMenuLink href={`/proposals/new?contact=${contact.id}`}>
               Start a planned gift
             </ActionMenuLink>

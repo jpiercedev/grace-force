@@ -21,6 +21,7 @@ import {
 } from '@/app/(app)/contacts/donor-actions'
 import { saveAttendee } from '@/app/(app)/events/actions'
 import { ACTIVITY_TYPE_LABELS, parseActivityType } from '@/components/domain/contact-badges'
+import { ContactOpportunities } from '@/components/domain/contact-opportunities'
 import { ContactEmailPanel, ContactGivingPanel } from '@/components/domain/contact-panels'
 import { MEETING_KIND_LABELS } from '@/components/domain/development-badges'
 import { DonorAbout } from '@/components/domain/donor/donor-about'
@@ -36,9 +37,8 @@ import { ProposalList } from '@/components/domain/proposal-list'
 import { Timeline } from '@/components/domain/timeline'
 import { TimelineFilters } from '@/components/domain/timeline-filters'
 import { LinkButton, buttonClasses } from '@/components/ui/button'
-import { EmptyState } from '@/components/ui/display'
 import { SectionHeading, Tabs, type TabDefinition } from '@/components/ui/tabs'
-import { canViewGiving, canWrite, isAdmin, requireProfile } from '@/lib/auth'
+import { canWrite, isAdmin, requireProfile } from '@/lib/auth'
 import { getContactAttachments, withDownloadUrls } from '@/lib/queries/attachments'
 import { getContactCallReports } from '@/lib/queries/call-reports'
 import {
@@ -56,6 +56,7 @@ import {
   listTeamMembers,
 } from '@/lib/queries/contacts'
 import { getContactEvents, listEventOptions } from '@/lib/queries/events'
+import { getContactOpportunities } from '@/lib/queries/pipelines'
 import { getContactProposals, primaryProposal } from '@/lib/queries/proposals'
 import {
   getContactCapability,
@@ -66,7 +67,7 @@ import {
 import { formatDate, pluralize } from '@/lib/utils'
 
 /**
- * The donor record — the heart of the application, in three zones:
+ * The person record — the heart of the application, in three zones:
  *
  * 1. **Left rail** — who this is and how to reach them, persistent while the
  *    workspace changes. Rarely-needed properties fold behind "View all
@@ -100,8 +101,8 @@ function first(value: string | string[] | undefined): string | null {
 
 /** Old links may still carry ?tab=relationships or ?tab=files — those areas
  *  live in the association rail now, so they land on the overview. */
-function parseTab(value: string | null, allowed: readonly TabKey[]): TabKey {
-  return value && (allowed as readonly string[]).includes(value) ? (value as TabKey) : 'overview'
+function parseTab(value: string | null): TabKey {
+  return value && (TAB_KEYS as readonly string[]).includes(value) ? (value as TabKey) : 'overview'
 }
 
 /** How many timeline entries to render. Grows by a page each "Load more". */
@@ -127,7 +128,6 @@ export default async function ContactDetailPage({
   const type = parseActivityType(first(query.type))
   const shown = parseShown(first(query.show))
   const writable = canWrite(profile)
-  const showGiving = canViewGiving(profile)
   const admin = isAdmin(profile)
 
   // One clock for the whole render, so the day headings and every relative
@@ -149,6 +149,7 @@ export default async function ContactDetailPage({
     interestAreas,
     capability,
     proposals,
+    opportunities,
     events,
     eventOptions,
     reports,
@@ -159,13 +160,14 @@ export default async function ContactDetailPage({
     getContactFollowUps(contact.id),
     listTeamMembers(),
     listEngagementTypes(),
-    showGiving ? getContactGiving(contact.id) : Promise.resolve(null),
+    getContactGiving(contact.id),
     getContactEmailEngagement(contact.id),
     getRelatedPeople(contact.id),
     getContactInterests(contact.id),
     listInterestAreas(),
-    showGiving ? getContactCapability(contact.id) : Promise.resolve(null),
-    showGiving ? getContactProposals(contact.id) : Promise.resolve([]),
+    getContactCapability(contact.id),
+    getContactProposals(contact.id),
+    getContactOpportunities(contact.id),
     getContactEvents(contact.id),
     listEventOptions(),
     getContactCallReports(contact.id),
@@ -176,20 +178,15 @@ export default async function ContactDetailPage({
   const days = groupActivitiesByDay(timeline.activities)
   const basePath = `/contacts/${contact.id}`
 
-  // A tab a viewer cannot see must not be selectable, or a shared link lands
-  // them on an empty page with no explanation.
-  const allowed = TAB_KEYS.filter((key) => showGiving || (key !== 'giving' && key !== 'proposals'))
-  const tab = parseTab(first(query.tab), allowed)
+  const tab = parseTab(first(query.tab))
 
+  // Giving sits late in the strip on purpose: everyone can see it now, but the
+  // record leads with the relationship and the sales conversation, not the money.
   const tabs: TabDefinition[] = [
     { key: 'overview', label: 'Overview' },
     { key: 'activity', label: 'Activity', count: timeline.total },
-    ...(showGiving
-      ? ([
-          { key: 'proposals', label: 'Planned gifts', count: proposals.length },
-          { key: 'giving', label: 'Giving' },
-        ] as TabDefinition[])
-      : []),
+    { key: 'proposals', label: 'Planned gifts', count: proposals.length },
+    { key: 'giving', label: 'Giving' },
     { key: 'events', label: 'Events', count: events.length },
   ]
 
@@ -247,7 +244,7 @@ export default async function ContactDetailPage({
 
         {/* Zone 2 — the relationship workspace. */}
         <div className="min-w-0">
-          <Tabs tabs={tabs} active={tab} hrefFor={tabHref} label="Donor record sections" />
+          <Tabs tabs={tabs} active={tab} hrefFor={tabHref} label="Person record sections" />
 
           <div className="pt-4">
             {tab === 'overview' ? (
@@ -256,6 +253,7 @@ export default async function ContactDetailPage({
                   contactId={contact.id}
                   followUps={followUps}
                   lastInteraction={lastInteraction}
+                  opportunity={opportunities.open[0] ?? null}
                   proposal={openProposal}
                   giving={giving}
                   capability={capability}
@@ -288,6 +286,13 @@ export default async function ContactDetailPage({
                     </p>
                   )}
                 </section>
+
+                <ContactOpportunities
+                  contactId={contact.id}
+                  open={opportunities.open}
+                  settled={opportunities.settled}
+                  canEdit={writable}
+                />
 
                 <DonorInterests
                   contactId={contact.id}
@@ -394,7 +399,7 @@ export default async function ContactDetailPage({
               </div>
             ) : null}
 
-            {tab === 'proposals' && showGiving ? (
+            {tab === 'proposals' ? (
               <section className="space-y-3">
                 <SectionHeading
                   title="Planned gifts and proposals"
@@ -427,7 +432,7 @@ export default async function ContactDetailPage({
               </section>
             ) : null}
 
-            {tab === 'giving' && giving ? (
+            {tab === 'giving' ? (
               <div className="grid items-start gap-4 xl:grid-cols-2">
                 <ContactGivingPanel giving={giving} />
                 <div className="space-y-4">
@@ -453,15 +458,6 @@ export default async function ContactDetailPage({
                 action={saveAttendee}
               />
             ) : null}
-
-            {/* A giving-gated tab reached by a shared link, by someone without
-                the capability: say so rather than showing an empty page. */}
-            {(tab === 'giving' && !giving) || (tab === 'proposals' && !showGiving) ? (
-              <EmptyState
-                title="Not available to your account"
-                description="Giving records and planned gifts are limited to administrators and staff granted access to them."
-              />
-            ) : null}
           </div>
         </div>
 
@@ -474,8 +470,8 @@ export default async function ContactDetailPage({
             contactId={contact.id}
             contactName={contactName(contact)}
             related={related}
+            opportunities={opportunities.open}
             proposals={proposals}
-            showGiving={showGiving}
             events={events}
             eventOptions={eventOptions}
             files={filesWithUrls}
