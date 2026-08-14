@@ -55,6 +55,7 @@ function renderRow(lead = makeLead()) {
       nowIso={NOW}
       formAction={action}
       resetSignal={0}
+      canTriage
     />,
   )
 
@@ -128,6 +129,7 @@ describe('LeadRow', () => {
         nowIso={NOW}
         formAction={() => undefined}
         resetSignal={0}
+        canTriage
       />,
     )
 
@@ -146,8 +148,24 @@ describe('LeadRow', () => {
         nowIso={NOW}
         formAction={() => undefined}
         resetSignal={0}
+        canTriage
       />,
     )
     expectDedicatedActionForm(screen.getByRole('button', { name: /^reopen/i }), 'reopen')
+  })
+
+  it('renders no triage controls for a read-only viewer', () => {
+    render(
+      <LeadRow
+        lead={makeLead()}
+        team={TEAM}
+        statusFilter="new"
+        nowIso={NOW}
+        formAction={() => undefined}
+        resetSignal={0}
+        canTriage={false}
+      />,
+    )
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 })

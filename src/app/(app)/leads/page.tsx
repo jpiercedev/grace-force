@@ -2,7 +2,7 @@ import { LeadFilters } from '@/app/(app)/leads/lead-filters'
 import { LeadQueue } from '@/app/(app)/leads/lead-queue'
 import { LinkButton } from '@/components/ui/button'
 import { Card, CardHeader, EmptyState, PageHeader } from '@/components/ui/display'
-import { requireWriteAccess } from '@/lib/auth'
+import { canWrite, requireProfile } from '@/lib/auth'
 import { leadStatusCounts, listLeads } from '@/lib/leads/queries'
 import {
   ASSIGNEE_ME,
@@ -26,12 +26,12 @@ function single(value: string | string[] | undefined): string | undefined {
 /**
  * The triage queue for everything the public form has sent in.
  *
- * Guarded with `requireWriteAccess` because leads hold unvetted third-party
- * PII: `leads_select` already refuses viewers at the database, and this keeps
- * the interface from offering a screen that would come back empty.
+ * The queue is shared reading (20260814000400 opened `leads_select` to every
+ * active user); triage controls belong to writers only, and the server
+ * actions re-check that regardless of what the interface offers.
  */
 export default async function LeadsPage({ searchParams }: { searchParams: SearchParams }) {
-  const profile = await requireWriteAccess()
+  const profile = await requireProfile()
   const params = await searchParams
 
   const status = parseLeadStatusFilter(single(params.status))
@@ -74,7 +74,13 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
             }
           />
         ) : (
-          <LeadQueue leads={leads} team={team} statusFilter={status} nowIso={now.toISOString()} />
+          <LeadQueue
+            leads={leads}
+            team={team}
+            statusFilter={status}
+            nowIso={now.toISOString()}
+            canTriage={canWrite(profile)}
+          />
         )}
       </Card>
     </div>

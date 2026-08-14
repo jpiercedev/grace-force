@@ -32,6 +32,8 @@ export interface LeadRowProps {
   formAction: (formData: FormData) => void
   /** Changes when an action succeeds, which closes any open panel. */
   resetSignal: number
+  /** Viewers read the queue but hold no triage controls. */
+  canTriage: boolean
 }
 
 function SubmitButton({ children, ...props }: ButtonProps) {
@@ -61,7 +63,15 @@ function utmSummary(utm: Json): string | null {
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
-export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSignal }: LeadRowProps) {
+export function LeadRow({
+  lead,
+  team,
+  statusFilter,
+  nowIso,
+  formAction,
+  resetSignal,
+  canTriage,
+}: LeadRowProps) {
   const [panel, setPanel] = useState<Panel>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelId = useId()
@@ -196,7 +206,7 @@ export function LeadRow({ lead, team, statusFilter, nowIso, formAction, resetSig
               </p>
             ) : null}
 
-            {converted ? null : (
+            {converted || !canTriage ? null : (
               <div className="flex flex-wrap items-center gap-2 pt-1.5">
                 <Button
                   type="button"
