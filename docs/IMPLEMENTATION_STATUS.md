@@ -11,7 +11,7 @@
 | --- | --- |
 | Current phase | Grace Lead Management on `claude/grace-lead-management-rebrand-f86mf8` (from the deployed `0e078c9`): rename, Sales section, staff-managed pipelines, one shared workspace. Verified preview; **production migrations and deploy await authorization** |
 | Overall status | Feature-complete. 29 migrations and 49 routes |
-| Tests | 626 Vitest (34 files) passing; `@public` browser suite per the release notes below; production `@authed` pass follows deployment |
+| Tests | 628 Vitest (34 files) + 29 `@public` browser tests passing; production `@authed` pass follows deployment |
 | Build | `next build` succeeds — 49 routes, `/sales` family included |
 | Deployment | `grace-force` on Vercel, git-connected. Production still runs `0e078c9` (donor-crm branch). Branch previews build per push. **The four `20260814` migrations (plus the still-pending `20260806000900`) must be applied before this build is promoted. See `docs/ROLLOUT.md`.** |
 
