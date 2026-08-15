@@ -9,9 +9,19 @@
 
 | Layer | State |
 | --- | --- |
-| Vercel production | `claude/donor-crm-hubspot-redesign-smpmo4` @ `0e078c9` (the HubSpot-style redesign) |
+| Vercel production | **Moved during this branch's development.** It began on `claude/donor-crm-hubspot-redesign-smpmo4` @ `0e078c9`; a parallel implementation of this same release (`claude/grace-lead-management-rebrand-f86mf8`) was promoted to production on 2026-08-14. Re-check `githubCommitRef` on the current production deployment before acting. |
 | Supabase (`phhkhvewcclzjkdbjmqw`) | All 29 migrations applied — including the four `20260814…` sales/visibility migrations |
-| Data | 1 contact, 5 pipelines (3 original + 2 seeded), 27 stages, 0 opportunities, 0 gifts, 3 profiles |
+| Data | At audit time: 1 contact, 5 pipelines (3 original + 2 seeded), 27 stages, 0 opportunities, 0 gifts, 3 profiles |
+
+**Decision required before deploying this branch.** Two complete
+implementations of the Grace Lead Management brief now exist: this one
+(`…-x2a0bf`, based on the `0e078c9` production lineage) and the one currently
+serving production (`…-f86mf8`). Both build on the same four applied
+migrations, so either runs correctly against the live database — but
+promoting this branch replaces the other implementation wholesale, and the
+two histories will not merge cleanly. Choose one lineage deliberately;
+whichever is chosen, the rollback target below becomes the deployment that
+was live immediately before the switch.
 
 **Already true:** the four schema migrations this release describes —
 `20260814183037_sales_enums`, `…183153_configurable_pipelines`,
