@@ -35,7 +35,7 @@ export default async function PipelinesPage() {
   const pipelines = await listPipelineSummaries()
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Pipelines"
         description="Staged work in flight, by process."

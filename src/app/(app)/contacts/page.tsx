@@ -35,7 +35,7 @@ export default async function ContactsPage({
   const writable = canWrite(profile)
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title="Contacts"
         description="Everyone Grace Force is in relationship with."

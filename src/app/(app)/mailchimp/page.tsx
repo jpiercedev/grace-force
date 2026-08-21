@@ -46,7 +46,7 @@ export default async function MailchimpPage() {
   const overview = await getMailchimpOverview()
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Email"
         description="What Mailchimp knows about the people you write to, mirrored into the CRM."

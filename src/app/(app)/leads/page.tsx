@@ -49,7 +49,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
   const heading = status === STATUS_ANY ? 'All leads' : LEAD_STATUS_LABELS[status]
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Leads"
         description="Enquiries from the public form, waiting to become relationships."

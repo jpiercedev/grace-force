@@ -37,6 +37,10 @@ builder or parameterised RPC.
   `{ error?: string; fieldErrors?: Record<string,string> }` rather than
   throwing for user-facing failures.
 - Revalidate with `revalidatePath` after a successful mutation.
+- Page width belongs to the shell, not the page. `AppShell` centres every
+  authenticated route in a single `max-w-screen-2xl` container, so a route
+  file must never add its own `mx-auto max-w-*` wrapper — that is how the
+  frame ends up shifting as you walk the nav.
 - Shared primitives live in `@/components/ui`:
   - `button.tsx` — `Button`, `LinkButton`, `buttonClasses`
     (variants: `primary` `secondary` `outline` `ghost` `danger`; sizes `sm` `md` `lg`)

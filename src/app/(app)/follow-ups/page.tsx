@@ -46,7 +46,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Se
   const editable = canWrite(profile)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Follow-ups"
         description="What you owe people, and when you owe it."

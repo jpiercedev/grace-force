@@ -289,6 +289,11 @@ export function AppShell({
           <Brand />
         </header>
 
+        {/* One measure for the whole product. Page width is decided here and
+            nowhere else: when route files each carried their own `max-w-*`
+            the frame jumped between five different widths as you walked the
+            nav. Below roughly 1870px this cap never bites, so a page simply
+            fills whatever the rail leaves it. */}
         <main id="main-content" className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
           <div className="mx-auto w-full max-w-screen-2xl">{children}</div>
         </main>

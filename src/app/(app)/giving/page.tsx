@@ -64,7 +64,7 @@ export default async function GivingPage({
   const filtered = hasGivingFilters(filters)
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="space-y-5">
       <PageHeader title="Giving" description="Generosity in context, across the whole ministry." />
 
       {/* One quiet band of serif figures, led by the range being reported —

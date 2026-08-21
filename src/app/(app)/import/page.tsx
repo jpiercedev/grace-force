@@ -31,7 +31,7 @@ export default async function ImportPage() {
     .limit(HISTORY_LIMIT)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Import"
         description="Bring contacts or giving history in from a spreadsheet, one reviewable batch at a time."
