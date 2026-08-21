@@ -51,7 +51,7 @@ export default async function UnmatchedPage({ searchParams }: { searchParams: Se
   const candidates = selected && term ? await searchContactsToLink(term) : []
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Unmatched subscribers"
         description="People on a Mailchimp audience who are not linked to a CRM contact."

@@ -34,7 +34,7 @@ export default async function SearchPage({
     q === '' ? null : await searchEverything(q, { includeLeads: canWrite(profile) })
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title="Search"
         description="One box across contacts, the timeline and leads."

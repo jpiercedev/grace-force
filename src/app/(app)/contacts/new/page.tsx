@@ -11,7 +11,7 @@ export default async function NewContactPage() {
   const team = await listTeamMembers()
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <>
       <PageHeader
         eyebrow="Contacts"
         title="New contact"
@@ -25,6 +25,6 @@ export default async function NewContactPage() {
         cancelHref="/contacts"
         submitLabel="Create contact"
       />
-    </div>
+    </>
   )
 }

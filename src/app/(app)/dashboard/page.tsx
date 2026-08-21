@@ -106,7 +106,7 @@ export default async function DashboardPage({
   const quietLink = 'font-medium text-brand-700 underline-offset-2 hover:underline'
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         eyebrow={EYEBROW_DATE.format(now)}
         title={`Welcome back, ${firstName}`}

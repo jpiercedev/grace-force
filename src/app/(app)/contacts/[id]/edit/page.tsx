@@ -18,7 +18,7 @@ export default async function EditContactPage({
   if (!contact) notFound()
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <>
       <PageHeader
         eyebrow="Contacts"
         title={`Edit ${contactName(contact)}`}
@@ -31,6 +31,6 @@ export default async function EditContactPage({
         cancelHref={`/contacts/${contact.id}`}
         submitLabel="Save changes"
       />
-    </div>
+    </>
   )
 }

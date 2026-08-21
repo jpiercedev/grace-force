@@ -34,7 +34,7 @@ export default async function ExportPage() {
   )
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title="Export"
         description="Every dataset as CSV, with the relationships between them intact."

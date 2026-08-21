@@ -48,7 +48,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
   if (contact) {
     const team = await listAssignableProfiles()
     return (
-      <div className="mx-auto max-w-2xl space-y-5">
+      <div className="space-y-5">
         <PageHeader
           eyebrow="Follow-ups"
           title="New follow-up"
@@ -78,7 +78,7 @@ export default async function NewFollowUpPage({ searchParams }: { searchParams: 
   const matches = query ? await searchContactsForFollowUp(query) : []
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         eyebrow="Follow-ups"
         title="New follow-up"

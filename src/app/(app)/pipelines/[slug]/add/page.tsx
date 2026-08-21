@@ -65,7 +65,7 @@ export default async function AddToPipelinePage({
   if (contact) {
     const team = await listAssignableProfiles()
     return (
-      <div className="mx-auto max-w-2xl space-y-5">
+      <div className="space-y-5">
         {header}
         <Card>
           <CardBody className="py-5">
@@ -87,7 +87,7 @@ export default async function AddToPipelinePage({
   const matches = term ? await searchContactsForPipeline(pipeline.id, term) : []
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="space-y-5">
       {header}
 
       {contactId && !contact ? (

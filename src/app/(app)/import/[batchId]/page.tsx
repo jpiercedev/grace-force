@@ -130,7 +130,7 @@ export default async function ImportBatchPage({
   const giftsBlocked = batch.kind === 'gifts' && !isAdmin(profile)
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
+    <div className="space-y-5">
       <PageHeader
         title={batch.filename ?? 'Untitled file'}
         description={
