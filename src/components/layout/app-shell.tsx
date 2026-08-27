@@ -428,7 +428,16 @@ function NavFooter({
           <p className="truncate text-xs text-white/50">{role}</p>
         </div>
       </div>
-      <form action={signOutAction} className="mt-2">
+      {/* The only route to a password change: there is no reset-by-email
+          flow, so without this the page is reachable only by being forced
+          there. */}
+      <Link
+        href="/change-password"
+        className="mt-2 block rounded-lg px-2 py-2.5 text-left text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white lg:py-2"
+      >
+        Change password
+      </Link>
+      <form action={signOutAction}>
         <button
           type="submit"
           className="w-full rounded-lg px-2 py-2.5 text-left text-sm font-medium text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white lg:py-2"

@@ -36,6 +36,10 @@ const SUPABASE_BOOTSTRAP = `
     email               text unique,
     encrypted_password  text,
     raw_user_meta_data  jsonb not null default '{}'::jsonb,
+    -- Nullable, as on the hosted platform: the forced-rotation trigger has to
+    -- cope with a row that has never carried app metadata.
+    raw_app_meta_data   jsonb,
+    updated_at          timestamptz,
     created_at          timestamptz not null default now()
   );
 

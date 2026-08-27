@@ -34,6 +34,15 @@ permission.** That is why `contact_capability` is its own table — RLS is
 row-level, so a column on `contacts` would be readable by anyone who can read
 the person.
 
+**The forced-password-rotation flag lives in `auth.users.raw_app_meta_data`,
+not on `profiles`.** `profiles_update` lets a person update their own row and
+`protect_profile_privileges` only restores `role`, `is_active` and
+`can_view_giving` — so a boolean on `profiles` would be clearable by the very
+account it constrains, with one PATCH and no password change. `app_metadata` is
+service-role-only in GoTrue, and `getUser()` returns it fresh. A trigger drops
+it when the password hash changes, so the application never clears its own
+guard.
+
 **Generated columns must never be written**: `contacts.full_name`,
 `email_normalized`, `phone_normalized`, `search_vector`, and the equivalents on
 `leads` and the Mailchimp tables.
