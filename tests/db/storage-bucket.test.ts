@@ -131,24 +131,24 @@ describe('attachments storage bucket', () => {
     // protection trigger refuses demoting the last one — so create the admin
     // first and leave it alone.
     const admin = await db.query<{ id: string }>(
-      `insert into auth.users (email) values ('storage-admin@graceforce.test') returning id`,
+      `insert into auth.users (email) values ('storage-admin@gracelead.test') returning id`,
     )
     adminId = admin.rows[0]!.id
 
     const staff = await db.query<{ id: string }>(
-      `insert into auth.users (email) values ('storage-staff@graceforce.test') returning id`,
+      `insert into auth.users (email) values ('storage-staff@gracelead.test') returning id`,
     )
     staffId = staff.rows[0]!.id
     await db.query(`update public.profiles set role = 'staff' where id = $1`, [staffId])
 
     const otherStaff = await db.query<{ id: string }>(
-      `insert into auth.users (email) values ('storage-other@graceforce.test') returning id`,
+      `insert into auth.users (email) values ('storage-other@gracelead.test') returning id`,
     )
     otherStaffId = otherStaff.rows[0]!.id
     await db.query(`update public.profiles set role = 'staff' where id = $1`, [otherStaffId])
 
     const viewer = await db.query<{ id: string }>(
-      `insert into auth.users (email) values ('storage-viewer@graceforce.test') returning id`,
+      `insert into auth.users (email) values ('storage-viewer@gracelead.test') returning id`,
     )
     viewerId = viewer.rows[0]!.id
     await db.query(`update public.profiles set role = 'viewer' where id = $1`, [viewerId])

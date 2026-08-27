@@ -42,8 +42,8 @@ test.describe('@public responsive layout', () => {
     expect(box).not.toBeNull()
     expect(box!.height).toBeGreaterThanOrEqual(40)
 
-    await email.fill('person@graceforce.org')
-    await expect(email).toHaveValue('person@graceforce.org')
+    await email.fill('person@gracelead.org')
+    await expect(email).toHaveValue('person@gracelead.org')
   })
 
   test('survives a 320px viewport, the narrowest device still in use', async ({ page }) => {

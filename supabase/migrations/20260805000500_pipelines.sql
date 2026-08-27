@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------------------------
 -- Pipelines — staged processes a contact moves through.
 --
--- Grace Force runs several in parallel (major-donor cultivation, volunteer
+-- The ministry runs several in parallel (major-donor cultivation, volunteer
 -- onboarding, partner-church outreach), so pipelines are data, not code.
 -- ---------------------------------------------------------------------------
 

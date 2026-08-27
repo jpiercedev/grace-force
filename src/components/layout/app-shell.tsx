@@ -73,7 +73,7 @@ function Brand() {
         priority
       />
       <span className="text-[14px] font-bold leading-tight text-slate-900">
-        Grace Lead Management
+        Grace Lead Manager
       </span>
     </span>
   )

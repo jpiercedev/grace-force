@@ -1,34 +1,39 @@
-# Implementation Status — Grace Lead Management
+# Implementation Status — Grace Lead Manager
 
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
 
-**Last updated:** 2026-08-14 (Grace Lead Management release)
+**Last updated:** 2026-08-14 (Grace Lead Manager release)
 
 ## Snapshot
 
 | Field | Value |
 | --- | --- |
-| Current phase | Grace Lead Management on `claude/grace-lead-management-rebrand-f86mf8` (from the deployed `0e078c9`): rename, Sales section, staff-managed pipelines, one shared workspace. Verified preview; **production migrations and deploy await authorization** |
+| Current phase | Grace Lead Manager on `claude/grace-lead-management-rebrand-f86mf8` (from the deployed `0e078c9`): rename, Sales section, staff-managed pipelines, one shared workspace. Verified preview; **production migrations and deploy await authorization** |
 | Overall status | Feature-complete. 29 migrations and 49 routes |
 | Tests | 628 Vitest (34 files) + 29 `@public` browser tests passing; production `@authed` pass follows deployment |
 | Build | `next build` succeeds — 49 routes, `/sales` family included |
 | Deployment | `grace-force` on Vercel, git-connected. Production still runs `0e078c9` (donor-crm branch). Branch previews build per push. **The four `20260814` migrations (plus the still-pending `20260806000900`) must be applied before this build is promoted. See `docs/ROLLOUT.md`.** |
 
-## The Grace Lead Management release (2026-08-14)
+## The Grace Lead Manager release (2026-08-14)
 
 Product rename plus a rebalance from donation-heavy CRM to people-first
 relationship and lead management, on top of the deployed HubSpot-style
 redesign. Four areas, each documented in the files it changed:
 
-**Rename.** "Grace Force CRM" → **Grace Lead Management** everywhere the
-product speaks for itself (metadata/title template, shell wordmark, auth and
-standalone screens, notification footer, export filename prefix
-`grace-lead-management-*`, machine-actor timeline label, operator examples,
-package identity, docs). "Grace Force" remains wherever it names the
-organization. The Grace “G” emblem (sourced from the grace.tv brand assets,
-stored at `public/brand/grace-g.webp`, 196×198 webp) anchors the shell and
-auth lockups; `src/app/icon.png` / `apple-icon.png` are derived from it.
+**Rename.** "Grace Force CRM" → **Grace Lead Manager** everywhere the product
+speaks for itself (metadata/title template, shell wordmark, auth and standalone
+screens, notification footer, export filename prefix `grace-lead-manager-*`,
+machine-actor timeline label, operator examples, package identity, docs). Copy
+that named the *organisation* rather than the software — "Everyone Grace Force
+is in relationship with", "How this contact relates to Grace Force" — now says
+"the ministry": substituting the product name there would claim the software is
+party to the relationships it records. No "Grace Force" string remains outside
+the GitHub, Vercel and Supabase slugs and the `e2e.admin@graceforce.test`
+verification account, which name real resources. The Grace “G” emblem (sourced
+from the grace.tv brand assets, stored at `public/brand/grace-g.webp`, 196×198
+webp) anchors the shell and auth lockups; `src/app/icon.png` /
+`apple-icon.png` are derived from it.
 
 **Sales.** A primary Sales destination: `/sales` (cross-pipeline opportunity
 list with pipeline/stage/owner/close-window/status filters and person/org/title

@@ -107,7 +107,7 @@ async function redirectFrom(fn: () => Promise<unknown>): Promise<string | null> 
 
 const ACTIVE_PROFILE = {
   id: 'user-1',
-  email: 'staff@graceforce.test',
+  email: 'staff@gracelead.test',
   role: 'staff',
   is_active: true,
 }
@@ -122,7 +122,7 @@ beforeEach(() => {
 
 describe('requireProfile', () => {
   it('returns the profile when the account is active', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = ACTIVE_PROFILE
 
     await expect(requireProfile()).resolves.toMatchObject({ id: 'user-1', is_active: true })
@@ -181,7 +181,7 @@ describe('requireProfile', () => {
 
   it('does NOT send a signed-in user without a profile to /login', async () => {
     // This is the loop. Middleware would bounce them straight back.
-    sessionUser = { id: 'orphan', email: 'orphan@graceforce.test' }
+    sessionUser = { id: 'orphan', email: 'orphan@gracelead.test' }
     profileRow = null
 
     const target = await redirectFrom(requireProfile)
@@ -191,7 +191,7 @@ describe('requireProfile', () => {
   })
 
   it('sends a deactivated account to /no-access', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = { ...ACTIVE_PROFILE, is_active: false }
 
     expect(await redirectFrom(requireProfile)).toBe('/no-access')
@@ -200,7 +200,7 @@ describe('requireProfile', () => {
 
 describe('getSessionUser and getCurrentProfile distinguish the two nulls', () => {
   it('reports a session even when no profile row exists', async () => {
-    sessionUser = { id: 'orphan', email: 'orphan@graceforce.test' }
+    sessionUser = { id: 'orphan', email: 'orphan@gracelead.test' }
     profileRow = null
 
     await expect(getSessionUser()).resolves.toMatchObject({ id: 'orphan' })
@@ -261,7 +261,7 @@ describe('middleware and guard compose without looping', () => {
   }
 
   it('settles an active user at /dashboard', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = ACTIVE_PROFILE
 
     const { path } = await walk('/login', true)
@@ -269,7 +269,7 @@ describe('middleware and guard compose without looping', () => {
   })
 
   it('settles an unprovisioned signed-in user at /no-access instead of looping', async () => {
-    sessionUser = { id: 'orphan', email: 'orphan@graceforce.test' }
+    sessionUser = { id: 'orphan', email: 'orphan@gracelead.test' }
     profileRow = null
 
     // Pre-fix this threw: /login -> /dashboard -> /login -> /dashboard -> ...
@@ -278,7 +278,7 @@ describe('middleware and guard compose without looping', () => {
   })
 
   it('settles a deactivated user at /no-access', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = { ...ACTIVE_PROFILE, is_active: false }
 
     const { path } = await walk('/dashboard', true)
@@ -307,7 +307,7 @@ describe('middleware and guard compose without looping', () => {
  */
 describe('profile read path', () => {
   it('resolves the session before querying, so the query is never anonymous', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = ACTIVE_PROFILE
 
     const result = await loadProfile()
@@ -317,7 +317,7 @@ describe('profile read path', () => {
   })
 
   it('uses a single client for the session and the profile', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = ACTIVE_PROFILE
 
     await loadProfile()
@@ -327,7 +327,7 @@ describe('profile read path', () => {
   })
 
   it('reports a query failure as an error rather than a missing profile', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     profileRow = ACTIVE_PROFILE
     queryError = { code: '42501', message: 'permission denied for table profiles' }
 
@@ -341,7 +341,7 @@ describe('profile read path', () => {
   })
 
   it('sends a query failure to /no-access?reason=error, not to /login or "not set up"', async () => {
-    sessionUser = { id: 'user-1', email: 'staff@graceforce.test' }
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test' }
     queryError = { code: 'PGRST301', message: 'JWT expired' }
 
     const target = await redirectFrom(requireProfile)
@@ -352,7 +352,7 @@ describe('profile read path', () => {
   })
 
   it('still distinguishes a genuinely absent row from a failure', async () => {
-    sessionUser = { id: 'orphan', email: 'orphan@graceforce.test' }
+    sessionUser = { id: 'orphan', email: 'orphan@gracelead.test' }
     profileRow = null
 
     const result = await loadProfile()

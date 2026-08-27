@@ -23,7 +23,7 @@ describe('sanitizeLikeTerm', () => {
   })
 
   it('collapses whitespace and trims', () => {
-    expect(sanitizeLikeTerm('  grace   force  ')).toBe('grace force')
+    expect(sanitizeLikeTerm('  ruth   adeyemi  ')).toBe('ruth adeyemi')
   })
 })
 

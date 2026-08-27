@@ -20,12 +20,12 @@ describe('shared sales pipelines', () => {
 
   beforeAll(async () => {
     db = await createTestDb()
-    admin = await db.createUser({ email: 'sales-admin@graceforce.test' })
-    alice = await db.createUser({ email: 'sales-alice@graceforce.test', role: 'staff' })
-    bob = await db.createUser({ email: 'sales-bob@graceforce.test', role: 'staff' })
-    viewer = await db.createUser({ email: 'sales-viewer@graceforce.test', role: 'viewer' })
+    admin = await db.createUser({ email: 'sales-admin@gracelead.test' })
+    alice = await db.createUser({ email: 'sales-alice@gracelead.test', role: 'staff' })
+    bob = await db.createUser({ email: 'sales-bob@gracelead.test', role: 'staff' })
+    viewer = await db.createUser({ email: 'sales-viewer@gracelead.test', role: 'viewer' })
     inactive = await db.createUser({
-      email: 'sales-inactive@graceforce.test',
+      email: 'sales-inactive@gracelead.test',
       role: 'staff',
       isActive: false,
     })

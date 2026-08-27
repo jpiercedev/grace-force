@@ -171,7 +171,7 @@ export async function createTestDb(): Promise<TestDb> {
 
     async createUser(options: CreateUserOptions = {}): Promise<TestUser> {
       userCounter += 1
-      const email = options.email ?? `user${userCounter}@graceforce.test`
+      const email = options.email ?? `user${userCounter}@gracelead.test`
       const fullName = options.fullName ?? `Test User ${userCounter}`
 
       const inserted = await raw.query<{ id: string }>(
@@ -244,5 +244,5 @@ export async function expectRejected(promise: Promise<unknown>): Promise<string>
 
 /** A deterministic email for fixtures. */
 export function fixtureEmail(local: string): string {
-  return `${local}@graceforce.test`
+  return `${local}@gracelead.test`
 }

@@ -1,11 +1,11 @@
-# Grace Lead Management
+# Grace Lead Manager
 
-Relationship and lead management for **Grace Force**.
+Relationship and lead management for the ministry.
 
-Grace Lead Management exists because a ministry's relationships do not fit a
+Grace Lead Manager exists because a ministry's relationships do not fit a
 sales CRM. The same person is often a monthly donor *and* a volunteer team lead
 *and* the contact at a partner church — three relationships with different
-owners, different histories and different next steps. Grace Lead Management
+owners, different histories and different next steps. Grace Lead Manager
 models that directly, then puts everything that has ever happened with that
 person on one timeline.
 

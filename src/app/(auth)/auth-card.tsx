@@ -19,7 +19,7 @@ export function BrandMark({ className }: { className?: string }) {
         height={32}
         className="h-8 w-8 shrink-0 object-contain"
       />
-      Grace Lead Management
+      Grace Lead Manager
     </span>
   )
 }

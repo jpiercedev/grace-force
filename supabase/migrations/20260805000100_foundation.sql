@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Grace Force CRM — foundation
+-- Grace Lead Manager — foundation
 --
 -- Extensions, shared enums, and the utility triggers/functions every other
 -- migration builds on.

@@ -1,4 +1,4 @@
-# Production rollout — Grace Lead Management
+# Production rollout — Grace Lead Manager
 
 > The ordered plan for taking `claude/grace-lead-management-rebrand-f86mf8`
 > (the rename, the Sales section, staff-managed pipelines and shared team
@@ -90,7 +90,7 @@ the accepted findings in `IMPLEMENTATION_STATUS.md`. The three new
 
 **No new variables.** Optional cosmetic change: the `RESEND_FROM_EMAIL`
 display name still reads "Grace Force CRM" in Vercel — update it to
-`Grace Lead Management <…>` at any convenient moment (it is runtime-read by
+`Grace Lead Manager <…>` at any convenient moment (it is runtime-read by
 the notification worker, not build-inlined).
 
 ## 4. Deploy the application
@@ -104,7 +104,7 @@ appear in the route list.
 
 ## 5. Smoke tests
 
-- `/login` renders the Grace “G” mark and the "Grace Lead Management"
+- `/login` renders the Grace “G” mark and the "Grace Lead Manager"
   wordmark; browser tab shows the new title and favicon; no console errors.
 - Signed in as a **staff** account: Sales appears in the rail; `/sales` lists
   open opportunities; the board at `/pipelines/general_sales` renders;

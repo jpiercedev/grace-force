@@ -11,10 +11,10 @@
 
 insert into public.engagement_types (slug, label, description, color, icon, sort_order)
 values
-  ('donor',            'Donor',            'Gives financially to Grace Force',                'emerald', 'hand-coins',   10),
+  ('donor',            'Donor',            'Gives financially to the ministry',               'emerald', 'hand-coins',   10),
   ('volunteer',        'Volunteer',        'Serves on a team or at events',                   'sky',     'users',        20),
   ('prayer_partner',   'Prayer Partner',   'Committed to praying for the ministry',           'violet',  'heart-handshake', 30),
-  ('event_attendee',   'Event Attendee',   'Has attended a Grace Force event',                'amber',   'calendar',     40),
+  ('event_attendee',   'Event Attendee',   'Has attended a ministry event',                   'amber',   'calendar',     40),
   ('partner_church',   'Partner Church',   'Leader or liaison at a partnering church',        'indigo',  'church',       50),
   ('small_group',      'Small Group',      'Participates in a small group or cohort',         'rose',    'users-round',  60),
   ('newsletter',       'Newsletter',       'Subscribed to email updates',                     'slate',   'mail',         70),

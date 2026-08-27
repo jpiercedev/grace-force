@@ -56,7 +56,7 @@ export function SignupForm() {
             type="email"
             autoComplete="email"
             required
-            placeholder="e.g. jane@graceforce.org"
+            placeholder="e.g. jane@yourministry.org"
             invalid={!!state.error}
           />
         )}

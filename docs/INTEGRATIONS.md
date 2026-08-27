@@ -12,7 +12,7 @@ covered by tests.
 
 ## Mailchimp
 
-Mirrors Mailchimp into Grace Lead Management so that a contact record shows what that person
+Mirrors Mailchimp into Grace Lead Manager so that a contact record shows what that person
 has actually received and engaged with.
 
 ### Setup
@@ -47,7 +47,7 @@ Every run is recorded in `integration_sync_runs` with row counts in `stats`.
 
 ### Contact matching
 
-Mailchimp knows email addresses; Grace Lead Management knows people. Matching resolves one to
+Mailchimp knows email addresses; Grace Lead Manager knows people. Matching resolves one to
 the other in a fixed, documented order:
 
 1. Exact match on `contacts.email_normalized` (non-deleted). Ties break by
@@ -92,7 +92,7 @@ the error text; a partially completed one is marked `partial`.
 ## Resend
 
 Sends internal notifications — a new lead arrived, a follow-up is due — to the
-Grace Force team. It never emails contacts; this is staff-facing only.
+ministry team. It never emails contacts; this is staff-facing only.
 
 ### Setup
 
@@ -102,7 +102,7 @@ Grace Force team. It never emails contacts; this is staff-facing only.
 
    ```
    RESEND_API_KEY=<key>
-   RESEND_FROM_EMAIL=Grace Lead Management <crm@yourdomain.org>
+   RESEND_FROM_EMAIL=Grace Lead Manager <crm@yourdomain.org>
    NOTIFY_INTERNAL_EMAILS=team@yourdomain.org,director@yourdomain.org
    ```
 

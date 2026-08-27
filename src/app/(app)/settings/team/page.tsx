@@ -25,7 +25,7 @@ export default async function TeamPage() {
     <div className="space-y-5">
       <PageHeader
         title="Team"
-        description="Who can sign in to Grace Lead Management, and what each of them may do."
+        description="Who can sign in to Grace Lead Manager, and what each of them may do."
       />
 
       <div className="grid gap-3 sm:grid-cols-2">

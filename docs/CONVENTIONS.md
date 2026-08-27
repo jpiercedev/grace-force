@@ -1,6 +1,6 @@
 # Engineering conventions
 
-House style for Grace Lead Management. Read before adding code.
+House style for Grace Lead Manager. Read before adding code.
 
 ## Stack
 

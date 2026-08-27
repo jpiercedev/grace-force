@@ -1,8 +1,8 @@
 {
-  "name": "grace-lead-management",
+  "name": "grace-lead-manager",
   "version": "0.1.0",
   "private": true,
-  "description": "Relationship and lead management for Grace Force",
+  "description": "Relationship and lead management for the ministry",
   "engines": {
     "node": ">=20.11"
   },

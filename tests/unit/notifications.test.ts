@@ -35,7 +35,7 @@ const LEAD: LeadNotificationInput = {
   email: 'jane@example.org',
   phone: null,
   organization_name: 'Hope Church',
-  message: 'We would love to host a Grace Force team this autumn.',
+  message: 'We would love to host a ministry team this autumn.',
   form_key: 'default',
   interest: 'volunteer',
 }
@@ -59,19 +59,19 @@ const FOLLOW_UP: FollowUpNotificationInput = {
 
 const ASSIGNEE: NotificationProfile = {
   id: 'profile-1',
-  email: 'sam@graceforce.test',
+  email: 'sam@gracelead.test',
   full_name: 'Sam Alvarez',
 }
 
 const ASSIGNER: NotificationProfile = {
   id: 'profile-2',
-  email: 'dana@graceforce.test',
+  email: 'dana@gracelead.test',
   full_name: 'Dana Reid',
 }
 
 beforeEach(() => {
-  process.env.NOTIFY_INTERNAL_EMAILS = 'team@graceforce.test, director@graceforce.test'
-  process.env.NEXT_PUBLIC_SITE_URL = 'https://crm.graceforce.test'
+  process.env.NOTIFY_INTERNAL_EMAILS = 'team@gracelead.test, director@gracelead.test'
+  process.env.NEXT_PUBLIC_SITE_URL = 'https://crm.gracelead.test'
 })
 
 afterEach(() => {
@@ -134,7 +134,7 @@ describe('claim-then-send', () => {
     expect(row?.sent_at).not.toBeNull()
     expect(transport.sent[0]).toMatchObject({
       from: FAKE_FROM,
-      to: ['team@graceforce.test', 'director@graceforce.test'],
+      to: ['team@gracelead.test', 'director@gracelead.test'],
     })
   })
 })
@@ -187,8 +187,8 @@ describe('empty recipient list', () => {
   })
 
   it('drops blanks and repeats before deciding there is nobody to email', () => {
-    expect(normalizeRecipients([' team@graceforce.test ', 'team@graceforce.test'])).toEqual([
-      'team@graceforce.test',
+    expect(normalizeRecipients([' team@gracelead.test ', 'team@gracelead.test'])).toEqual([
+      'team@gracelead.test',
     ])
     expect(normalizeRecipients(['', '   ', 'not-an-address'])).toEqual([])
   })
@@ -197,19 +197,19 @@ describe('empty recipient list', () => {
 describe('provider failure', () => {
   it('marks the row failed with the provider error and does not throw', async () => {
     const { store, transport, deps } = harness()
-    transport.failWith('Resend: domain graceforce.test is not verified')
+    transport.failWith('Resend: domain gracelead.test is not verified')
 
     const result = await notifyLeadCreated(LEAD, deps)
 
     expect(result).toMatchObject({
       sent: false,
       reason: 'failed',
-      error: 'Resend: domain graceforce.test is not verified',
+      error: 'Resend: domain gracelead.test is not verified',
     })
     expect(store.rows[0]).toMatchObject({
       status: 'failed',
       attempts: 1,
-      error: 'Resend: domain graceforce.test is not verified',
+      error: 'Resend: domain gracelead.test is not verified',
       sent_at: null,
     })
   })
@@ -242,7 +242,7 @@ describe('provider failure', () => {
       {
         kind: 'lead_created',
         dedupeKey: 'lead_created:lead-1',
-        recipients: ['team@graceforce.test'],
+        recipients: ['team@gracelead.test'],
         subject: 'New enquiry',
         text: 'body',
       },
@@ -316,7 +316,7 @@ describe('follow-up notifications', () => {
 
     await notifyFollowUpDue(FOLLOW_UP, ASSIGNEE, { ...deps, now: NOW })
 
-    expect(transport.sent[0]?.to).toEqual(['sam@graceforce.test'])
+    expect(transport.sent[0]?.to).toEqual(['sam@gracelead.test'])
     expect(transport.sent[0]?.subject).toBe('Follow-up due: Call about the autumn visit')
   })
 
@@ -326,7 +326,7 @@ describe('follow-up notifications', () => {
     await notifyFollowUpAssigned(FOLLOW_UP, ASSIGNEE, ASSIGNER, deps)
 
     expect(transport.sent[0]?.text).toContain('Dana Reid assigned you a follow-up with Jane Okafor')
-    expect(transport.sent[0]?.text).toContain('https://crm.graceforce.test/contacts/contact-1')
+    expect(transport.sent[0]?.text).toContain('https://crm.gracelead.test/contacts/contact-1')
   })
 
   it('survive an unknown assigner rather than emailing "null"', async () => {
@@ -382,7 +382,7 @@ describe('renderEmail', () => {
         { label: 'Phone', value: null },
         { label: 'Organisation', value: '   ' },
       ],
-      action: { label: 'Open the lead queue', url: 'https://crm.graceforce.test/leads' },
+      action: { label: 'Open the lead queue', url: 'https://crm.gracelead.test/leads' },
     })
 
     expect(body.text).toContain('Email: jane@example.org')
@@ -390,7 +390,7 @@ describe('renderEmail', () => {
     // Empty details are dropped rather than rendered as blanks.
     expect(body.text).not.toContain('Phone')
     expect(body.html).not.toContain('Organisation')
-    expect(body.text).toContain('https://crm.graceforce.test/leads')
+    expect(body.text).toContain('https://crm.gracelead.test/leads')
   })
 
   it('carries no images, so a client blocking remote content still shows everything', () => {

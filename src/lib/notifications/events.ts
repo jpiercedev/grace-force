@@ -61,7 +61,7 @@ const PRIORITY_LABELS: Record<FollowUpPriority, string> = {
   urgent: 'Urgent',
 }
 
-const FOOTER = 'Sent by Grace Lead Management to the internal team. Contacts never receive this email.'
+const FOOTER = 'Sent by Grace Lead Manager to the internal team. Contacts never receive this email.'
 
 // --- Dedupe keys ------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 # Security model
 
-Grace Lead Management holds contact PII and donor giving history. The design assumes the
+Grace Lead Manager holds contact PII and donor giving history. The design assumes the
 application layer will eventually have a bug, and puts the enforcement
 somewhere a bug cannot reach past.
 
@@ -131,7 +131,7 @@ The app is marked `noindex, nofollow`.
   server), never `getSession()` alone (which only decodes a cookie the client
   supplied).
 - Sign-in failures are deliberately uniform, so the form cannot be used to
-  enumerate who has a Grace Lead Management account.
+  enumerate who has a Grace Lead Manager account.
 - `?next=` and the auth callback's `next` parameter accept relative paths only,
   so neither can be turned into an open redirect.
 - Sign-out is a POST (a server action), not a link.

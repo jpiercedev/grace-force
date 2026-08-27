@@ -1,6 +1,6 @@
 # Data dictionary
 
-A reference for Grace Lead Management's own entities and the columns its exports produce.
+A reference for Grace Lead Manager's own entities and the columns its exports produce.
 Written for whoever needs to reason about the data without reading the schema —
 a staff member auditing an export, or a developer joining the project.
 
@@ -13,7 +13,7 @@ lives anywhere else.
 ### Contact
 
 A person or organisation the ministry is in relationship with. Holds identity
-and reachability only — what someone *is* to Grace Force is expressed as
+and reachability only — what someone *is* to the ministry is expressed as
 engagements, because one person is often several things at once.
 
 | Field | Type | Notes |

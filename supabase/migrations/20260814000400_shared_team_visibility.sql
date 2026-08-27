@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------------------------
 -- Shared team visibility.
 --
--- Grace Lead Management is one shared workspace: every active, authenticated
+-- Grace Lead Manager is one shared workspace: every active, authenticated
 -- team member sees the same business records. Ownership and attribution
 -- columns (owner_id, assigned_to, created_by, author_id, uploaded_by) keep
 -- recording *responsibility* but stop acting as *visibility* boundaries.

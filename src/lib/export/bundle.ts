@@ -10,7 +10,7 @@ import {
 /**
  * The whole dataset, taken elsewhere with its relationships intact.
  *
- * Grace Force owns this data. Analysis in a spreadsheet, a backup on someone
+ * The ministry owns this data. Analysis in a spreadsheet, a backup on someone
  * else's disk, a hand-off to an accountant — none of that should require this
  * application to still be running, or anyone to reverse-engineer how it
  * stores things.

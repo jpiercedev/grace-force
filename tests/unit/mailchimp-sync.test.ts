@@ -108,7 +108,7 @@ const EMAIL_ACTIVITY: MailchimpEmailActivity[] = [
     activity: [
       { action: 'open', timestamp: '2026-08-01T10:00:00+00:00' },
       { action: 'open', timestamp: '2026-08-01T12:00:00+00:00' },
-      { action: 'click', timestamp: '2026-08-01T12:05:00+00:00', url: 'https://graceforce.example/give' },
+      { action: 'click', timestamp: '2026-08-01T12:05:00+00:00', url: 'https://gracelead.example/give' },
     ],
   },
   {
@@ -128,7 +128,7 @@ const FULL_API: FakeApiData = {
       id: LIST_ID,
       name: 'Ministry Update',
       web_id: 4242,
-      permission_reminder: 'You signed up at a Grace Force event.',
+      permission_reminder: 'You signed up at a ministry event.',
       stats: { member_count: 4, unsubscribe_count: 1, cleaned_count: 0 },
     },
   ],
@@ -304,13 +304,13 @@ describe('dedupe keys', () => {
       campaignId: 'camp-1',
       action: 'click',
       email: 'ruth@example.org',
-      url: 'https://graceforce.example/give',
+      url: 'https://gracelead.example/give',
     })
     const pray = campaignActivityDedupeKey({
       campaignId: 'camp-1',
       action: 'click',
       email: 'ruth@example.org',
-      url: 'https://graceforce.example/pray',
+      url: 'https://gracelead.example/pray',
     })
 
     expect(give).not.toBe(pray)
@@ -646,7 +646,7 @@ describe('syncCampaignActivity', () => {
     expect(open.contact_id).not.toBeNull()
 
     const click = rows.find((row) => row.action === 'click')!
-    expect(click.dedupe_key).toBe('mc:camp-1:click:ruth@example.org:https://graceforce.example/give')
+    expect(click.dedupe_key).toBe('mc:camp-1:click:ruth@example.org:https://gracelead.example/give')
 
     const stranger = rows.find((row) => row.email_address === 'stranger@example.org')!
     expect(stranger.contact_id).toBeNull()

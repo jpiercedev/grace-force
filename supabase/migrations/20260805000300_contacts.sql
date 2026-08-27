@@ -98,7 +98,7 @@ create table if not exists public.contacts (
 );
 
 comment on table public.contacts is
-  'People and organisations Grace Force is in relationship with.';
+  'People and organisations the ministry is in relationship with.';
 comment on column public.contacts.external_id is
   'Natural key from the originating system; (external_source, external_id) is unique so re-imports update rather than duplicate.';
 
@@ -148,7 +148,7 @@ create trigger contacts_set_updated_at
 
 -- --- RLS -------------------------------------------------------------------
 --
--- Grace Force runs a single shared book of relationships: every active team
+-- The ministry runs a single shared book of relationships: every active team
 -- member can see every contact. Write access follows role, and destructive
 -- deletes are reserved for admins (staff soft-delete via `deleted_at`).
 

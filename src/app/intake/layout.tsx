@@ -4,8 +4,8 @@ import { BrandBand } from '@/app/(auth)/auth-card'
 
 export const metadata: Metadata = {
   // Absolute, so the public form is not titled after the internal CRM.
-  title: { absolute: 'Get in touch · Grace Force' },
-  description: 'Send a message to the Grace Force team.',
+  title: { absolute: 'Get in touch' },
+  description: 'Send a message to our team.',
 }
 
 /**
@@ -24,7 +24,7 @@ export default function IntakeLayout({ children }: { children: ReactNode }) {
 
       <footer className="mx-auto w-full max-w-2xl px-4 pb-8 sm:px-6">
         <p className="border-t border-slate-200 pt-5 text-sm text-slate-600">
-          Grace Force keeps what you send here only to reply to you.
+          We keep what you send here only to reply to you.
         </p>
       </footer>
     </div>
