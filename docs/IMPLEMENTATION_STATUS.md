@@ -498,6 +498,14 @@ order. Verified on the live database: 20 tables, **20 with RLS**, 51 policies,
 16 `SECURITY DEFINER` functions, 2 `security_invoker` views, reference data
 seeded (8 engagement types, 3 pipelines, 16 stages).
 
+`20260827000200_force_password_rotation.sql` **is** applied to the hosted
+project, ahead of the `20260806*` set, so the applied order there differs from
+filename order. It depends on nothing but `auth.users`, and `supabase db push`
+still picks up the rest by absence from the history table rather than by
+position. Accounts provisioned by an administrator carry
+`must_change_password` in `auth.users.raw_app_meta_data` until they rotate it;
+`/change-password` is the only route the app serves them until they do.
+
 The recorded migration versions were realigned to the repository's filename
 prefixes — the management API stamps its own apply-time timestamps, which would
 make a later `supabase db push` believe none of them had run.

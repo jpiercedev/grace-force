@@ -36,7 +36,18 @@ export type ProfileLookup =
   | { status: 'not-found'; user: SessionUser }
   | { status: 'error'; user: SessionUser; code: string | null; message: string }
 
-type SessionUser = { id: string; email?: string | null }
+type SessionUser = {
+  id: string
+  email?: string | null
+  /**
+   * Read from `app_metadata`, which GoTrue refuses to let a user write, and
+   * which `getUser()` returns fresh from the auth server rather than from
+   * whatever the JWT was minted with. See
+   * `20260827000200_force_password_rotation.sql` for why it does not live on
+   * `profiles`.
+   */
+  mustChangePassword: boolean
+}
 
 /**
  * Loads the session and the profile using **one** Supabase client.
@@ -55,9 +66,15 @@ export const loadProfile = cache(async (): Promise<ProfileLookup> => {
   const supabase = await createClient()
 
   const {
-    data: { user },
+    data: { user: authUser },
   } = await supabase.auth.getUser()
-  if (!user) return { status: 'no-session' }
+  if (!authUser) return { status: 'no-session' }
+
+  const user: SessionUser = {
+    id: authUser.id,
+    email: authUser.email,
+    mustChangePassword: authUser.app_metadata?.must_change_password === true,
+  }
 
   const { data, error } = await supabase
     .from('profiles')
@@ -135,6 +152,11 @@ export async function requireProfile(): Promise<ProfileRow> {
   switch (result.status) {
     case 'ok':
       if (!result.profile.is_active) redirect('/no-access')
+      // Terminal for every other route: an account whose first password was
+      // chosen by someone else is not usable until its owner has replaced it.
+      // /change-password guards itself with `loadProfile`, not this, so the
+      // two do not bounce off each other.
+      if (result.user.mustChangePassword) redirect('/change-password')
       return result.profile
 
     // The only state that is actually a credentials problem.

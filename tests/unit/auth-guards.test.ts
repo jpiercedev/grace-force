@@ -39,7 +39,9 @@ vi.mock('react', async (importOriginal) => ({
   cache: <T,>(fn: T) => fn,
 }))
 
-let sessionUser: { id: string; email: string } | null = null
+let sessionUser:
+  | { id: string; email: string; app_metadata?: Record<string, unknown> }
+  | null = null
 let profileRow: Record<string, unknown> | null = null
 let queryError: { code: string; message: string } | null = null
 
@@ -124,6 +126,50 @@ describe('requireProfile', () => {
     profileRow = ACTIVE_PROFILE
 
     await expect(requireProfile()).resolves.toMatchObject({ id: 'user-1', is_active: true })
+  })
+
+  it('sends an account that must rotate its password to /change-password', async () => {
+    sessionUser = {
+      id: 'user-1',
+      email: 'staff@gracelead.test',
+      app_metadata: { must_change_password: true },
+    }
+    profileRow = ACTIVE_PROFILE
+
+    expect(await redirectFrom(requireProfile)).toBe('/change-password')
+  })
+
+  it('lets an account through once the flag is gone', async () => {
+    // The database drops the flag when the password hash changes, so its
+    // absence is the same fact as "the password was rotated".
+    sessionUser = { id: 'user-1', email: 'staff@gracelead.test', app_metadata: {} }
+    profileRow = ACTIVE_PROFILE
+
+    await expect(requireProfile()).resolves.toMatchObject({ id: 'user-1' })
+  })
+
+  it('treats a deactivated account as deactivated even if it must rotate', async () => {
+    // /no-access is terminal; /change-password would not be, and would hand a
+    // revoked account a working route back into the app.
+    sessionUser = {
+      id: 'user-1',
+      email: 'staff@gracelead.test',
+      app_metadata: { must_change_password: true },
+    }
+    profileRow = { ...ACTIVE_PROFILE, is_active: false }
+
+    expect(await redirectFrom(requireProfile)).toBe('/no-access')
+  })
+
+  it('does not accept a non-boolean flag as a demand to rotate', async () => {
+    sessionUser = {
+      id: 'user-1',
+      email: 'staff@gracelead.test',
+      app_metadata: { must_change_password: 'false' },
+    }
+    profileRow = ACTIVE_PROFILE
+
+    await expect(requireProfile()).resolves.toMatchObject({ id: 'user-1' })
   })
 
   it('sends a genuinely signed-out visitor to /login', async () => {

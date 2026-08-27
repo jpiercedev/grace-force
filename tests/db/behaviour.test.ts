@@ -676,4 +676,100 @@ describe('schema behaviour', () => {
       expect(skipped.rows).toHaveLength(1)
     })
   })
+  describe('forced password rotation', () => {
+    /**
+     * The guard is only worth anything if the flag cannot be dropped by the
+     * account it constrains. It lives in `auth.users.raw_app_meta_data`
+     * precisely because a column on `profiles` would be self-clearable through
+     * `profiles_update`, so these assert the property that choice was made for.
+     */
+    async function flagged(email: string): Promise<TestUser> {
+      const user = await db.createUser({ email })
+      await db.asPostgres((sql) =>
+        sql.query(
+          `update auth.users
+              set raw_app_meta_data =
+                    coalesce(raw_app_meta_data, '{}'::jsonb)
+                    || '{"must_change_password": true}'::jsonb
+            where id = $1`,
+          [user.id],
+        ),
+      )
+      return user
+    }
+
+    async function isFlagged(userId: string): Promise<boolean> {
+      const { rows } = await db.asPostgres((sql) =>
+        sql.query<{ flagged: boolean }>(
+          `select coalesce((raw_app_meta_data ->> 'must_change_password')::boolean, false) as flagged
+             from auth.users where id = $1`,
+          [userId],
+        ),
+      )
+      return rows[0]!.flagged
+    }
+
+    it('drops the flag when the password hash actually changes', async () => {
+      const user = await flagged('rotate-me@gracelead.test')
+      expect(await isFlagged(user.id)).toBe(true)
+
+      await db.asPostgres((sql) =>
+        sql.query(`update auth.users set encrypted_password = 'new-hash' where id = $1`, [
+          user.id,
+        ]),
+      )
+
+      expect(await isFlagged(user.id)).toBe(false)
+    })
+
+    it('keeps the flag when some other column is touched', async () => {
+      // Otherwise any incidental write — a last-sign-in stamp, a metadata
+      // edit — would quietly satisfy the guard.
+      const user = await flagged('unrelated-write@gracelead.test')
+
+      await db.asPostgres((sql) =>
+        sql.query(`update auth.users set updated_at = now() where id = $1`, [user.id]),
+      )
+      expect(await isFlagged(user.id)).toBe(true)
+
+      await db.asPostgres((sql) =>
+        sql.query(
+          `update auth.users
+              set raw_user_meta_data = raw_user_meta_data || '{"full_name": "Renamed"}'::jsonb
+            where id = $1`,
+          [user.id],
+        ),
+      )
+      expect(await isFlagged(user.id)).toBe(true)
+    })
+
+    it('keeps the flag when the password is rewritten to the same hash', async () => {
+      // Re-submitting the existing password is not a rotation.
+      const user = await flagged('same-hash@gracelead.test')
+
+      await db.asPostgres((sql) =>
+        sql.query(
+          `update auth.users set encrypted_password = encrypted_password where id = $1`,
+          [user.id],
+        ),
+      )
+
+      expect(await isFlagged(user.id)).toBe(true)
+    })
+
+    it('does not let the flagged user clear it through their own profile row', async () => {
+      // The whole reason the flag is not a column on `profiles`.
+      const user = await flagged('self-clear@gracelead.test')
+
+      const { rows } = await db.asUser(user.id, (sql) =>
+        sql.query<{ column_name: string }>(
+          `select column_name from information_schema.columns
+            where table_schema = 'public' and table_name = 'profiles'
+              and column_name = 'must_change_password'`,
+        ),
+      )
+      expect(rows).toEqual([])
+      expect(await isFlagged(user.id)).toBe(true)
+    })
+  })
 })
