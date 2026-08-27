@@ -15,8 +15,26 @@ because the ordering matters in two places, both called out below.
 | Supabase API URL | `https://phhkhvewcclzjkdbjmqw.supabase.co` |
 | Supabase region | `us-east-2` |
 
-The database is already provisioned and all migrations are applied. Nothing in
-this document changes the schema.
+The repository, Vercel project and Supabase project keep their original
+`grace-force` slugs. They predate the rename to Grace Lead Manager and are what
+every URL, remote and deployment hook already addresses, so renaming them would
+buy nothing and break several things.
+
+The database is already provisioned, and everything through the `20260814`
+sales/shared-visibility set is applied, plus
+`20260827000200_force_password_rotation.sql`. Only
+`20260827000100_rebrand_to_grace_lead_manager.sql` is outstanding, and it
+rewrites shipped copy rather than schema. Nothing in this document changes the
+schema.
+
+**One trap when you next run `supabase db push`.** The `20260814` migrations
+were applied through the management API, which stamps its own apply-time
+version, so the history table records them as `20260814183037`–`20260814183353`
+while this repository names them `20260814000100`–`20260814000400`. A push
+compares by version, sees four it has no record of, and will try to re-apply
+them. They are written idempotently, but confirm that before pushing — or
+realign the recorded versions to the filename prefixes first, the way the
+original sixteen were.
 
 ## 1. Create the Vercel project
 
