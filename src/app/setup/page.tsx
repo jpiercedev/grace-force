@@ -44,7 +44,7 @@ export default function SetupPage() {
           Almost there
         </p>
         <h1 className="mt-1.5 font-display text-[1.75rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-[2rem]">
-          Grace Force CRM needs configuring
+          Grace Lead Manager needs configuring
         </h1>
         <p className="mt-2 text-[15px] text-slate-600">
           The app cannot reach a database yet. Add Supabase credentials and restart.

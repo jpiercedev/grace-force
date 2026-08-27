@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Engagements — the many ways one contact relates to Grace Force.
+-- Engagements — the many ways one contact relates to the ministry.
 --
 -- This is the table that makes the CRM a *relationship* system rather than a
 -- list: the same person can simultaneously be a monthly donor, a volunteer

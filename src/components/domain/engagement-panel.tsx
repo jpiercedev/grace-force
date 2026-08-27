@@ -52,7 +52,7 @@ export function EngagementPanel({
     <Card id="add-engagement">
       <CardHeader
         title="Engagements"
-        description="How this contact relates to Grace Force."
+        description="How this contact relates to the ministry."
         action={
           canEdit ? (
             <Button

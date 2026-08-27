@@ -206,7 +206,7 @@ begin
      source, form_key, status, dedupe_key)
   values
     ('Ruth', 'Adeyemi', 'ruth.adeyemi@example.org', '(555) 200-4417', null,
-     'I heard about Grace Force at the conference and would love to help with the youth programme.',
+     'I heard about the ministry at the conference and would love to help with the youth programme.',
      'volunteer', 'web_form', 'volunteer-signup', 'new', 'seed:lead:1'),
     ('Peter', 'Nowak', 'peter.nowak@example.org', null, 'Redeemer Chapel',
      'Our elders are interested in becoming a partner church. Who should we speak to?',

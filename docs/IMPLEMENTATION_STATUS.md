@@ -1,4 +1,4 @@
-# Implementation Status — Grace Force CRM
+# Implementation Status — Grace Lead Manager
 
 > Operational handoff note. Read this first when resuming; it should be enough
 > to continue without rereading the Git history.
@@ -13,7 +13,7 @@
 | Overall status | Feature-complete. Eight new migrations add the relationship-development domain; the interface was rebuilt around progressive disclosure |
 | Tests | 570 Vitest (30 files) + 28 browser `@public` passing |
 | Build | `next build` succeeds — 45 routes |
-| Deployment | `grace-force` on Vercel, production target, git-connected |
+| Deployment | `grace-force` on Vercel, production target, git-connected — the project slug predates the rename and is left as-is |
 
 ## The simplification redesign (2026-08-12)
 
@@ -340,17 +340,22 @@ prop has a `'use client'` parent, so the nav predicate was the only violation.
 | Field | Value |
 | --- | --- |
 | Project ID / ref | `phhkhvewcclzjkdbjmqw` |
-| Name | `grace-force-crm` |
+| Name | `grace-force-crm` (created before the rename; not renamed, since the project ref is what everything addresses) |
 | Organisation | `jpiercedev's Org` (`oyreoignqdishfjmlssh`), Pro plan |
 | Region | `us-east-2` (Ohio) — closest available to Wisconsin |
 | Postgres | 17.6 |
 | API URL | `https://phhkhvewcclzjkdbjmqw.supabase.co` |
 | Cost | $10/month, no add-ons |
 
-All 16 migrations applied verbatim from `supabase/migrations`, in filename
-order. Verified on the live database: 20 tables, **20 with RLS**, 51 policies,
-16 `SECURITY DEFINER` functions, 2 `security_invoker` views, reference data
-seeded (8 engagement types, 3 pipelines, 16 stages).
+The first 16 migrations were applied verbatim from `supabase/migrations`, in
+filename order. Verified on the live database: 20 tables, **20 with RLS**, 51
+policies, 16 `SECURITY DEFINER` functions, 2 `security_invoker` views,
+reference data seeded (8 engagement types, 3 pipelines, 16 stages).
+
+Not yet applied: the eight `20260806*` relationship-development migrations, and
+`20260827000100_rebrand_to_grace_lead_manager.sql`, which rewrites the two
+seeded engagement-type descriptions and the `contacts` table comment that still
+name the old brand.
 
 The recorded migration versions were realigned to the repository's filename
 prefixes — the management API stamps its own apply-time timestamps, which would

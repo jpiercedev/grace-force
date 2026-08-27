@@ -156,7 +156,7 @@ export interface FakeTransport {
   failWith(message: string | null): void
 }
 
-export const FAKE_FROM = 'Grace Force CRM <crm@graceforce.test>'
+export const FAKE_FROM = 'Grace Lead Manager <crm@gracelead.test>'
 
 export function createTransport(): FakeTransport {
   const sent: SentMessage[] = []

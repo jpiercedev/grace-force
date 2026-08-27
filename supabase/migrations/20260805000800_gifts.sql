@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------------------------
 -- Giving history.
 --
--- Grace Force's system of record for money is its giving platform; this table
+-- The ministry's system of record for money is its giving platform; this table
 -- holds a synchronised copy so that staff can see generosity *in context* on
 -- the contact record without leaving the CRM.
 --

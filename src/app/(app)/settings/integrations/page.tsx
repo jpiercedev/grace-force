@@ -164,7 +164,7 @@ export default async function IntegrationsPage() {
         {
           name: 'RESEND_FROM_EMAIL',
           requirement: 'required',
-          note: 'A verified sending identity, e.g. "Grace Force CRM <crm@yourdomain.org>". Setting the key without this is an error, not a silent fallback.',
+          note: 'A verified sending identity, e.g. "Grace Lead Manager <crm@yourdomain.org>". Setting the key without this is an error, not a silent fallback.',
         },
         {
           name: 'NOTIFY_INTERNAL_EMAILS',

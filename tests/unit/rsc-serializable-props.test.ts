@@ -43,7 +43,7 @@ function findFunctionPaths(value: unknown, path = '$', seen = new Set<object>())
 function profile(overrides: Partial<ProfileRow> = {}): ProfileRow {
   return {
     id: 'user-1',
-    email: 'person@graceforce.test',
+    email: 'person@gracelead.test',
     full_name: 'Test Person',
     avatar_url: null,
     title: null,

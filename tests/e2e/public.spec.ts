@@ -59,8 +59,8 @@ test.describe('@public login page', () => {
     await page.goto('/login')
 
     // The email field autofocuses, so typing should land there immediately.
-    await page.keyboard.type('person@graceforce.org')
-    await expect(page.getByLabel('Email address')).toHaveValue('person@graceforce.org')
+    await page.keyboard.type('person@gracelead.org')
+    await expect(page.getByLabel('Email address')).toHaveValue('person@gracelead.org')
 
     await page.keyboard.press('Tab')
     await page.keyboard.type('a-password')
@@ -70,10 +70,17 @@ test.describe('@public login page', () => {
     await expect(page.getByRole('button', { name: /sign in/i })).toBeFocused()
   })
 
-  test('offers a route to account creation', async ({ page }) => {
+  // Accounts are provisioned by an administrator, so sign-in advertises no
+  // route to account creation. `/signup` stays reachable directly, which is
+  // how the first (administrator) account gets bootstrapped.
+  test('offers no route to account creation', async ({ page }) => {
     await page.goto('/login')
-    await page.getByRole('link', { name: /create one/i }).click()
-    await expect(page).toHaveURL(/\/signup/)
+    await expect(page.getByRole('link', { name: /create/i })).toHaveCount(0)
+    await expect(page.locator('a[href="/signup"]')).toHaveCount(0)
+  })
+
+  test('still serves /signup directly, for bootstrapping the first account', async ({ page }) => {
+    await page.goto('/signup')
     await expect(page.getByLabel('Full name')).toBeVisible()
   })
 

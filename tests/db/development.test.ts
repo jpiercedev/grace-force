@@ -22,16 +22,16 @@ describe('relationship development schema', () => {
 
   beforeAll(async () => {
     db = await createTestDb()
-    admin = await db.createUser({ email: 'dev-admin@graceforce.test' })
-    staff = await db.createUser({ email: 'dev-staff@graceforce.test', role: 'staff' })
+    admin = await db.createUser({ email: 'dev-admin@gracelead.test' })
+    staff = await db.createUser({ email: 'dev-staff@gracelead.test', role: 'staff' })
     // Staff *with* the giving capability: the only kind that may read a
     // proposal or a capability estimate.
     fundraiser = await db.createUser({
-      email: 'dev-fundraiser@graceforce.test',
+      email: 'dev-fundraiser@gracelead.test',
       role: 'staff',
       canViewGiving: true,
     })
-    viewer = await db.createUser({ email: 'dev-viewer@graceforce.test', role: 'viewer' })
+    viewer = await db.createUser({ email: 'dev-viewer@gracelead.test', role: 'viewer' })
 
     const contacts = await db.asUser(staff.id, (sql) =>
       sql.query<{ id: string }>(

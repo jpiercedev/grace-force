@@ -1,6 +1,6 @@
 # Deployment runbook
 
-Getting Grace Force CRM onto Vercel, connected to the hosted Supabase project.
+Getting Grace Lead Manager onto Vercel, connected to the hosted Supabase project.
 
 Everything here is a dashboard or CLI action. It is written as a checklist
 because the ordering matters in two places, both called out below.
@@ -15,8 +15,15 @@ because the ordering matters in two places, both called out below.
 | Supabase API URL | `https://phhkhvewcclzjkdbjmqw.supabase.co` |
 | Supabase region | `us-east-2` |
 
-The database is already provisioned and all migrations are applied. Nothing in
-this document changes the schema.
+The repository, Vercel project and Supabase project keep their original
+`grace-force` slugs. They predate the rename to Grace Lead Manager and are what
+every URL, remote and deployment hook already addresses, so renaming them would
+buy nothing and break several things.
+
+The database is already provisioned. All migrations up to
+`20260805001600_policy_and_index_tuning.sql` are applied;
+`20260827000100_rebrand_to_grace_lead_manager.sql` is not, and rewrites shipped
+copy rather than schema. Nothing in this document changes the schema.
 
 ## 1. Create the Vercel project
 

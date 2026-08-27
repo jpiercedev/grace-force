@@ -92,7 +92,7 @@ the error text; a partially completed one is marked `partial`.
 ## Resend
 
 Sends internal notifications — a new lead arrived, a follow-up is due — to the
-Grace Force team. It never emails contacts; this is staff-facing only.
+ministry team. It never emails contacts; this is staff-facing only.
 
 ### Setup
 
@@ -102,7 +102,7 @@ Grace Force team. It never emails contacts; this is staff-facing only.
 
    ```
    RESEND_API_KEY=<key>
-   RESEND_FROM_EMAIL=Grace Force CRM <crm@yourdomain.org>
+   RESEND_FROM_EMAIL=Grace Lead Manager <crm@yourdomain.org>
    NOTIFY_INTERNAL_EMAILS=team@yourdomain.org,director@yourdomain.org
    ```
 

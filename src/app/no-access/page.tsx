@@ -62,14 +62,14 @@ export default async function NoAccessPage({
             </>
           ) : state === 'unprovisioned' ? (
             <>
-              You are signed in as {email}, but this account has no Grace Force CRM profile yet, so
+              You are signed in as {email}, but this account has no Grace Lead Manager profile yet, so
               there is nothing it can open. An administrator can create one — or sign out and sign up
               again, which provisions a profile automatically.
             </>
           ) : (
             <>
-              Your Grace Force CRM account ({email}) is signed in, but an administrator has paused its
-              access. Ask a Grace Force administrator to reactivate it.
+              Your Grace Lead Manager account ({email}) is signed in, but an administrator has paused
+              its access. Ask a workspace administrator to reactivate it.
             </>
           )}
         </Callout>

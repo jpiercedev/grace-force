@@ -34,7 +34,7 @@ export function csvDocument(columns: readonly string[], rows: readonly ExportRow
 }
 
 export function exportFilename(key: string, now: Date): string {
-  return `grace-force-${key.replace(/_/g, '-')}-${format(now, 'yyyy-MM-dd')}.csv`
+  return `grace-lead-manager-${key.replace(/_/g, '-')}-${format(now, 'yyyy-MM-dd')}.csv`
 }
 
 /**

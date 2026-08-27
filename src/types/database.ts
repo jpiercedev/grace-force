@@ -1,5 +1,5 @@
 /**
- * Database types for the Grace Force CRM schema.
+ * Database types for the Grace Lead Manager schema.
  *
  * Hand-authored to mirror `supabase/migrations`. Regenerate with
  * `npm run db:types` once a Supabase project is configured; the shape below

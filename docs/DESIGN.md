@@ -1,4 +1,4 @@
-# Grace Force CRM — Design System
+# Grace Lead Manager — Design System
 
 > The visual language of the product. Read this before styling anything.
 > Tokens live in `tailwind.config.ts` and `src/app/globals.css`; primitives in
@@ -6,7 +6,7 @@
 
 ## The idea: a warm ledger
 
-Grace Force is about people — donors, prayer partners, congregations,
+Grace Lead Manager is about people — donors, prayer partners, congregations,
 conversations that span years. The interface should feel like a well-kept
 relational ledger: warm paper, confident ink, one deep accent, and a serif
 voice reserved for the moments that are about people rather than software.

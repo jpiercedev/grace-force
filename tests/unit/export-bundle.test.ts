@@ -31,7 +31,7 @@ import {
 } from '@/lib/export/datasets'
 
 /**
- * The export is the promise that Grace Force can leave with its own data.
+ * The export is the promise that the ministry can leave with its own data.
  * What matters is not that the files exist but that they still describe the
  * same graph once they are somewhere else: ids that resolve, and values that
  * survive the trip through a comma-separated format.
@@ -392,7 +392,7 @@ describe('manifest', () => {
 describe('exportFilename', () => {
   it('dates the file so two downloads do not overwrite each other', () => {
     expect(exportFilename('follow_ups', new Date(2026, 7, 5))).toBe(
-      'grace-force-follow-ups-2026-08-05.csv',
+      'grace-lead-manager-follow-ups-2026-08-05.csv',
     )
   })
 })

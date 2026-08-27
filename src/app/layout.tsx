@@ -3,11 +3,11 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Grace Force CRM',
-    template: '%s · Grace Force CRM',
+    default: 'Grace Lead Manager',
+    template: '%s · Grace Lead Manager',
   },
   description:
-    'Relationship management for Grace Force: contacts, engagements, follow-ups and giving in one place.',
+    'Relationship management for the ministry: contacts, engagements, follow-ups and giving in one place.',
   robots: {
     // A CRM holds contact and donor PII; it should never be indexed.
     index: false,

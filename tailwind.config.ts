@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 /**
- * Grace Force visual system — "a warm ledger". See docs/DESIGN.md.
+ * Grace Lead Manager visual system — "a warm ledger". See docs/DESIGN.md.
  *
  * The neutral scale keeps the token name `slate` (it is used across the whole
  * codebase as "neutral") but its values are a warm stone ramp: cold gray is

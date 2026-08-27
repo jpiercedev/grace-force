@@ -74,7 +74,7 @@ function Brand({ onDark = false }: { onDark?: boolean }) {
           onDark ? 'text-slate-50' : 'text-slate-900',
         )}
       >
-        Grace Force
+        Grace Lead Manager
       </span>
     </span>
   )

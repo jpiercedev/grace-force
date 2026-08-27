@@ -20,8 +20,8 @@ describe('schema behaviour', () => {
 
   beforeAll(async () => {
     db = await createTestDb()
-    admin = await db.createUser({ email: 'admin@graceforce.test' })
-    staff = await db.createUser({ email: 'staff@graceforce.test', role: 'staff' })
+    admin = await db.createUser({ email: 'admin@gracelead.test' })
+    staff = await db.createUser({ email: 'staff@gracelead.test', role: 'staff' })
 
     const types = await db.asPostgres((sql) =>
       sql.query<{ id: string; slug: string }>(
@@ -618,7 +618,7 @@ describe('schema behaviour', () => {
     })
 
     it('refuses conversion by a viewer', async () => {
-      const viewer = await db.createUser({ email: 'readonly@graceforce.test', role: 'viewer' })
+      const viewer = await db.createUser({ email: 'readonly@gracelead.test', role: 'viewer' })
       const third = await db.asServiceRole((sql) =>
         sql.query<{ id: string }>(
           `insert into public.leads (email, form_key) values ('nope@example.org','web') returning id`,
@@ -638,7 +638,7 @@ describe('schema behaviour', () => {
       await db.asServiceRole((sql) =>
         sql.query(
           `insert into public.notifications (kind, dedupe_key, recipients, subject)
-           values ('lead_created','lead_created:abc', array['team@graceforce.test'],'New lead')`,
+           values ('lead_created','lead_created:abc', array['team@gracelead.test'],'New lead')`,
         ),
       )
 
@@ -646,7 +646,7 @@ describe('schema behaviour', () => {
       const { rows } = await db.asServiceRole((sql) =>
         sql.query<{ id: string }>(
           `insert into public.notifications (kind, dedupe_key, recipients, subject)
-           values ('lead_created','lead_created:abc', array['team@graceforce.test'],'New lead')
+           values ('lead_created','lead_created:abc', array['team@gracelead.test'],'New lead')
            on conflict (dedupe_key) do nothing
            returning id`,
         ),

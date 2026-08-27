@@ -103,27 +103,27 @@ describe('isHoneypotTripped', () => {
 })
 
 describe('isOriginAllowed', () => {
-  const SELF = 'https://crm.graceforce.org'
+  const SELF = 'https://crm.gracelead.org'
 
   it('allows the app itself even when an allow-list is configured', () => {
-    expect(isOriginAllowed(SELF, ['https://graceforce.org'], SELF)).toBe(true)
+    expect(isOriginAllowed(SELF, ['https://gracelead.org'], SELF)).toBe(true)
   })
 
   it('allows a configured origin regardless of trailing slash or casing', () => {
-    expect(isOriginAllowed('https://GraceForce.org', ['https://graceforce.org/'], SELF)).toBe(true)
+    expect(isOriginAllowed('https://GraceLead.org', ['https://gracelead.org/'], SELF)).toBe(true)
   })
 
   it('refuses an origin that is on neither list', () => {
-    expect(isOriginAllowed('https://evil.example', ['https://graceforce.org'], SELF)).toBe(false)
+    expect(isOriginAllowed('https://evil.example', ['https://gracelead.org'], SELF)).toBe(false)
   })
 
   it('refuses any cross-origin browser request when no list is configured', () => {
-    expect(isOriginAllowed('https://graceforce.org', [], SELF)).toBe(false)
+    expect(isOriginAllowed('https://gracelead.org', [], SELF)).toBe(false)
     expect(isOriginAllowed(SELF, [], SELF)).toBe(true)
   })
 
   it('allows a request with no Origin header, which is not a browser claiming a site', () => {
-    expect(isOriginAllowed(null, ['https://graceforce.org'], SELF)).toBe(true)
+    expect(isOriginAllowed(null, ['https://gracelead.org'], SELF)).toBe(true)
     expect(isOriginAllowed('', [], SELF)).toBe(false)
   })
 })
@@ -237,9 +237,9 @@ describe('leadIntakeSchema', () => {
     expect(
       leadIntakeSchema.safeParse({
         email: 'jane@example.org',
-        page_url: 'https://graceforce.org/give',
+        page_url: 'https://gracelead.org/give',
       }),
-    ).toMatchObject({ data: { page_url: 'https://graceforce.org/give' } })
+    ).toMatchObject({ data: { page_url: 'https://gracelead.org/give' } })
     expect(
       leadIntakeSchema.safeParse({
         email: 'jane@example.org',

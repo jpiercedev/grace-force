@@ -22,16 +22,16 @@ describe('row level security', () => {
     db = await createTestDb()
 
     // The first profile is promoted to admin by the provisioning trigger.
-    admin = await db.createUser({ email: 'admin@graceforce.test' })
-    staff = await db.createUser({ email: 'staff@graceforce.test', role: 'staff' })
-    viewer = await db.createUser({ email: 'viewer@graceforce.test', role: 'viewer' })
+    admin = await db.createUser({ email: 'admin@gracelead.test' })
+    staff = await db.createUser({ email: 'staff@gracelead.test', role: 'staff' })
+    viewer = await db.createUser({ email: 'viewer@gracelead.test', role: 'viewer' })
     giftViewer = await db.createUser({
-      email: 'finance@graceforce.test',
+      email: 'finance@gracelead.test',
       role: 'staff',
       canViewGiving: true,
     })
     deactivated = await db.createUser({
-      email: 'former@graceforce.test',
+      email: 'former@gracelead.test',
       role: 'staff',
       isActive: false,
     })
@@ -53,7 +53,7 @@ describe('row level security', () => {
   describe('provisioning', () => {
     it('makes the first user an admin and later users staff', async () => {
       expect(admin.role).toBe('admin')
-      const fresh = await db.createUser({ email: 'later@graceforce.test' })
+      const fresh = await db.createUser({ email: 'later@gracelead.test' })
       expect(fresh.role).toBe('staff')
     })
   })
@@ -372,7 +372,7 @@ describe('row level security', () => {
     })
 
     it('does not let an unrelated staff member touch it', async () => {
-      const other = await db.createUser({ email: 'other@graceforce.test', role: 'staff' })
+      const other = await db.createUser({ email: 'other@gracelead.test', role: 'staff' })
       const created = await db.asUser(admin.id, (sql) =>
         sql.query<{ id: string }>(
           `insert into public.follow_ups (contact_id, title, due_at, assigned_to, created_by)
@@ -445,7 +445,7 @@ describe('row level security', () => {
       await db.asServiceRole((sql) =>
         sql.query(
           `insert into public.notifications (kind, dedupe_key, recipients, subject)
-           values ('lead_created', 'lead_created:test', array['team@graceforce.test'], 'New lead')`,
+           values ('lead_created', 'lead_created:test', array['team@gracelead.test'], 'New lead')`,
         ),
       )
     })
