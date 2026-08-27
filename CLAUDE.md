@@ -29,10 +29,16 @@ event.
 "<from> is the <kind> of <to>"; the two sides render the kind and its inverse
 from `@/lib/relationships`. Never write a mirrored second row.
 
-**Capability and proposals follow `can_view_giving()`, not the contact
-permission.** That is why `contact_capability` is its own table — RLS is
-row-level, so a column on `contacts` would be readable by anyone who can read
-the person.
+**Giving is not partitioned, and `profiles.can_view_giving` is inert.**
+`20260814000400_shared_team_visibility` replaced the SELECT policies on
+`gifts`, `contact_capability`, `proposals`, `activities`, `leads` and
+`call_reports` with `is_active_user()`, so every active team member reads them;
+the flag is now referenced by no policy and no UI. It survives only so the
+partition can be restored without data work — see the rollback in
+`docs/ROLLOUT.md`. `contact_capability` is still its own table for the reason
+it was split out (RLS is row-level, so a column on `contacts` could not carry a
+different permission), and that is exactly what keeps restoring the gate a
+one-migration change rather than a schema change.
 
 **The forced-password-rotation flag lives in `auth.users.raw_app_meta_data`,
 not on `profiles`.** `profiles_update` lets a person update their own row and

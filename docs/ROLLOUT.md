@@ -1,16 +1,33 @@
 # Production rollout — Grace Lead Manager
 
-> The ordered plan for taking `claude/grace-lead-management-rebrand-f86mf8`
-> (the rename, the Sales section, staff-managed pipelines and shared team
-> visibility) live on top of the currently deployed
-> `claude/donor-crm-hubspot-redesign-smpmo4` @ `0e078c9`.
+> **Status: section 1 is done. The database is fully migrated.** All 31
+> migrations are applied to `phhkhvewcclzjkdbjmqw`, including the nine
+> `20260806*`, the four `20260814*`, and
+> `20260827000100_rebrand_to_grace_lead_manager` /
+> `20260827000200_force_password_rotation`. Sections 1–3 below are kept as the
+> record of what was applied and how to verify it; **start at section 4**, or
+> just run `scripts/finish-rollout.sh`.
+>
+> **Two things this document predates.** The work is no longer on
+> `claude/grace-lead-management-rebrand-f86mf8` — it is merged into `main`,
+> together with the forced-password-rotation feature. And production is no
+> longer `0e078c9`: it was overtaken by `9031460`
+> (`claude/crm-bridge-implementation-zj6y21`), an *older* line that predates
+> both the relationship-development domain and Sales. The live app is behind
+> the database, not ahead of it.
+>
+> **One trap when you next run `supabase db push`.** The `20260814` migrations
+> were applied through the management API, which stamps its own apply-time
+> version, so the history table records them as `20260814183037`–`20260814183353`
+> while this repository names them `20260814000100`–`20260814000400`. A push
+> compares by version, sees four it has no record of, and will try to re-apply
+> them. They are written idempotently, but confirm that before pushing — or
+> realign the recorded versions to the filename prefixes first, the way the
+> original sixteen were.
 
-**State when this branch was cut:** production (Supabase project
-`phhkhvewcclzjkdbjmqw`, Vercel project `grace-force`) runs the HubSpot-style
-redesign at `0e078c9` with migrations through `20260806000800` applied. The
-ninth migration of the previous release, `20260806000900_anon_privilege_lockdown`,
-**may still be pending** — verify first, apply it first. This release then adds
-four more migrations, `20260814000100`–`20260814000400`.
+**State when this branch was cut** (historical): production ran the
+HubSpot-style redesign at `0e078c9` with migrations through `20260806000800`
+applied, and this release added `20260814000100`–`20260814000400`.
 
 The order matters, same reasoning as the last release: every schema change is
 additive (new enum label, new nullable columns, replaced policies, new seeded

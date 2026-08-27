@@ -9,11 +9,11 @@
 
 | Field | Value |
 | --- | --- |
-| Current phase | Grace Lead Manager on `claude/grace-lead-management-rebrand-f86mf8` (from the deployed `0e078c9`): rename, Sales section, staff-managed pipelines, one shared workspace. Verified preview; **production migrations and deploy await authorization** |
+| Current phase | Merged onto `main`: the rename, Sales section, staff-managed pipelines, one shared workspace, and forced password rotation. **All 31 migrations are applied to the hosted project.** What remains is not code — promote the build and fix the Supabase Site URL; see `scripts/finish-rollout.sh` |
 | Overall status | Feature-complete. 29 migrations and 49 routes |
 | Tests | 628 Vitest (34 files) + 29 `@public` browser tests passing; production `@authed` pass follows deployment |
 | Build | `next build` succeeds — 49 routes, `/sales` family included |
-| Deployment | `grace-force` on Vercel, git-connected. Production still runs `0e078c9` (donor-crm branch). Branch previews build per push. **The four `20260814` migrations (plus the still-pending `20260806000900`) must be applied before this build is promoted. See `docs/ROLLOUT.md`.** |
+| Deployment | `grace-force` on Vercel, git-connected. **Production runs `9031460` (`claude/crm-bridge-implementation-zj6y21`)** — which predates the relationship-development domain *and* Sales, so the live app is far behind the database. `main` builds only as a *preview*, because the project's production branch still points at that older branch. Promote it, and repoint the branch, with `scripts/finish-rollout.sh`. |
 
 ## The Grace Lead Manager release (2026-08-14)
 
@@ -309,11 +309,14 @@ PDF is ideal).
 
 ## Next task
 
-Complete the authorized production rollout in `docs/ROLLOUT.md`: reconcile
-the two historical migration versions, apply the nine `20260806…` migrations,
-verify, deploy this build, then run the smoke/authed/attachment passes. The manual
-attachment script below and the `@authed` browser suite both run after that
-deploy, from a network with normal egress:
+The migrations are done — all 31 are applied. What is left is the control
+plane, which no agent session can reach (the sandbox proxy answers 403 to
+`api.vercel.com` and `api.supabase.com`, so this is a network limit, not an
+authorization one): promote `main` to production, repoint the Vercel production
+branch at `main`, set the Supabase Site URL away from `http://localhost:3000`,
+and turn on leaked-password protection. `scripts/finish-rollout.sh` does all
+four from a machine with normal egress. The manual attachment script below and
+the `@authed` browser suite both run after that promotion:
 
 ```bash
 E2E_BASE_URL=https://grace-force.vercel.app E2E_EMAIL=… E2E_PASSWORD=… npm run e2e
