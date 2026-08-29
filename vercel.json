@@ -9,5 +9,16 @@
       "path": "/api/cron/follow-up-reminders",
       "schedule": "*/15 * * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "claude/crm-redesign-simplicity-0zqxek": false,
+      "claude/crm-visual-design-polish-eevkm0": false,
+      "claude/dashboard-container-width-h9sqxr": false,
+      "claude/donor-crm-hubspot-redesign-smpmo4": false,
+      "claude/grace-lead-management-rebrand-f86mf8": false,
+      "claude/grace-lead-management-rebrand-x2a0bf": false,
+      "claude/grace-force-rebrand-dp3kwu": false
+    }
+  }
 }
