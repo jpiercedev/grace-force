@@ -20,6 +20,8 @@ const PROTECTED_ROUTES = [
   '/sales',
 ]
 
+const UNLISTED_GUIDE = '/guide/grace-lead-manager-4f7c2a9d'
+
 test.describe('@public route protection', () => {
   for (const route of PROTECTED_ROUTES) {
     test(`redirects ${route} to the login page`, async ({ page }) => {
@@ -96,6 +98,22 @@ test.describe('@public login page', () => {
     await page.waitForLoadState('networkidle')
 
     expect(errors).toEqual([])
+  })
+})
+
+test.describe('@public unlisted tutorial', () => {
+  test('plays the quick-start video without requiring a session', async ({ page }) => {
+    await page.goto(UNLISTED_GUIDE)
+
+    await expect(
+      page.getByRole('heading', { name: /learn grace lead manager in under two minutes/i }),
+    ).toBeVisible()
+    await expect(page.getByLabel('Grace Lead Manager quick-start tutorial')).toBeVisible()
+    await expect(page.locator('video source')).toHaveAttribute(
+      'src',
+      `${UNLISTED_GUIDE}/grace-lead-manager-tutorial.mp4`,
+    )
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/)
   })
 })
 

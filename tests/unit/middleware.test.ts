@@ -153,6 +153,16 @@ describe('unauthenticated user', () => {
     expect(location(response)).toBeNull()
   })
 
+  it('can reach the unlisted tutorial and its video without signing in', async () => {
+    const guide = await updateSession(request('/guide/grace-lead-manager-4f7c2a9d'))
+    const video = await updateSession(
+      request('/guide/grace-lead-manager-4f7c2a9d/grace-lead-manager-tutorial.mp4'),
+    )
+
+    expect(location(guide)).toBeNull()
+    expect(location(video)).toBeNull()
+  })
+
   it('short-circuits without contacting the auth server when no session cookie exists', async () => {
     // A user with no cookie must never cost a getUser() round-trip.
     currentUser = { id: 'should-not-be-consulted' }

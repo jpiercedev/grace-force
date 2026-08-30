@@ -11,6 +11,7 @@ const PUBLIC_PREFIXES = [
   '/auth',
   '/intake',
   '/setup',
+  '/guide/grace-lead-manager-4f7c2a9d',
   '/api/leads',
   '/api/cron',
 ]
