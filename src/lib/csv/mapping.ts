@@ -105,3 +105,94 @@ export function fieldLabels<Field extends string>(
   for (const definition of definitions) labels[definition.field] = definition.label
   return labels
 }
+
+/**
+ * Hand-edited mapping.
+ *
+ * The auto-mapping above is a starting point; the People-tab import lets the
+ * operator correct it column by column. That screen is laid out one row per
+ * column in the file, so the editable shape is header → field (or null for a
+ * column left out), the reverse of `ColumnMapping.fields`.
+ */
+export type ColumnAssignments<Field extends string> = Record<string, Field | null>
+
+export function assignmentsFromMapping<Field extends string>(
+  mapping: ColumnMapping<Field>,
+): ColumnAssignments<Field> {
+  const assignments: ColumnAssignments<Field> = {}
+  for (const column of mapping.columns) assignments[column.header] = column.field
+  return assignments
+}
+
+/**
+ * Columns that claim a field another column already claimed, keyed by the
+ * later header → the earlier one. Nothing is resolved here: silently
+ * un-assigning either column would surprise the operator, so the screen
+ * shows both and asks.
+ */
+export function conflictingAssignments<Field extends string>(
+  assignments: Readonly<ColumnAssignments<Field>>,
+): Map<string, string> {
+  const firstHeaderFor = new Map<Field, string>()
+  const conflicts = new Map<string, string>()
+  for (const [header, field] of Object.entries(assignments)) {
+    if (field === null || field === undefined) continue
+    const earlier = firstHeaderFor.get(field)
+    if (earlier === undefined) {
+      firstHeaderFor.set(field, header)
+    } else {
+      conflicts.set(header, earlier)
+    }
+  }
+  return conflicts
+}
+
+/**
+ * Turns a submitted header → field mapping back into a `ColumnMapping`,
+ * refusing anything that could not have come from the screen: a header the
+ * file does not have, a field that does not exist, or one field fed by two
+ * columns. The last is the important one — accepting it would leave the
+ * later column silently ignored, exactly what the screen exists to prevent.
+ */
+export function resolveAssignments<Field extends string>(
+  submitted: Readonly<Record<string, string>>,
+  headers: readonly string[],
+  definitions: readonly FieldDefinition<Field>[],
+): { mapping: ColumnMapping<Field>; error?: undefined } | { mapping?: undefined; error: string } {
+  const known = new Map<string, FieldDefinition<Field>>()
+  for (const definition of definitions) known.set(definition.field, definition)
+
+  const fields: Record<string, string> = {}
+  const claimedBy = new Map<Field, string>()
+  for (const [header, field] of Object.entries(submitted)) {
+    if (!headers.includes(header)) {
+      return { error: `The file has no column called "${header}". Choose the file again.` }
+    }
+    if (field === '') continue
+    const definition = known.get(field)
+    if (!definition) return { error: `"${field}" is not a field a person can have.` }
+    const earlier = claimedBy.get(definition.field)
+    if (earlier !== undefined) {
+      return {
+        error: `"${header}" and "${earlier}" are both set to ${definition.label}. Choose one of them.`,
+      }
+    }
+    claimedBy.set(definition.field, header)
+    fields[definition.field] = header
+  }
+
+  const columns: MappedColumn<Field>[] = []
+  const ignored: string[] = []
+  for (const header of headers) {
+    const field = submitted[header]
+    const definition = field ? known.get(field) : undefined
+    if (definition) {
+      columns.push({ header, field: definition.field, reason: null })
+    } else {
+      columns.push({ header, field: null, reason: 'unknown' })
+      ignored.push(header)
+    }
+  }
+
+  return { mapping: { columns, fields, ignored } }
+}

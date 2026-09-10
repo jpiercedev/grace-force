@@ -23,7 +23,12 @@ import {
   loadGiftMatchIndex,
 } from '@/lib/csv/store'
 import type { ImportAction } from '@/lib/csv/types'
-import { IMPORT_KIND_LABELS, isImportKind, type ImportActionState } from '@/lib/csv/ui'
+import {
+  IMPORT_KIND_LABELS,
+  IMPORT_MAX_FILE_BYTES,
+  isImportKind,
+  type ImportActionState,
+} from '@/lib/csv/ui'
 import { isAdmin, requireWriteAccess } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { chunk } from '@/lib/utils'
@@ -41,9 +46,6 @@ import type { Json } from '@/types/database'
  * admin-only `gifts` policies, which is why a giving import says so up front
  * rather than failing halfway down the file.
  */
-
-/** Bounded so a runaway upload cannot exhaust the request's memory. */
-const MAX_FILE_BYTES = 5 * 1024 * 1024
 
 /** Staging rows per insert. Large enough to be few round-trips, small enough to be a modest statement. */
 const WRITE_CHUNK = 200
@@ -137,7 +139,7 @@ export async function startImport(
   if (!(file instanceof File) || file.size === 0) {
     return { error: 'Choose a CSV file to import.', fieldErrors: { file: 'Choose a CSV file' } }
   }
-  if (file.size > MAX_FILE_BYTES) {
+  if (file.size > IMPORT_MAX_FILE_BYTES) {
     return {
       error: 'That file is larger than 5 MB. Split it and import the parts.',
       fieldErrors: { file: 'File is too large' },

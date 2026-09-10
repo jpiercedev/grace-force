@@ -1,4 +1,5 @@
 import { ContactFilters } from '@/components/domain/contact-filters'
+import { ContactImportDialog } from '@/components/domain/contact-import-dialog'
 import { ContactPagination } from '@/components/domain/contact-pagination'
 import {
   ContactPreviewPanel,
@@ -16,6 +17,7 @@ import {
   listTeamMembers,
   parseContactListFilters,
 } from '@/lib/queries/contacts'
+import { importContacts } from './import-actions'
 
 export const metadata = { title: 'People' }
 
@@ -58,7 +60,14 @@ export default async function ContactsPage({
       <PageHeader
         title="People"
         description="Everyone the ministry is in relationship with."
-        action={writable ? <LinkButton href="/contacts/new">Add person</LinkButton> : null}
+        action={
+          writable ? (
+            <>
+              <ContactImportDialog action={importContacts} />
+              <LinkButton href="/contacts/new">Add person</LinkButton>
+            </>
+          ) : null
+        }
       />
 
       {params.archived ? (
@@ -84,7 +93,12 @@ export default async function ContactsPage({
               title="No contacts yet"
               description="Add the first person the ministry is in relationship with, or bring a list in from a CSV."
               action={
-                writable ? <LinkButton href="/contacts/new">Add a person</LinkButton> : null
+                writable ? (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <ContactImportDialog action={importContacts} />
+                    <LinkButton href="/contacts/new">Add a person</LinkButton>
+                  </div>
+                ) : null
               }
             />
           )}

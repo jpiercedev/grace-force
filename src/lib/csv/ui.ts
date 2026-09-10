@@ -44,3 +44,43 @@ export const IMPORT_STATUS_TONES: Record<ImportStatus, BadgeTone> = {
 export function isImportKind(value: string): value is ImportKind {
   return value === 'contacts' || value === 'gifts'
 }
+
+/** Bounded so a runaway upload cannot exhaust the request's memory. */
+export const IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024
+
+/**
+ * Row problems shown inside the People-tab import dialog. Enough to see what
+ * kind of thing went wrong; the batch record holds the rest.
+ */
+export const CONTACT_IMPORT_PROBLEM_LIMIT = 20
+
+export interface ContactImportProblem {
+  row: number
+  message: string
+}
+
+export interface ContactImportResult {
+  /** Null only when the records were written but the audit record could not be. */
+  batchId: string | null
+  filename: string
+  total: number
+  created: number
+  updated: number
+  /** Rows a row earlier in the same file already covered. */
+  skipped: number
+  /** Rows that failed validation or could not be written. */
+  failed: number
+  /** In file order, capped at `CONTACT_IMPORT_PROBLEM_LIMIT`; `problemCount` is the true number. */
+  problems: ContactImportProblem[]
+  problemCount: number
+  /** The file held more than `MAX_IMPORT_ROWS`, and only the first that many were read. */
+  truncated: boolean
+  /** The people were written but the batch record is missing or incomplete. */
+  caveat: string | null
+}
+
+export interface ContactImportState {
+  error?: string
+  fieldErrors?: Record<string, string>
+  result?: ContactImportResult
+}

@@ -406,7 +406,10 @@ views set `security_invoker = on`. Development seed in `supabase/seed.sql`.
 - Resend: claim-then-send outbox, typed events, escaping templates, reminder
   cron route.
 - Import/export: two-phase CSV import with preview and per-row reasons;
-  dataset exports plus a relational bundle with a manifest.
+  a one-step "Import CSV" dialog on the People tab (choose a file, correct
+  the column matching, import) that runs the same planner and store and
+  records itself in the same history; dataset exports plus a relational
+  bundle with a manifest.
 - Settings: team administration, integration status, engagement-type catalogue.
 
 ## Next task
@@ -599,7 +602,7 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 
 ## Tests
 
-**475 Vitest across 25 files, all passing.**
+**655 Vitest across 36 files, all passing.**
 
 | Suite | Count |
 | --- | --- |
@@ -616,6 +619,7 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 | `unit/csv-gifts.test.ts` | 22 |
 | `unit/notifications.test.ts` | 22 |
 | `unit/csv-contacts.test.ts` | 21 |
+| `unit/csv-mapping.test.ts` | 9 |
 | `unit/export-bundle.test.ts` | 18 |
 | `unit/contact-validation.test.ts` | 16 |
 | `unit/mailchimp-client.test.ts` | 16 |
@@ -627,6 +631,7 @@ Plus `supabase/seed.sql` — idempotent development data, every address
 | `unit/giving.test.ts` | 10 |
 | `ui/primitives.test.tsx` | 17 |
 | `ui/follow-up-queue.test.tsx` | 11 |
+| `ui/contact-import-dialog.test.tsx` | 9 |
 | `ui/pipeline-board.test.tsx` | 7 |
 
 The last three unit suites cover the production faults above. Each was run
