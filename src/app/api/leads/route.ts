@@ -14,6 +14,7 @@ import {
   utmFrom,
 } from '@/lib/leads/intake'
 import { notifyLeadCreated } from '@/lib/notifications/events'
+import { lifeCentreProxyIp, mapWebflowInquiry, verifyWebflow } from '@/lib/leads/life-centre'
 /*
  * The public intake route is one of the three sanctioned service-role callers.
  * `anon` holds no table privileges by design, so an unauthenticated visitor
@@ -51,7 +52,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return reject(403, GENERIC_REJECTION, null)
   }
 
-  if (!matchesIntakeSecret(request.headers.get('x-crm-intake-key'), config.secret)) {
+  const webflow = request.nextUrl.searchParams.get('source') === 'webflow-life-centre'
+  const proxyIp = lifeCentreProxyIp(request.headers, process.env.LIFE_CENTRE_PROXY_SECRET)
+  if (request.headers.has('x-life-centre-key') && !proxyIp) return reject(401, GENERIC_REJECTION, origin)
+  if (!webflow && !proxyIp && !matchesIntakeSecret(request.headers.get('x-crm-intake-key'), config.secret)) {
     return reject(401, GENERIC_REJECTION, origin)
   }
 
@@ -66,8 +70,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return reject(413, GENERIC_REJECTION, origin)
   }
 
-  const payload = await readPayload(request)
+  let payload: Record<string, unknown> | null
+  let webhookDedupeKey: string | undefined
+  if (webflow) {
+    const raw = await request.text()
+    if (Buffer.byteLength(raw) > MAX_BODY_BYTES) return reject(413, GENERIC_REJECTION, null)
+    // Dashboard/OAuth webhooks do not provide a per-hook signing key. Their
+    // unique bearer URL stays only in Webflow and server configuration.
+    const webhookToken = process.env.LIFE_CENTRE_WEBFLOW_TOKEN
+    const tokenValid = Boolean(webhookToken) && matchesIntakeSecret(request.nextUrl.searchParams.get('token'), webhookToken ?? null)
+    if (!tokenValid && !verifyWebflow(raw, request.headers, process.env.LIFE_CENTRE_WEBFLOW_SECRET)) {
+      return reject(401, GENERIC_REJECTION, null)
+    }
+    let event: unknown
+    try { event = JSON.parse(raw) } catch { return reject(400, GENERIC_REJECTION, null) }
+    if (!event || typeof event !== 'object' || Array.isArray(event)) return reject(400, GENERIC_REJECTION, null)
+    const mapped = mapWebflowInquiry(event as Record<string, unknown>)
+    // Other forms on the site must not create Life Centre information leads.
+    if (!mapped) return NextResponse.json({ ok: true, ignored: true })
+    payload = mapped.lead
+    webhookDedupeKey = mapped.dedupeKey
+  } else {
+    payload = await readPayload(request)
+  }
   if (!payload) return reject(400, 'Send a JSON object or a form submission.', origin)
+  if (proxyIp && payload.form_key !== 'cathedral-life-centre') return reject(403, GENERIC_REJECTION, origin)
 
   // Read before validation: a bot that trips the honeypot usually also sends
   // rubbish in the real fields, and it must never see a validation message.
@@ -93,10 +120,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // malformed floods are turned away for free, and only well-formed submissions
   // spend a slot — which also means a mistyped email cannot burn someone's
   // hourly budget before they get the message telling them to fix it.
-  const ip = clientIpFrom(request.headers)
+  const ip = proxyIp ?? (webflow ? null : clientIpFrom(request.headers))
   const ipHash = ip ? hashIp(ip, ipSalt(config.secret)) : null
   const { data: withinBudget, error: rateLimitError } = await supabase.rpc('consume_rate_limit', {
-    p_bucket: rateLimitBucket(ipHash ?? 'unattributed'),
+    // Verified Webflow already applies its form protections. Per-contact buckets
+    // avoid giving every visitor the same Webflow-server IP allowance.
+    p_bucket: rateLimitBucket(webflow ? hashIp(`webflow:${lead.email ?? lead.phone}`, ipSalt(config.secret)) : ipHash ?? 'unattributed'),
     p_limit: config.rateLimit,
     p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
   })
@@ -110,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
   }
 
-  const dedupeKey = leadDedupeKey({
+  const dedupeKey = webhookDedupeKey ?? leadDedupeKey({
     form_key: lead.form_key,
     email: lead.email,
     phone: lead.phone,
@@ -154,7 +183,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return reject(503, GENERIC_REJECTION, origin)
   }
 
-  if (!trapped) {
+  if (!trapped && !webflow && !proxyIp) {
     // A notification failure must never cost the enquiry: the lead is already
     // safely stored, and the queue is the system of record either way.
     try {
